@@ -5,6 +5,9 @@
   "description": "Painel Consultivo Hebron ASEEC — fundação de dados (Fase 1)",
   "type": "module",
   "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
     "test": "node --import tsx --test tests/unit.test.ts",
     "check": "tsx scripts/check-fase1.ts",
     "enrich:regen": "tsx scripts/regen-enrichment.ts",
@@ -13,12 +16,23 @@
   "dependencies": {
     "csv-parse": "^5.6.0",
     "csv-stringify": "^6.5.2",
-    "pg": "^8.13.1"
+    "d3-geo": "^3.1.1",
+    "i18n-iso-countries": "^7.14.0",
+    "next": "^16.3.4",
+    "pg": "^8.13.1",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "topojson-client": "^3.1.0"
   },
   "devDependencies": {
+    "@types/d3-geo": "^3.1.1",
     "@types/node": "^22.10.5",
     "@types/pg": "^8.11.10",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.7",
+    "@types/topojson-client": "^3.1.5",
     "tsx": "^4.19.2",
-    "typescript": "^5.7.3"
+    "typescript": "^5.7.3",
+    "world-atlas": "^2.0.2"
   }
 }

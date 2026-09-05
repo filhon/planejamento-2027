@@ -1,8 +1,19 @@
 import { readFileSync, existsSync } from "node:fs";
 import { resolve } from "node:path";
 
-/** Raiz do repositório (este arquivo mora em src/lib/). */
-export const REPO_ROOT = resolve(import.meta.dirname, "..", "..");
+/**
+ * Raiz do repositório.
+ *
+ * Preferimos o cwd quando ele tem os dados: sob o Next o módulo roda empacotado
+ * dentro de `.next/`, e `import.meta.dirname` apontaria para lá — os CSVs de
+ * `data/` não seriam encontrados. Nos scripts (`tsx`), o cwd também é a raiz;
+ * o fallback pelo caminho do arquivo cobre execuções a partir de outra pasta.
+ */
+export const REPO_ROOT = existsSync(
+  resolve(process.cwd(), "data", "country_map.csv"),
+)
+  ? process.cwd()
+  : resolve(import.meta.dirname, "..", "..");
 
 /** Região do pooler IPv4 do Supabase (o host direto db.* é IPv6-only). */
 const DEFAULT_POOLER_HOST = "aws-1-us-east-1.pooler.supabase.com";

@@ -18,16 +18,21 @@ aprovação e a alocação de recursos dos projetos.
   escrever, criar tabelas/views ou alterar nada nele — deve ser preservado. Toda
   normalização e todo dado novo vivem FORA, em `data/*.csv` (ver enriquecimento abaixo).
 
-## Estado atual (2026-09-04)
+## Estado atual (2026-09-05)
 
-**Fase 1 (fundação de dados) implementada** — camada TypeScript em [`src/lib/`](src/lib/)
-que lê a origem só com `SELECT` e junta com `data/*.csv` em memória. Nada foi criado
-na origem. Manual da camada: [`docs/fase1-fundacao-dados.md`](docs/fase1-fundacao-dados.md).
+**Fase 1 (fundação de dados)** — camada TypeScript em [`src/lib/`](src/lib/) que lê a
+origem só com `SELECT` e junta com `data/*.csv` em memória. Nada foi criado na origem.
+Manual: [`docs/fase1-fundacao-dados.md`](docs/fase1-fundacao-dados.md).
+
+**Fase 2 (app + Mapa-múndi)** — app Next.js em [`app/`](app/) com a marca, filtros
+globais e a página do mapa. Manual: [`docs/fase2-mapa.md`](docs/fase2-mapa.md).
 
 ```bash
 npm install
+npm run dev            # painel em http://localhost:3000
+npm run build && npm start
 npm run check          # relatório de sanidade contra os dados vivos (só SELECT)
-npm test               # regras puras (país, guarda de leitura, orçamento, notas)
+npm test               # regras puras (país, guarda de leitura, orçamento, notas, mapa)
 npm run enrich:regen   # regenera as colunas derivadas do CSV (preserva as curadas)
 ```
 
@@ -36,8 +41,12 @@ Datasets prontos para a UI (fachada com cache em `src/lib/cache.ts`):
 `dados.resumo(ano)` (KPIs) · `dados.orcamento(ano)` · `dados.avaliacoes(ano)`;
 `atualizar()` é o botão "Atualizar" da reunião.
 
-**Próximo passo:** Fase 2 — app Next.js com a marca, API de leitura sobre `src/lib/`
-e a página do Mapa-múndi.
+Agregações puras ficam em `src/lib/agregar.ts` (sem `pg`/`fs`) porque o cliente as usa
+para reagregar os filtros — `datasets.ts` reexporta tudo. **Não** importar `datasets.ts`
+num componente cliente: arrasta o driver do banco para o bundle.
+
+**Próximo passo:** Fase 3 — Visão Geral, Pipeline & Avaliação, Orçamento e o comparador
+2026 × 2025 nas demais páginas.
 
 ### Planejamento (entregue antes)
 
@@ -139,7 +148,11 @@ Junção com a origem sempre pelos uuids (`institutions.id`, `cycle_projects.id`
 (enriquecimento) · `tsx` para os scripts. Camada de dados em `src/lib/`, com cache de
 15 min e `atualizar()`.
 
-**Fase 2 em diante:** Next.js + React sobre `src/lib/` · Recharts/visx (gráficos) ·
-react-simple-maps + TopoJSON mundial (mapa, casando por **ISO-3**) · rotas de API que
-apenas chamam a fachada `dados.*` · botão "Atualizar" → `atualizar()`.
+**Fase 2 (em uso):** Next.js 16 (App Router) + React 19 sobre `src/lib/`. Server Components
+chamam a fachada `dados.*` — é essa a "API de leitura", sem rotas REST. Mapa sem biblioteca
+de mapas: `d3-geo` + `topojson-client` projetam **no servidor** e mandam paths SVG prontos
+(TopoJSON vendorizado em `data/countries-110m.json`, casando por **ISO-3** via
+`i18n-iso-countries`). Botão "Atualizar" = Server Action → `atualizar()`.
+
+**Fase 3 em diante:** Recharts ou visx para os gráficos das demais páginas.
 Nenhuma escrita na origem em nenhum momento.

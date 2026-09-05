@@ -14,6 +14,7 @@ import {
   agregarPorPais,
 } from "../src/lib/datasets";
 import { carregarCountryMap } from "../src/lib/enrichment";
+import { geometriaMundo } from "../src/lib/mapa";
 import { GRUPO_SENSIVEL, type ProjetoCiclo } from "../src/lib/types";
 import type { OrcamentoRow } from "../src/lib/queries";
 
@@ -248,4 +249,27 @@ test("agregação por país soma valores e conta instituições distintas", () =
   assert.equal(brasil?.instituicoes, 1);
   assert.equal(brasil?.categorias.length, 2);
   assert.equal(locais[0]?.iso3, "BRA", "deve vir ordenado por nº de projetos");
+});
+
+// ------------------------------------------------------------ mapa (Fase 2)
+
+test("geometria do mundo casa com o de-para por ISO-3", () => {
+  const paises = geometriaMundo();
+  assert.ok(paises.length > 150, `poucos países no TopoJSON: ${paises.length}`);
+
+  const comGeometria = new Set(paises.map((p) => p.iso3).filter(Boolean));
+  const doDePara = new Set(carregarCountryMap().map((r) => r.iso3));
+  const ausentes = [...doDePara].filter((i) => !comGeometria.has(i)).sort();
+
+  // Natural Earth 110m não traz ilhas minúsculas; a UI mostra a ficha
+  // "Fora do mapa" para elas. Se a lista crescer, a ficha cobre — mas o teste
+  // avisa que a decisão precisa ser revista.
+  assert.deepEqual(
+    ausentes,
+    ["CPV", "STP"],
+    "mudou o conjunto de países sem geometria a 110m",
+  );
+
+  const brasil = paises.find((p) => p.iso3 === "BRA");
+  assert.ok(brasil?.d.startsWith("M"), "path SVG do Brasil não foi gerado");
 });

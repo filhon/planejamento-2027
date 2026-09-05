@@ -10,3 +10,6 @@ dist/
 # artefatos locais
 *.log
 .DS_Store
+
+# artefatos do TypeScript/Next
+*.tsbuildinfo

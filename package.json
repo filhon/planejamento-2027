@@ -1,0 +1,24 @@
+{
+  "name": "planejamento-2027",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Painel Consultivo Hebron ASEEC — fundação de dados (Fase 1)",
+  "type": "module",
+  "scripts": {
+    "test": "node --import tsx --test tests/unit.test.ts",
+    "check": "tsx scripts/check-fase1.ts",
+    "enrich:regen": "tsx scripts/regen-enrichment.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "csv-parse": "^5.6.0",
+    "csv-stringify": "^6.5.2",
+    "pg": "^8.13.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.5",
+    "@types/pg": "^8.11.10",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3"
+  }
+}

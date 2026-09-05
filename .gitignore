@@ -1,0 +1,12 @@
+node_modules/
+.next/
+out/
+dist/
+
+# segredos — nunca commitar
+.env.local
+.env*.local
+
+# artefatos locais
+*.log
+.DS_Store

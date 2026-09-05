@@ -1,0 +1,122 @@
+import { readFileSync, existsSync } from "node:fs";
+import { resolve } from "node:path";
+
+/** Raiz do repositório (este arquivo mora em src/lib/). */
+export const REPO_ROOT = resolve(import.meta.dirname, "..", "..");
+
+/** Região do pooler IPv4 do Supabase (o host direto db.* é IPv6-only). */
+const DEFAULT_POOLER_HOST = "aws-1-us-east-1.pooler.supabase.com";
+
+let cachedEnv: Record<string, string> | null = null;
+
+/**
+ * Lê .env.local em UTF-8 (a senha contém `£`, então o encoding importa).
+ * Não sobrescreve variáveis já presentes em process.env.
+ */
+export function loadEnvLocal(): Record<string, string> {
+  if (cachedEnv) return cachedEnv;
+
+  const file = resolve(REPO_ROOT, ".env.local");
+  const vars: Record<string, string> = {};
+
+  if (existsSync(file)) {
+    const raw = readFileSync(file, "utf-8").replace(/^﻿/, "");
+    for (const line of raw.split(/\r?\n/)) {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith("#")) continue;
+      const eq = trimmed.indexOf("=");
+      if (eq === -1) continue;
+      const key = trimmed.slice(0, eq).trim();
+      let value = trimmed.slice(eq + 1).trim();
+      if (
+        (value.startsWith('"') && value.endsWith('"')) ||
+        (value.startsWith("'") && value.endsWith("'"))
+      ) {
+        value = value.slice(1, -1);
+      }
+      vars[key] = value;
+    }
+  }
+
+  cachedEnv = vars;
+  return vars;
+}
+
+function pick(...keys: string[]): string | undefined {
+  const env = loadEnvLocal();
+  for (const key of keys) {
+    // process.env tem prioridade (CI, overrides de shell).
+    const fromProcess = process.env[key];
+    if (fromProcess !== undefined && fromProcess !== "") return fromProcess;
+    const fromFile = env[key];
+    if (fromFile !== undefined && fromFile !== "") return fromFile;
+  }
+  return undefined;
+}
+
+export interface DbConfig {
+  host: string;
+  port: number;
+  database: string;
+  user: string;
+  password: string;
+  /** true quando o host foi reescrito para o pooler IPv4. */
+  viaPooler: boolean;
+}
+
+/**
+ * Monta a config de conexão a partir de .env.local.
+ *
+ * Regras (ver CLAUDE.md):
+ * - host direto `db.<ref>.supabase.co` é IPv6-only → reescrever para o pooler
+ *   IPv4 e transformar o usuário em `postgres.<ref>`.
+ * - overrides explícitos (DB_HOST, DB_USER, ...) sempre vencem.
+ */
+export function getDbConfig(): DbConfig {
+  const password = pick("DB_PASSWORD", "PASSWORD", "PGPASSWORD");
+  if (!password) {
+    throw new Error(
+      "Senha do banco não encontrada. Defina PASSWORD (ou DB_PASSWORD) em .env.local — ver .env.example.",
+    );
+  }
+
+  const rawHost = pick("DB_HOST", "IP_HOST", "PGHOST") ?? "";
+  const rawUser = pick("DB_USER", "USER", "PGUSER") ?? "postgres";
+  const database = pick("DB_NAME", "DB", "PGDATABASE") ?? "postgres";
+  const port = Number(pick("DB_PORT", "PORTA", "PGPORT") ?? 5432);
+
+  if (!rawHost) {
+    throw new Error(
+      "Host do banco não encontrado. Defina IP_HOST (ou DB_HOST) em .env.local.",
+    );
+  }
+
+  const usePooler = (pick("DB_USE_POOLER") ?? "true").toLowerCase() !== "false";
+  const poolerHost = pick("DB_POOLER_HOST") ?? DEFAULT_POOLER_HOST;
+
+  // db.<project-ref>.supabase.co  →  pooler IPv4 + user postgres.<project-ref>
+  const direct = /^db\.([a-z0-9]+)\.supabase\.co$/i.exec(rawHost);
+  const explicitHost = pick("DB_HOST") !== undefined;
+
+  if (usePooler && direct && !explicitHost) {
+    const ref = direct[1]!;
+    const user = rawUser.includes(".") ? rawUser : `${rawUser}.${ref}`;
+    return {
+      host: poolerHost,
+      port,
+      database,
+      user,
+      password,
+      viaPooler: true,
+    };
+  }
+
+  return {
+    host: rawHost,
+    port,
+    database,
+    user: rawUser,
+    password,
+    viaPooler: rawHost.includes("pooler.supabase.com"),
+  };
+}

@@ -170,6 +170,27 @@ button {
   cursor: progress;
 }
 
+.botao-claro {
+  border: 1px solid rgb(255 255 255 / 35%);
+  background: transparent;
+  color: rgb(255 255 255 / 85%);
+  font-weight: 600;
+  font-size: 13.5px;
+  padding: 8px 16px;
+  border-radius: 999px;
+}
+
+.botao-claro:hover {
+  background: rgb(255 255 255 / 12%);
+  color: #fff;
+}
+
+.botao-claro[aria-pressed="true"] {
+  background: #fff;
+  color: var(--azul);
+  border-color: #fff;
+}
+
 /* --------------------------------------------------------------- layout */
 
 main {
@@ -722,4 +743,165 @@ main {
   font-size: 12.5px;
   color: var(--vermelho);
   word-break: break-word;
+}
+
+/* Tabelas longas (instituições, pendências) rolam dentro do bloco. */
+.rolagem {
+  max-height: 460px;
+  overflow: auto;
+}
+
+.rolagem thead th {
+  position: sticky;
+  top: 0;
+  background: var(--papel);
+  z-index: 1;
+}
+
+/* ------------------------------------------------- modo apresentação/TV */
+
+/*
+ * Escala explícita em vez de `zoom`/`transform`: a dica do mapa é posicionada
+ * em pixels a partir de getBoundingClientRect() e um fator de escala no
+ * ancestral desalinharia o tooltip do país.
+ */
+body.apresentacao {
+  font-size: 18px;
+}
+
+body.apresentacao main {
+  max-width: none;
+  padding: 24px 40px 56px;
+}
+
+body.apresentacao .kpi-valor {
+  font-size: 42px;
+}
+
+body.apresentacao .kpi-rotulo,
+body.apresentacao .campo label {
+  font-size: 13px;
+}
+
+body.apresentacao .kpi-delta,
+body.apresentacao .sub,
+body.apresentacao .rodape {
+  font-size: 15px;
+}
+
+body.apresentacao .bloco h2,
+body.apresentacao .ranking h2 {
+  font-size: 21px;
+}
+
+body.apresentacao .linha-topo,
+body.apresentacao .tabela,
+body.apresentacao .ficha,
+body.apresentacao .abas a,
+body.apresentacao .anos button {
+  font-size: 16px;
+}
+
+body.apresentacao .tabela th {
+  font-size: 13px;
+}
+
+body.apresentacao .cabecalho h1 {
+  font-size: 24px;
+}
+
+/* Um painel por vez: nada de rolar duas listas dentro da mesma tela. */
+body.apresentacao .barras,
+body.apresentacao .ranking ol,
+body.apresentacao .rolagem {
+  max-height: none;
+}
+
+body.apresentacao .grade {
+  grid-template-columns: repeat(auto-fit, minmax(520px, 1fr));
+}
+
+/* --------------------------------------------------- exportar PDF (print) */
+
+.so-impressao {
+  display: none;
+}
+
+@media print {
+  /* As barras e as pastilhas de status SÃO o dado — não podem sair em branco. */
+  * {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  @page {
+    margin: 12mm;
+    size: A4 landscape;
+  }
+
+  body {
+    background: #fff;
+  }
+
+  /* Controles não vão para a ata; o recorte vai, na linha .so-impressao. */
+  .abas,
+  .cabecalho-acoes,
+  .filtros,
+  .limpar {
+    display: none !important;
+  }
+
+  .cabecalho {
+    padding: 10px 0;
+    background: #fff;
+    color: var(--azul);
+  }
+
+  .cabecalho::after {
+    display: none;
+  }
+
+  .cabecalho p {
+    color: var(--tinta-fraca);
+  }
+
+  main {
+    padding: 0;
+    max-width: none;
+  }
+
+  .so-impressao {
+    display: flex;
+    gap: 14px;
+    flex-wrap: wrap;
+    align-items: baseline;
+    padding: 8px 0 12px;
+    border-bottom: 2px solid var(--azul);
+    margin-bottom: 12px;
+    font-size: 12px;
+    color: var(--tinta-fraca);
+  }
+
+  .so-impressao b {
+    font-family: var(--fonte-titulo), system-ui, sans-serif;
+    font-size: 15px;
+    color: var(--azul);
+  }
+
+  .cartao {
+    box-shadow: none;
+    break-inside: avoid;
+  }
+
+  /* Listas roladas na tela precisam sair inteiras no papel. */
+  .barras,
+  .ranking ol,
+  .rolagem {
+    max-height: none;
+    overflow: visible;
+  }
+
+  .grade {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }

@@ -17,6 +17,8 @@ npm test         # inclui a regra dos filtros globais
 | `/pipeline`  | **Pipeline & Avaliação** | Onde os projetos estão parados, notas e inflação de nota.                  |
 | `/orcamento` | **Orçamento**            | Teto (conveniadas/não) × solicitado × reservado, semáforo de saldo.        |
 
+As rotas `/instituicoes` e `/prestacao` vieram na Fase 4, sobre este mesmo esqueleto.
+
 ## Como está montado
 
 | Arquivo                                                       | Papel                                                                     |
@@ -64,6 +66,7 @@ comparativo continua válido depois de recortar por país ou categoria.
 
 ## O que a Fase 3 **não** faz
 
-Páginas Instituições e Prestação de contas, modo apresentação/TV, exportar PDF/PNG
-e zoom no mapa — tudo Fase 4. O painel também não escreve nada na origem, em
-nenhum momento.
+Páginas Instituições e Prestação de contas, modo apresentação/TV e exportar PDF
+saíram na Fase 4 — ver [`fase4-reuniao.md`](fase4-reuniao.md). Zoom no mapa e
+exportar PNG seguem fora. O painel também não escreve nada na origem, em nenhum
+momento.

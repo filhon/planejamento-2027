@@ -16,6 +16,7 @@ import {
   ReadOnlyViolationError,
 } from "../src/lib/db";
 import { dados } from "../src/lib/cache";
+import { agregarPorInstituicao, montarCobertura } from "../src/lib/agregar";
 import {
   carregarCountryMap,
   carregarInstitutionEnrichment,
@@ -194,6 +195,18 @@ async function checarEnriquecimento(): Promise<void> {
       `${sobrando.length} linha(s) do CSV sem instituição correspondente na origem`,
     );
 
+  // Fase 4: documentos apontando para instituição que não existe mais.
+  const conf = await dados.conformidade();
+  const orfas = Object.keys(conf.porInstituicao).filter((id) => !idsDb.has(id));
+  if (orfas.length === 0)
+    ok(
+      `institution_documents: ${Object.keys(conf.porInstituicao).length} instituições, ${conf.tiposExigidos} tipos exigidos`,
+    );
+  else
+    aviso(
+      `${orfas.length} institution_id em institution_documents sem instituição na origem (documentos órfãos) — o painel os ignora`,
+    );
+
   const curadas = `anos de parceria: ${cobertura.curadasComAno}/${cobertura.totalNoCsv} · tipo: ${cobertura.curadasComTipo} · observações: ${cobertura.curadasComObservacao}`;
   if (cobertura.curadasComAno === 0)
     aviso(
@@ -205,12 +218,16 @@ async function checarEnriquecimento(): Promise<void> {
 async function checarCiclo(ano: number): Promise<void> {
   titulo(`5. Ciclo ${ano} — datasets`);
 
-  const [resumo, locais, orcamento, avaliacoes] = await Promise.all([
-    dados.resumo(ano),
-    dados.locais(ano),
-    dados.orcamento(ano),
-    dados.avaliacoes(ano),
-  ]);
+  const [resumo, locais, orcamento, avaliacoes, projetos, relatorios, conf] =
+    await Promise.all([
+      dados.resumo(ano),
+      dados.locais(ano),
+      dados.orcamento(ano),
+      dados.avaliacoes(ano),
+      dados.projetos(ano),
+      dados.prestacao(),
+      dados.conformidade(),
+    ]);
 
   console.log(
     `  projetos_ciclo: ${resumo.projetos} projetos · ${brl.format(resumo.solicitado)} solicitado · ` +
@@ -270,6 +287,44 @@ async function checarCiclo(ano: number): Promise<void> {
         .join(" · ")}`,
     );
   }
+
+  // --- Fase 4: instituições e prestação de contas
+  const instituicoes = agregarPorInstituicao(projetos, conf.porInstituicao);
+  const emDia = instituicoes.filter(
+    (i) => i.documentos.total > 0 && i.documentos.pendentes === 0,
+  );
+  console.log(
+    `  instituicoes_ciclo: ${instituicoes.length} instituições · ` +
+      `${instituicoes.filter((i) => i.conveniada).length} conveniadas · ` +
+      `${emDia.length} com documentação em dia (${conf.tiposExigidos} tipos exigidos) · ` +
+      `top 3 por verba: ${instituicoes
+        .slice(0, 3)
+        .map(
+          (i) =>
+            `${i.nome.slice(0, 24)} ${brl.format(i.aprovado || i.solicitado)}`,
+        )
+        .join(" · ")}`,
+  );
+
+  const cob = montarCobertura(projetos, relatorios, ano);
+  console.log(
+    `  prestacao_ciclo: ${cob.comRelatorio}/${cob.financiados} projetos financiados prestaram contas ` +
+      `(${pct(cob.cobertura)}) · ${cob.relatorios} relatórios (${cob.rascunhos} em rascunho) · ` +
+      `${brl.format(cob.aprovadoDescoberto)} aprovados sem prestação · ` +
+      `trimestres: ${cob.porTrimestre.map((t) => `${t.rotulo} ${t.relatorios}`).join(" · ") || "—"}`,
+  );
+  if (cob.relatoriosForaDoEsperado > 0)
+    aviso(
+      `ciclo ${ano}: ${cob.relatoriosForaDoEsperado} relatório(s) de prestação em projeto que não está aprovado`,
+    );
+  if (cob.relatoriosDeOutroCiclo > 0)
+    aviso(
+      `ciclo ${ano}: ${cob.relatoriosDeOutroCiclo} relatório(s) com cycle_id de outra remessa (a remessa vem do projeto) — conferir o carimbo com a equipe`,
+    );
+  if (cob.financiados > 0 && cob.cobertura < 0.5)
+    aviso(
+      `ciclo ${ano}: cobertura da prestação de contas em ${pct(cob.cobertura)} — a maior parte do aprovado segue sem relatório`,
+    );
 
   const esperado = SNAPSHOT_DOCS[ano];
   if (esperado) {

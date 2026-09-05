@@ -12,17 +12,24 @@ import {
   estatisticaNota,
   grupoDeStatus,
   agregarPorPais,
+  montarConformidade,
 } from "../src/lib/datasets";
 import {
+  agregarPorInstituicao,
   filtrar,
+  montarCobertura,
   SEM_FILTRO,
   temFiltro,
   type Filtros,
 } from "../src/lib/agregar";
 import { carregarCountryMap } from "../src/lib/enrichment";
 import { geometriaMundo } from "../src/lib/mapa";
-import { GRUPO_SENSIVEL, type ProjetoCiclo } from "../src/lib/types";
-import type { OrcamentoRow } from "../src/lib/queries";
+import {
+  GRUPO_SENSIVEL,
+  type ProjetoCiclo,
+  type RelatorioPrestacao,
+} from "../src/lib/types";
+import type { DocumentoRow, OrcamentoRow } from "../src/lib/queries";
 
 const indice = construirIndicePaises(carregarCountryMap());
 
@@ -223,13 +230,28 @@ test("status vira grupo semântico da paleta", () => {
 const projeto = (p: Partial<ProjetoCiclo>): ProjetoCiclo =>
   ({
     id: "p",
+    titulo: "Projeto",
     categoria: "educacao",
     solicitado: 0,
     aprovado: 0,
+    reservado: 0,
+    liberado: 0,
+    notaMediana: null,
     instituicaoId: "i1",
+    instituicaoNome: "Instituição 1",
     statusGrupo: "em-avaliacao",
     conveniada: null,
     local: normalizarLocal({ country: "Brasil" }, indice),
+    enriquecimento: {
+      parceriaDesdeAno: null,
+      anosDeParceria: null,
+      tipoParceria: null,
+      observacoesAvaliacao: null,
+      situacaoNoSistema: null,
+      valorAprovado2025: null,
+      projetos2025: null,
+      projetos2026: null,
+    },
     ...p,
   }) as ProjetoCiclo;
 
@@ -292,6 +314,177 @@ test("filtros globais se combinam e null conta como não conveniada", () => {
   assert.equal(temFiltro(SEM_FILTRO), false);
   assert.equal(temFiltro({ ...SEM_FILTRO, iso3: "BRA" }), true);
   assert.equal(temFiltro({ ...SEM_FILTRO, conveniada: "false" }), true);
+});
+
+// ------------------------------------------------- instituições (Fase 4)
+
+test("agregação por instituição soma verba, conta países e junta os documentos", () => {
+  const docs = {
+    i1: { enviados: 5, pendentes: 0, total: 5 },
+    i2: { enviados: 2, pendentes: 3, total: 5 },
+  };
+  const lista = agregarPorInstituicao(
+    [
+      projeto({
+        id: "a",
+        instituicaoId: "i1",
+        instituicaoNome: "Alfa",
+        conveniada: true,
+        solicitado: 100,
+        aprovado: 90,
+      }),
+      projeto({
+        id: "b",
+        instituicaoId: "i1",
+        instituicaoNome: "Alfa",
+        conveniada: true,
+        solicitado: 50,
+        aprovado: 10,
+        local: normalizarLocal({ country: "Angola" }, indice),
+      }),
+      projeto({
+        id: "c",
+        instituicaoId: "i2",
+        instituicaoNome: "Beta",
+        conveniada: null,
+        solicitado: 400,
+        aprovado: 0,
+      }),
+    ],
+    docs,
+  );
+
+  const alfa = lista.find((i) => i.id === "i1")!;
+  assert.equal(alfa.projetos, 2);
+  assert.equal(alfa.aprovado, 100);
+  assert.equal(alfa.paises, 2);
+  assert.equal(alfa.conveniada, true);
+  assert.equal(alfa.documentos.pendentes, 0);
+
+  // is_conveniada nulo NÃO é conveniada — mesma regra do resto do painel.
+  const beta = lista.find((i) => i.id === "i2")!;
+  assert.equal(beta.conveniada, false);
+  assert.equal(beta.documentos.pendentes, 3);
+
+  // Ordena por verba aprovada, mesmo quem pediu mais ficando atrás.
+  assert.equal(lista[0]?.id, "i1");
+
+  // Instituição sem linha em institution_documents não quebra o lookup.
+  const semDocs = agregarPorInstituicao([projeto({ instituicaoId: "i9" })]);
+  assert.equal(semDocs[0]?.documentos.total, 0);
+});
+
+test("conformidade separa enviados de pendentes por instituição e por tipo", () => {
+  const rows: DocumentoRow[] = [
+    {
+      institution_id: "i1",
+      document_type: "estatuto",
+      status: "enviado",
+      n: 1,
+    },
+    {
+      institution_id: "i1",
+      document_type: "cartao_cnpj",
+      status: "pendente",
+      n: 1,
+    },
+    {
+      institution_id: "i2",
+      document_type: "estatuto",
+      status: "enviado",
+      n: 1,
+    },
+  ];
+  const c = montarConformidade(rows);
+
+  assert.deepEqual(c.porInstituicao["i1"], {
+    enviados: 1,
+    pendentes: 1,
+    total: 2,
+  });
+  assert.equal(c.tiposExigidos, 2);
+  // O tipo com mais pendências vem primeiro — é o que a reunião precisa ver.
+  assert.equal(c.porTipo[0]?.tipo, "cartao_cnpj");
+  assert.equal(c.porTipo.find((t) => t.tipo === "estatuto")?.enviados, 2);
+});
+
+// ------------------------------------------- prestação de contas (Fase 4)
+
+const relatorio = (r: Partial<RelatorioPrestacao>): RelatorioPrestacao => ({
+  projetoId: r.projetoId ?? "a",
+  instituicaoId: r.instituicaoId ?? "i1",
+  ano: r.ano ?? 2026,
+  trimestre: r.trimestre ?? 2,
+  status: r.status ?? "enviado",
+  enviadoEm: null,
+  cicloAno: r.cicloAno ?? 2025,
+});
+
+test("cobertura conta só os financiados do recorte e separa o que não é cobertura", () => {
+  const projetos = [
+    projeto({ id: "a", statusGrupo: "aprovado", aprovado: 1000 }),
+    projeto({ id: "b", statusGrupo: "aprovado", aprovado: 500 }),
+    projeto({ id: "c", statusGrupo: "encerrado", aprovado: 200 }),
+    projeto({ id: "d", statusGrupo: "em-avaliacao", aprovado: 0 }),
+  ];
+  const relatorios = [
+    relatorio({ projetoId: "a", trimestre: 1 }),
+    relatorio({ projetoId: "a", trimestre: 2 }),
+    relatorio({ projetoId: "c", trimestre: 2, status: "rascunho" }),
+    // projeto que não é financiado: conta como relatório, não como cobertura
+    relatorio({ projetoId: "d", trimestre: 2 }),
+    // projeto de outro ciclo: nem entra, porque não está no recorte
+    relatorio({ projetoId: "zzz" }),
+  ];
+
+  const c = montarCobertura(projetos, relatorios, 2025);
+  assert.equal(c.financiados, 3);
+  assert.equal(c.comRelatorio, 2, "a e c entregaram; b não");
+  assert.equal(c.cobertura, 2 / 3);
+  assert.equal(c.relatorios, 4, "o relatório do projeto de fora não entra");
+  assert.equal(c.rascunhos, 1);
+  assert.equal(c.relatoriosForaDoEsperado, 1);
+  assert.equal(c.aprovadoDescoberto, 500);
+  assert.equal(c.aprovadoCoberto, 1200);
+  assert.deepEqual(
+    c.pendentes.map((p) => p.id),
+    ["b"],
+  );
+  assert.deepEqual(
+    c.porTrimestre.map((t) => t.rotulo),
+    ["T1/2026", "T2/2026"],
+  );
+
+  // Sob filtro, relatório de projeto fora do recorte não infla a contagem.
+  const soB = montarCobertura([projetos[1]!], relatorios, 2025);
+  assert.equal(soB.relatorios, 0);
+  assert.equal(soB.financiados, 1);
+  assert.equal(soB.cobertura, 0);
+});
+
+test("relatório carimbado com outro cycle_id ainda conta para o projeto", () => {
+  // Caso real da origem: relatório do ciclo 2026 prestando contas de um projeto
+  // aprovado na Remessa 2025. A remessa vem do PROJETO, não do cycle_id.
+  const c = montarCobertura(
+    [projeto({ id: "a", statusGrupo: "aprovado", aprovado: 1000 })],
+    [relatorio({ projetoId: "a", cicloAno: 2026, trimestre: 3 })],
+    2025,
+  );
+  assert.equal(c.comRelatorio, 1);
+  assert.equal(c.cobertura, 1);
+  assert.equal(c.relatoriosDeOutroCiclo, 1, "o desencontro fica sinalizado");
+  assert.equal(c.aprovadoDescoberto, 0);
+});
+
+test("ciclo sem projeto financiado não divide por zero", () => {
+  const c = montarCobertura(
+    [projeto({ id: "x", statusGrupo: "em-avaliacao" })],
+    [],
+    2026,
+  );
+  assert.equal(c.financiados, 0);
+  assert.equal(c.cobertura, 0);
+  assert.deepEqual(c.pendentes, []);
 });
 
 // ------------------------------------------------------------ mapa (Fase 2)

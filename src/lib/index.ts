@@ -7,16 +7,22 @@
  */
 export { dados, atualizar, infoCache, ttlMs } from "./cache";
 export {
+  agregarPorInstituicao,
   agregarPorPais,
   avaliacoesCiclo,
   ciclos,
+  conformidade,
+  ehFinanciado,
   escolherLinhaOrcamento,
   estatisticaNota,
   grupoDeStatus,
   montarAvaliacoes,
+  montarCobertura,
+  montarConformidade,
   montarOrcamento,
   montarResumo,
   orcamentoCiclo,
+  prestacaoContas,
   projetoLocal,
   projetosCiclo,
   resumoCiclo,

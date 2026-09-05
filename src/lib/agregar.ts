@@ -1,8 +1,12 @@
 import type {
   Ano,
+  CoberturaPrestacao,
+  DocumentosInstituicao,
   EstatisticaNota,
+  InstituicaoResumo,
   ProjetoCiclo,
   ProjetoLocal,
+  RelatorioPrestacao,
   ResumoCiclo,
   StatusGrupo,
 } from "./types";
@@ -203,6 +207,127 @@ export function agregarPorPais(projetos: ProjetoCiclo[]): ProjetoLocal[] {
         .sort((a, b) => b.projetos - a.projetos),
     }))
     .sort((a, b) => b.projetos - a.projetos);
+}
+
+// --------------------------------------------------- instituições (Fase 4)
+
+const SEM_DOCUMENTOS: DocumentosInstituicao = {
+  enviados: 0,
+  pendentes: 0,
+  total: 0,
+};
+
+/**
+ * Agrega por instituição — o ranking de verba da página 05.
+ *
+ * `documentos` vem do servidor (`dados.conformidade()`): não depende do ciclo
+ * nem dos filtros, então é só um lookup por uuid, não uma reagregação.
+ */
+export function agregarPorInstituicao(
+  projetos: ProjetoCiclo[],
+  documentos: Record<string, DocumentosInstituicao> = {},
+): InstituicaoResumo[] {
+  const mapa = agrupar(projetos, (p) => p.instituicaoId ?? "__sem");
+
+  return [...mapa.entries()]
+    .map(([id, lista]) => {
+      const primeiro = lista[0]!;
+      const soma = (f: (p: ProjetoCiclo) => number | null) =>
+        lista.reduce((s, p) => s + (f(p) ?? 0), 0);
+
+      return {
+        id,
+        nome: primeiro.instituicaoNome ?? "(sem instituição)",
+        // Mesma regra do resto do painel: is_conveniada nulo NÃO é conveniada.
+        conveniada: lista.some(ehConveniada),
+        projetos: lista.length,
+        solicitado: soma((p) => p.solicitado),
+        aprovado: soma((p) => p.aprovado),
+        reservado: soma((p) => p.reservado),
+        paises: new Set(lista.map((p) => p.local.iso3 ?? p.local.nomePt)).size,
+        notaMediana: estatisticaNota(
+          lista
+            .map((p) => p.notaMediana)
+            .filter((v): v is number => v !== null),
+        ).mediana,
+        situacao: primeiro.enriquecimento.situacaoNoSistema,
+        anosDeParceria: primeiro.enriquecimento.anosDeParceria,
+        valorAprovado2025: primeiro.enriquecimento.valorAprovado2025,
+        documentos: documentos[id] ?? SEM_DOCUMENTOS,
+      };
+    })
+    .sort((a, b) => b.aprovado - a.aprovado || b.solicitado - a.solicitado);
+}
+
+// ---------------------------------------- prestação de contas (Fase 4)
+
+/** Quem deve prestar contas: projeto que recebeu verba. */
+export const ehFinanciado = (p: ProjetoCiclo): boolean =>
+  p.statusGrupo === "aprovado" || p.statusGrupo === "encerrado";
+
+/**
+ * Cobertura da prestação de contas do ciclo, sob o recorte atual.
+ *
+ * A remessa de um relatório vem do PROJETO, não do `cycle_id` do relatório: na
+ * origem há relatórios carimbados com o ciclo 2026 que prestam contas de
+ * projetos aprovados na Remessa 2025 (o ciclo aberto na hora do envio). Casar
+ * pelo projeto também restringe os relatórios ao recorte — senão a contagem de
+ * relatórios contradiria a de projetos assim que um filtro fosse aplicado.
+ */
+export function montarCobertura(
+  projetos: ProjetoCiclo[],
+  relatorios: RelatorioPrestacao[],
+  ano: Ano,
+): CoberturaPrestacao {
+  const noRecorte = new Map(projetos.map((p) => [p.id, p]));
+  const doCiclo = relatorios.filter((r) => noRecorte.has(r.projetoId));
+
+  const financiados = projetos.filter(ehFinanciado);
+  const comRelatorio = new Set(
+    doCiclo
+      .map((r) => r.projetoId)
+      .filter((id) => ehFinanciado(noRecorte.get(id)!)),
+  );
+
+  const aprovadoDe = (ps: ProjetoCiclo[]) =>
+    ps.reduce((s, p) => s + (p.aprovado ?? 0), 0);
+  const cobertos = financiados.filter((p) => comRelatorio.has(p.id));
+  const pendentes = financiados
+    .filter((p) => !comRelatorio.has(p.id))
+    .sort((a, b) => (b.aprovado ?? 0) - (a.aprovado ?? 0));
+
+  const porTrimestre = [
+    ...agrupar(doCiclo, (r) => `${r.ano}-${r.trimestre}`).entries(),
+  ]
+    .map(([chave, lista]) => ({
+      rotulo: `T${chave.split("-")[1]}/${chave.split("-")[0]}`,
+      relatorios: lista.length,
+      enviados: lista.filter((r) => r.status !== "rascunho").length,
+      projetos: new Set(lista.map((r) => r.projetoId)).size,
+    }))
+    .sort((a, b) => a.rotulo.localeCompare(b.rotulo));
+
+  return {
+    ano,
+    financiados: financiados.length,
+    comRelatorio: comRelatorio.size,
+    cobertura: financiados.length ? comRelatorio.size / financiados.length : 0,
+    relatorios: doCiclo.length,
+    enviados: doCiclo.filter((r) => r.status !== "rascunho").length,
+    rascunhos: doCiclo.filter((r) => r.status === "rascunho").length,
+    instituicoes: new Set(
+      doCiclo.map((r) => r.instituicaoId).filter(Boolean) as string[],
+    ).size,
+    aprovadoTotal: aprovadoDe(financiados),
+    aprovadoCoberto: aprovadoDe(cobertos),
+    aprovadoDescoberto: aprovadoDe(pendentes),
+    relatoriosForaDoEsperado: doCiclo.filter(
+      (r) => !ehFinanciado(noRecorte.get(r.projetoId)!),
+    ).length,
+    relatoriosDeOutroCiclo: doCiclo.filter((r) => r.cicloAno !== ano).length,
+    porTrimestre,
+    pendentes,
+  };
 }
 
 // ----------------------------------------------------------- resumo (KPIs)

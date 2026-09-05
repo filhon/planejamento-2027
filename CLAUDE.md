@@ -18,7 +18,7 @@ aprovação e a alocação de recursos dos projetos.
   escrever, criar tabelas/views ou alterar nada nele — deve ser preservado. Toda
   normalização e todo dado novo vivem FORA, em `data/*.csv` (ver enriquecimento abaixo).
 
-## Estado atual (2026-09-05)
+## Estado atual (2026-09-05) — Fases 1 a 4 entregues
 
 **Fase 1 (fundação de dados)** — camada TypeScript em [`src/lib/`](src/lib/) que lê a
 origem só com `SELECT` e junta com `data/*.csv` em memória. Nada foi criado na origem.
@@ -32,6 +32,11 @@ globais e a página do mapa. Manual: [`docs/fase2-mapa.md`](docs/fase2-mapa.md).
 Os filtros globais e o ano ativo moram no layout `app/(painel)/`, então **o recorte
 sobrevive à troca de página**. Manual: [`docs/fase3-analise.md`](docs/fase3-analise.md).
 
+**Fase 4 (reunião-ready)** — **Instituições** (`/instituicoes`) e **Prestação de contas**
+(`/prestacao`), **modo apresentação/TV** (botão Apresentar: fontes maiores, tela cheia,
+←/→ trocam de página, Esc sai) e **Exportar PDF** (`window.print()` + folha `@media print`,
+sem biblioteca). Manual: [`docs/fase4-reuniao.md`](docs/fase4-reuniao.md).
+
 ```bash
 npm install
 npm run dev            # painel em http://localhost:3000
@@ -43,16 +48,18 @@ npm run enrich:regen   # regenera as colunas derivadas do CSV (preserva as curad
 
 Datasets prontos para a UI (fachada com cache em `src/lib/cache.ts`):
 `dados.ciclos()` · `dados.projetos(ano)` · `dados.locais(ano)` (choropleth) ·
-`dados.resumo(ano)` (KPIs) · `dados.orcamento(ano)` · `dados.avaliacoes(ano)`;
-`atualizar()` é o botão "Atualizar" da reunião.
+`dados.resumo(ano)` (KPIs) · `dados.orcamento(ano)` · `dados.avaliacoes(ano)` ·
+`dados.conformidade()` e `dados.prestacao()` (sem eixo de ano — são pequenos e
+servem todos os ciclos); `atualizar()` é o botão "Atualizar" da reunião.
 
-Agregações puras **e as regras do recorte** (`filtrar`, `TODOS`, `ehConveniada`) ficam em
+Agregações puras **e as regras do recorte** (`filtrar`, `TODOS`, `ehConveniada`,
+`ehFinanciado`, `agregarPorInstituicao`, `montarCobertura`) ficam em
 `src/lib/agregar.ts` (sem `pg`/`fs`) porque o cliente as usa para reagregar os filtros —
 `datasets.ts` reexporta tudo. **Não** importar `datasets.ts` num componente cliente:
 arrasta o driver do banco para o bundle.
 
-**Próximo passo:** Fase 4 — Instituições e Prestação de contas, modo apresentação/TV
-e exportar PDF/PNG.
+**Próximo passo:** nada obrigatório. Em aberto, só se a equipe pedir: exportar PNG
+(hoje é PDF pela impressão), zoom/pan no mapa e filtro global por instituição.
 
 ### Planejamento (entregue antes)
 
@@ -70,7 +77,9 @@ Artefatos visuais publicados (versão apresentação, claude.ai):
 - Diagnóstico do banco: https://claude.ai/code/artifact/ef01dc43-ce25-4998-98ab-1589ec5c5caa
 - Plano do dashboard: https://claude.ai/code/artifact/10441c8c-fcb9-463c-834c-5bab2313a047
 
-### Pendências abertas com a equipe (levantadas na Fase 1)
+### Pendências abertas com a equipe
+
+Levantadas na Fase 1:
 
 1. **Orçamento 2025:** as linhas `confirmado` de `resource_allocations` são de teste;
    a linha real está como `rascunho`. Qual vale?
@@ -79,6 +88,16 @@ Artefatos visuais publicados (versão apresentação, claude.ai):
    vazias nas 146 instituições — preenchimento é da equipe, no CSV.
 4. Trocar a credencial `postgres` por `bi_readonly` ([`docs/bi_readonly.sql`](docs/bi_readonly.sql));
    atenção ao RLS (39 tabelas com RLS; sem `BYPASSRLS` o papel lê zero linha).
+
+Levantadas na Fase 4:
+
+5. **Prestação de contas em 11,2%:** só 25 dos 223 projetos aprovados em 2025 têm
+   relatório — **R$ 10,24 mi aprovados sem prestação**. É subuso do módulo ou cobrança
+   em aberto?
+6. **2 relatórios com `cycle_id` da remessa errada** (carimbados 2026, projetos de 2025).
+   O painel casa pelo projeto e sinaliza; a origem é que precisa do acerto.
+7. **43 das 146 instituições sem nenhum documento enviado** (5 tipos exigidos), e
+   **1 conjunto de documentos órfão** (`institution_id` sem instituição).
 
 ## Acesso ao banco (somente leitura, por acordo)
 
@@ -160,5 +179,8 @@ de mapas: `d3-geo` + `topojson-client` projetam **no servidor** e mandam paths S
 (TopoJSON vendorizado em `data/countries-110m.json`, casando por **ISO-3** via
 `i18n-iso-countries`). Botão "Atualizar" = Server Action → `atualizar()`.
 
-**Fase 3 em diante:** Recharts ou visx para os gráficos das demais páginas.
+**Fases 3 e 4 (em uso):** nenhuma biblioteca nova. Gráficos são barras em CSS e
+`<table>`; apresentação/TV é uma classe no `<body>` + `requestFullscreen()`; exportar
+PDF é `window.print()` com folha `@media print`. Recharts/visx entram quando aparecer
+um gráfico que CSS não resolve (dispersão, série temporal).
 Nenhuma escrita na origem em nenhum momento.

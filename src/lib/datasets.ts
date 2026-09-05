@@ -1,10 +1,17 @@
 import {
   fetchAvaliacoes,
   fetchCiclos,
+  fetchDocumentos,
   fetchOrcamentos,
+  fetchPrestacaoContas,
   fetchProjetos,
 } from "./queries";
-import type { AvaliacaoRow, OrcamentoRow, ProjetoRow } from "./queries";
+import type {
+  AvaliacaoRow,
+  DocumentoRow,
+  OrcamentoRow,
+  ProjetoRow,
+} from "./queries";
 import {
   agregarPorPais,
   agrupar,
@@ -18,9 +25,11 @@ import type {
   Ano,
   AvaliacoesCiclo,
   Ciclo,
+  Conformidade,
   OrcamentoCiclo,
   ProjetoCiclo,
   ProjetoLocal,
+  RelatorioPrestacao,
   ResumoCiclo,
 } from "./types";
 
@@ -36,9 +45,12 @@ import type {
  * reexportadas aqui para quem já importava deste módulo.
  */
 export {
+  agregarPorInstituicao,
   agregarPorPais,
+  ehFinanciado,
   estatisticaNota,
   grupoDeStatus,
+  montarCobertura,
   montarResumo,
 } from "./agregar";
 
@@ -326,4 +338,61 @@ export async function avaliacoesCiclo(ano: Ano): Promise<AvaliacoesCiclo> {
 
 export async function resumoCiclo(ano: Ano): Promise<ResumoCiclo> {
   return montarResumo(await projetosCiclo(ano), ano);
+}
+
+// ------------------------------------------------- conformidade (Fase 4)
+
+/** Parte pura: monta a conformidade a partir das contagens da origem. */
+export function montarConformidade(rows: DocumentoRow[]): Conformidade {
+  const porInstituicao: Conformidade["porInstituicao"] = {};
+  const tipos = new Map<string, { enviados: number; pendentes: number }>();
+
+  for (const r of rows) {
+    const enviado = r.status === "enviado";
+    const inst = (porInstituicao[r.institution_id] ??= {
+      enviados: 0,
+      pendentes: 0,
+      total: 0,
+    });
+    inst.total += r.n;
+    if (enviado) inst.enviados += r.n;
+    else inst.pendentes += r.n;
+
+    const tipo = tipos.get(r.document_type) ?? { enviados: 0, pendentes: 0 };
+    if (enviado) tipo.enviados += r.n;
+    else tipo.pendentes += r.n;
+    tipos.set(r.document_type, tipo);
+  }
+
+  return {
+    porInstituicao,
+    porTipo: [...tipos.entries()]
+      .map(([tipo, t]) => ({ tipo, ...t, total: t.enviados + t.pendentes }))
+      .sort((a, b) => b.pendentes - a.pendentes),
+    tiposExigidos: tipos.size,
+  };
+}
+
+export async function conformidade(): Promise<Conformidade> {
+  return montarConformidade(await fetchDocumentos());
+}
+
+// ------------------------------------------ prestação de contas (Fase 4)
+
+/**
+ * Todos os relatórios (27 linhas hoje) — de todos os ciclos de uma vez. A
+ * separação por remessa é do `montarCobertura`, no cliente, porque o mesmo
+ * conjunto serve o ciclo ativo e o comparativo.
+ */
+export async function prestacaoContas(): Promise<RelatorioPrestacao[]> {
+  const rows = await fetchPrestacaoContas();
+  return rows.map((r) => ({
+    projetoId: r.project_id,
+    instituicaoId: r.institution_id,
+    ano: r.year,
+    trimestre: r.quarter,
+    status: r.status,
+    enviadoEm: r.submitted_at,
+    cicloAno: r.cycle_year,
+  }));
 }

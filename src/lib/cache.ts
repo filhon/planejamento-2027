@@ -3,8 +3,10 @@ import {
   agregarPorPais,
   avaliacoesCiclo,
   ciclos,
+  conformidade,
   montarOrcamento,
   montarResumo,
+  prestacaoContas,
   projetosCiclo,
 } from "./datasets";
 import { limparCacheEnriquecimento } from "./enrichment";
@@ -12,9 +14,11 @@ import type {
   Ano,
   AvaliacoesCiclo,
   Ciclo,
+  Conformidade,
   OrcamentoCiclo,
   ProjetoCiclo,
   ProjetoLocal,
+  RelatorioPrestacao,
   ResumoCiclo,
 } from "./types";
 
@@ -94,4 +98,10 @@ export const dados = {
 
   avaliacoes: (ano: Ano): Promise<AvaliacoesCiclo> =>
     memo(`avaliacoes:${ano}`, () => avaliacoesCiclo(ano)),
+
+  // Sem dimensão de ano: os dois são pequenos e servem todos os ciclos.
+  conformidade: (): Promise<Conformidade> => memo("conformidade", conformidade),
+
+  prestacao: (): Promise<RelatorioPrestacao[]> =>
+    memo("prestacao", prestacaoContas),
 };

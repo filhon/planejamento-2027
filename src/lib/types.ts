@@ -196,6 +196,93 @@ export interface AvaliacoesCiclo {
   })[];
 }
 
+// ----------------------------------------------- instituições (Fase 4)
+
+/** Conformidade documental de uma instituição (`institution_documents`). */
+export interface DocumentosInstituicao {
+  enviados: number;
+  pendentes: number;
+  total: number;
+}
+
+export interface Conformidade {
+  /** Chaveado pelo uuid da instituição — a UI só faz lookup. */
+  porInstituicao: Record<string, DocumentosInstituicao>;
+  porTipo: {
+    tipo: string;
+    enviados: number;
+    pendentes: number;
+    total: number;
+  }[];
+  /** Quantos tipos de documento o sistema cobra de cada instituição. */
+  tiposExigidos: number;
+}
+
+/** 1 linha por instituição no recorte — o ranking de verba da página 05. */
+export interface InstituicaoResumo {
+  id: string;
+  nome: string;
+  conveniada: boolean;
+  projetos: number;
+  solicitado: number;
+  aprovado: number;
+  reservado: number;
+  paises: number;
+  /** Mediana das notas medianas dos projetos da instituição. */
+  notaMediana: number | null;
+  situacao: string | null;
+  anosDeParceria: number | null;
+  valorAprovado2025: number | null;
+  documentos: DocumentosInstituicao;
+}
+
+// ---------------------------------------- prestação de contas (Fase 4)
+
+/** 1 linha de `cycle_project_accountability_reports`. */
+export interface RelatorioPrestacao {
+  projetoId: string;
+  instituicaoId: string | null;
+  /** Ano-CALENDÁRIO do relatório — não é o ano da remessa. */
+  ano: Ano;
+  trimestre: number;
+  status: string | null;
+  enviadoEm: Date | null;
+  /** Ano da remessa a que o relatório pertence. */
+  cicloAno: Ano | null;
+}
+
+export interface CoberturaPrestacao {
+  ano: Ano;
+  /** Projetos do recorte que receberam verba — quem deve prestar contas. */
+  financiados: number;
+  comRelatorio: number;
+  /** comRelatorio / financiados. */
+  cobertura: number;
+  relatorios: number;
+  enviados: number;
+  rascunhos: number;
+  /** Instituições que entregaram ao menos um relatório. */
+  instituicoes: number;
+  aprovadoTotal: number;
+  aprovadoCoberto: number;
+  aprovadoDescoberto: number;
+  /** Relatórios de projetos que não estão aprovados — higiene, não cobertura. */
+  relatoriosForaDoEsperado: number;
+  /**
+   * Relatórios do projeto certo mas carimbados com outro `cycle_id` na origem
+   * (acontece quando o relatório é enviado já com a remessa seguinte aberta).
+   */
+  relatoriosDeOutroCiclo: number;
+  porTrimestre: {
+    rotulo: string;
+    relatorios: number;
+    enviados: number;
+    projetos: number;
+  }[];
+  /** Financiados sem nenhum relatório, do maior aprovado para o menor. */
+  pendentes: ProjetoCiclo[];
+}
+
 export interface ResumoCiclo {
   ano: Ano;
   projetos: number;

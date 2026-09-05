@@ -257,6 +257,29 @@ export function fetchInstituicoesDerivadas(): Promise<
   `);
 }
 
+// ---------------------------------------------- documentos por instituição
+
+export interface DocumentoRow {
+  institution_id: string;
+  document_type: string;
+  status: string;
+  n: number;
+}
+
+/**
+ * Conformidade documental: já vem contada por instituição × tipo × status
+ * (735 linhas viram ~730 contagens). Instituição sem nenhum documento
+ * simplesmente não aparece — quem soma o universo é a camada de datasets.
+ */
+export function fetchDocumentos(): Promise<DocumentoRow[]> {
+  return query<DocumentoRow>(`
+    select d.institution_id, d.document_type, d.status, count(*)::int as n
+    from institution_documents d
+    group by 1, 2, 3
+    order by 2, 3
+  `);
+}
+
 // ------------------------------------------------------ prestação de contas
 
 export interface PrestacaoContasRow {

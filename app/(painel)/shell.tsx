@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { useMemo, useState, useTransition } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import type { StatusGrupo } from "@/lib/types";
 import { atualizarDados } from "../actions";
 import {
@@ -27,10 +27,18 @@ const PAGINAS = [
   { href: "/mapa", rotulo: "Mapa-múndi" },
   { href: "/pipeline", rotulo: "Pipeline & Avaliação" },
   { href: "/orcamento", rotulo: "Orçamento" },
+  { href: "/instituicoes", rotulo: "Instituições" },
+  { href: "/prestacao", rotulo: "Prestação de contas" },
 ];
 
 function ordenados(valores: Iterable<string>): string[] {
   return [...new Set(valores)].sort((a, b) => a.localeCompare(b, "pt-BR"));
+}
+
+/** Enquanto o foco está num campo, as setas são do campo, não da apresentação. */
+function digitando(alvo: EventTarget | null): boolean {
+  const tag = (alvo as HTMLElement | null)?.tagName;
+  return tag === "SELECT" || tag === "INPUT" || tag === "TEXTAREA";
 }
 
 export default function Shell({
@@ -43,7 +51,45 @@ export default function Shell({
   const [ano, setAno] = useState(ciclos[0]?.ano ?? 0);
   const [filtros, setFiltros] = useState<Filtros>(SEM_FILTRO);
   const [atualizando, iniciarAtualizacao] = useTransition();
+  const [apresentacao, setApresentacao] = useState(false);
   const caminho = usePathname();
+  const router = useRouter();
+
+  /**
+   * Modo apresentação/TV: fontes maiores (a classe no <body>, ver globals.css),
+   * um painel por vez e navegação por teclado — ←/→ trocam de página, Esc sai.
+   * Sem biblioteca de slides: as páginas já SÃO os slides.
+   */
+  useEffect(() => {
+    if (!apresentacao) return;
+    document.body.classList.add("apresentacao");
+
+    const ir = (passo: number) => {
+      const i = PAGINAS.findIndex((p) => p.href === caminho);
+      const proximo = (i + passo + PAGINAS.length) % PAGINAS.length;
+      router.push(PAGINAS[proximo]!.href);
+    };
+    const aoTeclar = (e: KeyboardEvent) => {
+      if (digitando(e.target)) return;
+      if (e.key === "ArrowRight" || e.key === "PageDown") ir(1);
+      else if (e.key === "ArrowLeft" || e.key === "PageUp") ir(-1);
+      else if (e.key === "Escape") setApresentacao(false);
+    };
+
+    window.addEventListener("keydown", aoTeclar);
+    return () => {
+      window.removeEventListener("keydown", aoTeclar);
+      document.body.classList.remove("apresentacao");
+    };
+  }, [apresentacao, caminho, router]);
+
+  const alternarApresentacao = () => {
+    const ligando = !apresentacao;
+    setApresentacao(ligando);
+    // Tela cheia precisa do gesto do usuário — daí sair daqui, e não do efeito.
+    if (ligando) document.documentElement.requestFullscreen?.().catch(() => {});
+    else if (document.fullscreenElement) document.exitFullscreen?.();
+  };
 
   const posicao = ciclos.findIndex((c) => c.ano === ano);
   const atual = ciclos[posicao];
@@ -134,6 +180,21 @@ export default function Shell({
             ))}
           </div>
           <button
+            className="botao-claro"
+            aria-pressed={apresentacao}
+            title="Fontes maiores, tela cheia e navegação por ←/→ (Esc sai)"
+            onClick={alternarApresentacao}
+          >
+            {apresentacao ? "Sair da apresentação" : "Apresentar"}
+          </button>
+          <button
+            className="botao-claro"
+            title="Abre a impressão do navegador — escolha 'Salvar como PDF'"
+            onClick={() => window.print()}
+          >
+            Exportar PDF
+          </button>
+          <button
             className="botao-atualizar"
             disabled={atualizando}
             onClick={() => iniciarAtualizacao(() => atualizarDados())}
@@ -144,6 +205,32 @@ export default function Shell({
       </header>
 
       <main>
+        {/* Só no PDF: registra o recorte que gerou os números, para a ata.
+            Data e URL o próprio navegador carimba no cabeçalho da impressão. */}
+        <div className="so-impressao">
+          <b>
+            {PAGINAS.find((p) => p.href === caminho)?.rotulo ?? "Painel"} ·
+            Remessa {ano}
+          </b>
+          <span>
+            {[
+              filtros.continente !== TODOS &&
+                `Continente: ${filtros.continente}`,
+              filtros.status !== TODOS &&
+                `Status: ${ROTULO_STATUS[filtros.status as StatusGrupo]}`,
+              filtros.categoria !== TODOS && `Categoria: ${filtros.categoria}`,
+              filtros.conveniada !== TODOS &&
+                `Instituição: ${filtros.conveniada === "true" ? "conveniadas" : "não conveniadas"}`,
+              nomePais && `País: ${nomePais}`,
+            ]
+              .filter(Boolean)
+              .join(" · ") || "Sem filtros — ciclo inteiro"}
+          </span>
+          <span>
+            {projetos.length} de {todos.length} projetos
+          </span>
+        </div>
+
         <div className="filtros cartao">
           <div className="campo">
             <label htmlFor="fc">Continente</label>

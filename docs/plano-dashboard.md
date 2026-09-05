@@ -138,7 +138,7 @@ Regras:
 | **1 — Fundação de dados** ✅ | consultas de leitura (SELECT) na origem, `data/country_map.csv`, `data/institution_enrichment.csv`, camada de junção no app. **Nada foi criado na origem.** Implementada em `src/lib/` — ver [`fase1-fundacao-dados.md`](fase1-fundacao-dados.md). |
 | **2 — Esqueleto + Mapa** ✅  | app Next.js com a marca, leitura via Server Components + cache, **página Mapa-múndi**, filtros globais. Implementada em `app/` — ver [`fase2-mapa.md`](fase2-mapa.md).                                                                             |
 | **3 — Análise** ✅           | Visão Geral + KPIs, Pipeline & Avaliação, Orçamento, comparador 2026×2025. Filtros globais no layout — o recorte atravessa as páginas. Ver [`fase3-analise.md`](fase3-analise.md).                                                                 |
-| **4 — Reunião-ready**        | Instituições + prestação de contas, modo apresentação, exportar PDF/PNG, botão Atualizar.                                                                                                                                                          |
+| **4 — Reunião-ready** ✅     | Instituições + prestação de contas, modo apresentação/TV (teclado + tela cheia) e exportar a visão atual em PDF (impressão do navegador; PNG ficou de fora). Ver [`fase4-reuniao.md`](fase4-reuniao.md).                                           |
 
 ### "Datasets" servidos pela API (montados em memória, não são views na origem)
 

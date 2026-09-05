@@ -123,13 +123,14 @@ export function Secao({
   titulo: string;
   sub?: string;
   children: React.ReactNode;
-  largura?: "cheia";
+  /** "dupla" = 2 colunas da grade, "cheia" = a fileira inteira. */
+  largura?: "cheia" | "dupla";
 }) {
   return (
-    <section className={`bloco cartao${largura === "cheia" ? " cheia" : ""}`}>
+    <section className={`bloco cartao${largura ? ` ${largura}` : ""}`}>
       <h2 className="titulo">{titulo}</h2>
       {sub && <p className="sub">{sub}</p>}
-      {children}
+      <div className="rolagem-x">{children}</div>
     </section>
   );
 }

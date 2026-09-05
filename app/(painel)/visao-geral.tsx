@@ -310,6 +310,7 @@ export default function VisaoGeral({
               ? "Os dois ciclos usam os mesmos filtros."
               : "Ciclo inteiro, sem filtros."
           }
+          largura="dupla"
         >
           {comparacao.length === 0 ? (
             <p className="sub">Sem ciclo anterior para comparar.</p>

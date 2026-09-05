@@ -17,6 +17,7 @@ const corpo = Titillium_Web({
 export const metadata: Metadata = {
   title: "Painel Consultivo — Hebron ASEEC",
   description: "Planejamento das remessas missionárias da Hebron ASEEC.",
+  icons: { icon: "/simbolo.png" },
 };
 
 export default function RootLayout({

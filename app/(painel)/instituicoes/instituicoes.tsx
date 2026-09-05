@@ -192,6 +192,7 @@ export default function Instituicoes({
         <Secao
           titulo="Conveniadas × não conveniadas"
           sub="A divisão que separa os dois tetos do orçamento."
+          largura="dupla"
         >
           <table className="tabela">
             <thead>

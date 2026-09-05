@@ -278,6 +278,7 @@ export default function Orcamento({
         <Secao
           titulo="Conveniadas × não conveniadas"
           sub="Cada grupo tem teto próprio na linha de orçamento."
+          largura="dupla"
         >
           <table className="tabela">
             <thead>
@@ -352,6 +353,7 @@ export default function Orcamento({
               ? "Os dois ciclos usam os mesmos filtros (menos o teto)."
               : "Ciclo inteiro."
           }
+          largura="dupla"
         >
           {comparacao.length === 0 ? (
             <p className="sub">Sem ciclo anterior para comparar.</p>

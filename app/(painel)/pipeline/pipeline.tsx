@@ -187,6 +187,7 @@ export default function Pipeline({
         <Secao
           titulo="Distribuição das notas"
           sub="Nota mediana de cada projeto do recorte atual."
+          largura="dupla"
         >
           <Barras itens={histograma} />
           <p className="rodape">

@@ -144,11 +144,16 @@ export default function Shell({
     >
       <header className="cabecalho">
         <div className="marca">
-          <span className="marca-circulos" aria-hidden>
-            <span style={{ background: "var(--azul-claro)" }} />
-            <span style={{ background: "var(--verde)" }} />
-            <span style={{ background: "var(--laranja)" }} />
-          </span>
+          {/* Símbolo da marca: versão branca (fundo azul); na impressão o CSS
+              troca pela colorida, porque lá o cabeçalho vai em branco. */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            className="marca-simbolo"
+            src="/simbolo-branco.png"
+            alt=""
+            width={26}
+            height={38}
+          />
           <div>
             <h1>Painel Consultivo · Hebron ASEEC</h1>
             <p>Instrumentos de Deus na transformação de vidas.</p>

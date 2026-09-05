@@ -99,16 +99,9 @@ button {
   z-index: 1;
 }
 
-.marca-circulos {
-  display: flex;
-}
-
-.marca-circulos span {
-  width: 15px;
-  height: 15px;
-  border-radius: 50%;
-  margin-right: -5px;
-  border: 2px solid var(--azul);
+.marca-simbolo {
+  width: auto;
+  height: 38px;
 }
 
 .cabecalho h1 {
@@ -578,11 +571,27 @@ main {
 
 /* --------------------------------------------------- blocos das páginas */
 
+/*
+ * Três colunas explícitas em vez de auto-fit: com a contagem de colunas fixa,
+ * `dupla`/`cheia` fecham a fileira e não sobra célula vazia no fim da grade.
+ * Sem `align-items: start` — os cards da fileira terminam na mesma linha, então
+ * a sobra fica dentro do cartão e não vira um rasgo branco no fundo.
+ */
 .grade {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 16px;
-  align-items: start;
+}
+
+@media (max-width: 1280px) {
+  .grade {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  /* `span 2` inventaria uma coluna implícita com 2 ou 1 coluna na grade. */
+  .bloco.dupla {
+    grid-column: 1 / -1;
+  }
 }
 
 @media (max-width: 900px) {
@@ -598,6 +607,10 @@ main {
 
 .bloco.cheia {
   grid-column: 1 / -1;
+}
+
+.bloco.dupla {
+  grid-column: span 2;
 }
 
 .bloco h2 {
@@ -745,6 +758,15 @@ main {
   word-break: break-word;
 }
 
+/*
+ * Toda tabela rola na horizontal dentro do bloco (o `Secao` embrulha o conteúdo
+ * nisto). Sem essa caixa, `th`/`.n` são `nowrap` e a tabela vaza a borda do
+ * cartão em vez de rolar.
+ */
+.rolagem-x {
+  overflow-x: auto;
+}
+
 /* Tabelas longas (instituições, pendências) rolam dentro do bloco. */
 .rolagem {
   max-height: 460px;
@@ -817,9 +839,7 @@ body.apresentacao .rolagem {
   max-height: none;
 }
 
-body.apresentacao .grade {
-  grid-template-columns: repeat(auto-fit, minmax(520px, 1fr));
-}
+/* A grade já é de 3 colunas fixas — na TV isso vale para a apresentação também. */
 
 /* --------------------------------------------------- exportar PDF (print) */
 
@@ -865,6 +885,11 @@ body.apresentacao .grade {
     color: var(--tinta-fraca);
   }
 
+  /* Cabeçalho impresso é branco: o símbolo branco sumiria. */
+  .marca-simbolo {
+    content: url("/simbolo.png");
+  }
+
   main {
     padding: 0;
     max-width: none;
@@ -896,7 +921,8 @@ body.apresentacao .grade {
   /* Listas roladas na tela precisam sair inteiras no papel. */
   .barras,
   .ranking ol,
-  .rolagem {
+  .rolagem,
+  .rolagem-x {
     max-height: none;
     overflow: visible;
   }

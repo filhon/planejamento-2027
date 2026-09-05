@@ -12,7 +12,9 @@
   --papel: #ffffff;
   --borda: #dfe4f0;
   --neutro: #e6eaf3;
+  --neutro-forte: #aab3c9;
   --vermelho: #c62828;
+  --verde-escuro: #4d7a0f;
 
   --raio: 14px;
   --sombra: 0 1px 2px rgb(32 44 133 / 6%), 0 8px 24px rgb(32 44 133 / 6%);
@@ -296,11 +298,24 @@ main {
 }
 
 .subiu {
-  color: #4d7a0f;
+  color: var(--verde-escuro);
 }
 
 .desceu {
   color: var(--laranja);
+}
+
+/* Semáforo: só a borda muda, o número segue azul (sem salada de cores). */
+.kpi-bom {
+  border-left: 4px solid var(--verde);
+}
+
+.kpi-atencao {
+  border-left: 4px solid var(--laranja);
+}
+
+.kpi-ruim {
+  border-left: 4px solid var(--vermelho);
 }
 
 /* ----------------------------------------------------------------- mapa */
@@ -509,6 +524,187 @@ main {
     var(--tinta-fraca) 0 4px,
     transparent 4px 8px
   );
+}
+
+/* ------------------------------------------------------------ navegação */
+
+.abas {
+  display: flex;
+  gap: 4px;
+  z-index: 1;
+  flex-wrap: wrap;
+}
+
+.abas a {
+  color: rgb(255 255 255 / 78%);
+  text-decoration: none;
+  font-size: 13.5px;
+  font-weight: 600;
+  padding: 8px 14px;
+  border-radius: 999px;
+}
+
+.abas a:hover {
+  background: rgb(255 255 255 / 12%);
+  color: #fff;
+}
+
+.abas a[aria-current="page"] {
+  background: rgb(255 255 255 / 16%);
+  color: #fff;
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 25%);
+}
+
+/* --------------------------------------------------- blocos das páginas */
+
+.grade {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
+  gap: 16px;
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .grade {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.bloco {
+  padding: 14px 16px;
+  min-width: 0;
+}
+
+.bloco.cheia {
+  grid-column: 1 / -1;
+}
+
+.bloco h2 {
+  font-size: 15px;
+}
+
+.sub {
+  margin: 2px 0 10px;
+  font-size: 12px;
+  color: var(--tinta-fraca);
+}
+
+.rodape {
+  margin: 10px 0 0;
+  font-size: 12px;
+  color: var(--tinta-fraca);
+}
+
+/* --------------------------------------------------------------- barras */
+
+.barras {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 420px;
+  overflow-y: auto;
+}
+
+.barra-inline {
+  display: inline-block;
+  width: 90px;
+  vertical-align: middle;
+  margin: 0 8px 0 0;
+}
+
+.n-inline {
+  font-variant-numeric: tabular-nums;
+  color: var(--tinta-fraca);
+  font-size: 12.5px;
+}
+
+/* -------------------------------------------------------------- tabelas */
+
+.tabela {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.tabela th,
+.tabela td {
+  text-align: left;
+  padding: 7px 8px;
+  border-bottom: 1px solid var(--borda);
+  vertical-align: middle;
+}
+
+.tabela th {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--tinta-fraca);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.tabela td.n,
+.tabela th.n {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.tabela tbody tr:hover {
+  background: var(--fundo);
+}
+
+.tabela tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.pastilha {
+  display: inline-block;
+  color: #fff;
+  border-radius: 999px;
+  padding: 2px 9px;
+  font-size: 11.5px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.marca-alerta {
+  color: var(--laranja);
+}
+
+/* -------------------------------------------------------------- alertas */
+
+.alerta-caixa {
+  padding: 14px 16px;
+  margin-bottom: 16px;
+  border-left: 4px solid var(--laranja);
+}
+
+.alerta-caixa h2 {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.alertas {
+  margin: 8px 0 0;
+  padding-left: 18px;
+  font-size: 12.5px;
+  color: var(--laranja);
+}
+
+.alertas li {
+  margin-bottom: 3px;
+}
+
+.ficha-clara {
+  background: transparent;
+  color: var(--tinta-fraca);
+  box-shadow: inset 0 0 0 1px var(--borda);
+}
+
+.fichas-mapa {
+  margin: 0 0 14px;
+  margin-left: 0;
 }
 
 /* --------------------------------------------------------------- estado */

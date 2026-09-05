@@ -27,6 +27,11 @@ Manual: [`docs/fase1-fundacao-dados.md`](docs/fase1-fundacao-dados.md).
 **Fase 2 (app + Mapa-múndi)** — app Next.js em [`app/`](app/) com a marca, filtros
 globais e a página do mapa. Manual: [`docs/fase2-mapa.md`](docs/fase2-mapa.md).
 
+**Fase 3 (análise)** — as páginas **Visão Geral** (`/`), **Pipeline & Avaliação**
+(`/pipeline`) e **Orçamento** (`/orcamento`), com o comparador 2026 × 2025 em todo KPI.
+Os filtros globais e o ano ativo moram no layout `app/(painel)/`, então **o recorte
+sobrevive à troca de página**. Manual: [`docs/fase3-analise.md`](docs/fase3-analise.md).
+
 ```bash
 npm install
 npm run dev            # painel em http://localhost:3000
@@ -41,12 +46,13 @@ Datasets prontos para a UI (fachada com cache em `src/lib/cache.ts`):
 `dados.resumo(ano)` (KPIs) · `dados.orcamento(ano)` · `dados.avaliacoes(ano)`;
 `atualizar()` é o botão "Atualizar" da reunião.
 
-Agregações puras ficam em `src/lib/agregar.ts` (sem `pg`/`fs`) porque o cliente as usa
-para reagregar os filtros — `datasets.ts` reexporta tudo. **Não** importar `datasets.ts`
-num componente cliente: arrasta o driver do banco para o bundle.
+Agregações puras **e as regras do recorte** (`filtrar`, `TODOS`, `ehConveniada`) ficam em
+`src/lib/agregar.ts` (sem `pg`/`fs`) porque o cliente as usa para reagregar os filtros —
+`datasets.ts` reexporta tudo. **Não** importar `datasets.ts` num componente cliente:
+arrasta o driver do banco para o bundle.
 
-**Próximo passo:** Fase 3 — Visão Geral, Pipeline & Avaliação, Orçamento e o comparador
-2026 × 2025 nas demais páginas.
+**Próximo passo:** Fase 4 — Instituições e Prestação de contas, modo apresentação/TV
+e exportar PDF/PNG.
 
 ### Planejamento (entregue antes)
 

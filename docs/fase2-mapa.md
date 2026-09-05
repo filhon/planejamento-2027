@@ -11,14 +11,17 @@ npm test         # inclui a checagem da geometria do mapa
 
 ## Como está montado
 
-| Arquivo                                       | Papel                                                                                              |
-| --------------------------------------------- | -------------------------------------------------------------------------------------------------- |
-| [`app/page.tsx`](../app/page.tsx)             | **A camada de leitura.** Server Component: `dados.ciclos()` + `dados.projetos(ano)` de cada ciclo. |
-| [`app/painel.tsx`](../app/painel.tsx)         | Mapa, KPIs, ranking e filtros cruzados — tudo no cliente.                                          |
-| [`app/actions.ts`](../app/actions.ts)         | Botão "Atualizar" → `atualizar()` + `revalidatePath`.                                              |
-| [`app/error.tsx`](../app/error.tsx)           | Tela de erro se a base cair no dia da reunião.                                                     |
-| [`src/lib/mapa.ts`](../src/lib/mapa.ts)       | Geometria do mundo → `{ iso3, nome, d }` (path SVG já projetado).                                  |
-| [`src/lib/agregar.ts`](../src/lib/agregar.ts) | Agregações puras, usadas pelo servidor **e** pelo cliente.                                         |
+> Os caminhos abaixo já refletem a Fase 3, que moveu o mapa para `/mapa` e passou a
+> camada de leitura e os filtros para o layout — ver [`fase3-analise.md`](fase3-analise.md).
+
+| Arquivo                                                         | Papel                                                                                              |
+| --------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| [`app/(painel)/layout.tsx`](<../app/(painel)/layout.tsx>)       | **A camada de leitura.** Server Component: `dados.ciclos()` + `dados.projetos(ano)` de cada ciclo. |
+| [`app/(painel)/mapa/mapa.tsx`](<../app/(painel)/mapa/mapa.tsx>) | Mapa, KPIs e ranking — tudo no cliente. Os filtros vêm do `Shell`.                                 |
+| [`app/actions.ts`](../app/actions.ts)                           | Botão "Atualizar" → `atualizar()` + `revalidatePath`.                                              |
+| [`app/error.tsx`](../app/error.tsx)                             | Tela de erro se a base cair no dia da reunião.                                                     |
+| [`src/lib/mapa.ts`](../src/lib/mapa.ts)                         | Geometria do mundo → `{ iso3, nome, d }` (path SVG já projetado).                                  |
+| [`src/lib/agregar.ts`](../src/lib/agregar.ts)                   | Agregações puras, usadas pelo servidor **e** pelo cliente.                                         |
 
 ### Decisões que valem lembrar
 
@@ -45,5 +48,6 @@ npm test         # inclui a checagem da geometria do mapa
 
 ## O que a Fase 2 **não** faz
 
-Páginas Visão Geral, Pipeline, Orçamento, Instituições e Prestação de contas (Fases 3–4);
-modo apresentação/TV; exportar PDF/PNG; zoom no mapa.
+Páginas Instituições e Prestação de contas (Fase 4); modo apresentação/TV;
+exportar PDF/PNG; zoom no mapa. Visão Geral, Pipeline e Orçamento chegaram na
+[Fase 3](fase3-analise.md).

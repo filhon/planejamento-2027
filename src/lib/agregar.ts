@@ -39,6 +39,58 @@ export function grupoDeStatus(status: string): StatusGrupo {
   return GRUPOS[status] ?? "neutro";
 }
 
+// ----------------------------------------------------------------- filtros
+
+/** Valor do <select> "sem recorte" — não colide com nenhum dado real. */
+export const TODOS = "__todos";
+
+export interface Filtros {
+  continente: string;
+  status: string;
+  categoria: string;
+  /** "true" | "false" | TODOS. */
+  conveniada: string;
+  iso3: string | null;
+}
+
+export const SEM_FILTRO: Filtros = {
+  continente: TODOS,
+  status: TODOS,
+  categoria: TODOS,
+  conveniada: TODOS,
+  iso3: null,
+};
+
+/**
+ * `institutions.is_conveniada` é `boolean | null`, e projeto sem instituição
+ * também chega como null. Para o orçamento, o que não é conveniada disputa o
+ * teto das NÃO conveniadas — então null conta como não conveniada, aqui e na
+ * página de Orçamento (uma regra só).
+ */
+export const ehConveniada = (p: ProjetoCiclo): boolean => p.conveniada === true;
+
+/** Os filtros globais da reunião, aplicados de uma vez. */
+export function filtrar(projetos: ProjetoCiclo[], f: Filtros): ProjetoCiclo[] {
+  return projetos.filter(
+    (p) =>
+      (f.continente === TODOS || p.local.continente === f.continente) &&
+      (f.status === TODOS || p.statusGrupo === f.status) &&
+      (f.categoria === TODOS || p.categoria === f.categoria) &&
+      (f.conveniada === TODOS || String(ehConveniada(p)) === f.conveniada) &&
+      (f.iso3 === null || p.local.iso3 === f.iso3),
+  );
+}
+
+export function temFiltro(f: Filtros): boolean {
+  return (
+    f.continente !== TODOS ||
+    f.status !== TODOS ||
+    f.categoria !== TODOS ||
+    f.conveniada !== TODOS ||
+    f.iso3 !== null
+  );
+}
+
 // ------------------------------------------------------------------- util
 
 export function agrupar<T>(

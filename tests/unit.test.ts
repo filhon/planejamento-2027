@@ -13,6 +13,12 @@ import {
   grupoDeStatus,
   agregarPorPais,
 } from "../src/lib/datasets";
+import {
+  filtrar,
+  SEM_FILTRO,
+  temFiltro,
+  type Filtros,
+} from "../src/lib/agregar";
 import { carregarCountryMap } from "../src/lib/enrichment";
 import { geometriaMundo } from "../src/lib/mapa";
 import { GRUPO_SENSIVEL, type ProjetoCiclo } from "../src/lib/types";
@@ -216,12 +222,15 @@ test("status vira grupo semântico da paleta", () => {
 
 const projeto = (p: Partial<ProjetoCiclo>): ProjetoCiclo =>
   ({
-    id: p.id ?? "p",
-    categoria: p.categoria ?? "educacao",
-    solicitado: p.solicitado ?? 0,
-    aprovado: p.aprovado ?? 0,
-    instituicaoId: p.instituicaoId ?? "i1",
-    local: p.local ?? normalizarLocal({ country: "Brasil" }, indice),
+    id: "p",
+    categoria: "educacao",
+    solicitado: 0,
+    aprovado: 0,
+    instituicaoId: "i1",
+    statusGrupo: "em-avaliacao",
+    conveniada: null,
+    local: normalizarLocal({ country: "Brasil" }, indice),
+    ...p,
   }) as ProjetoCiclo;
 
 test("agregação por país soma valores e conta instituições distintas", () => {
@@ -249,6 +258,40 @@ test("agregação por país soma valores e conta instituições distintas", () =
   assert.equal(brasil?.instituicoes, 1);
   assert.equal(brasil?.categorias.length, 2);
   assert.equal(locais[0]?.iso3, "BRA", "deve vir ordenado por nº de projetos");
+});
+
+// ------------------------------------------------------- filtros (Fase 3)
+
+test("filtros globais se combinam e null conta como não conveniada", () => {
+  const angola = normalizarLocal({ country: "Angola" }, indice);
+  const universo = [
+    projeto({ id: "a", conveniada: true, statusGrupo: "aprovado" }),
+    projeto({ id: "b", conveniada: false, statusGrupo: "aprovado" }),
+    projeto({ id: "c", conveniada: null, statusGrupo: "aprovado" }),
+    projeto({
+      id: "d",
+      conveniada: true,
+      statusGrupo: "rejeitado",
+      categoria: "saude",
+      local: angola,
+    }),
+  ];
+
+  const ids = (f: Partial<Filtros>) =>
+    filtrar(universo, { ...SEM_FILTRO, ...f }).map((p) => p.id);
+
+  assert.deepEqual(ids({}), ["a", "b", "c", "d"], "sem filtro não recorta");
+  assert.deepEqual(ids({ conveniada: "true" }), ["a", "d"]);
+  // A instituição sem is_conveniada disputa o teto das NÃO conveniadas.
+  assert.deepEqual(ids({ conveniada: "false" }), ["b", "c"]);
+  assert.deepEqual(ids({ status: "aprovado" }), ["a", "b", "c"]);
+  assert.deepEqual(ids({ iso3: "AGO" }), ["d"]);
+  assert.deepEqual(ids({ conveniada: "true", status: "aprovado" }), ["a"]);
+  assert.deepEqual(ids({ continente: "África", categoria: "saude" }), ["d"]);
+
+  assert.equal(temFiltro(SEM_FILTRO), false);
+  assert.equal(temFiltro({ ...SEM_FILTRO, iso3: "BRA" }), true);
+  assert.equal(temFiltro({ ...SEM_FILTRO, conveniada: "false" }), true);
 });
 
 // ------------------------------------------------------------ mapa (Fase 2)

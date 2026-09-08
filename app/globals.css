@@ -792,6 +792,37 @@ main {
   font-size: 15px;
 }
 
+/* Título à esquerda, ações (exportar) à direita — ver Secao em ui.tsx. */
+.bloco-topo {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.bloco-acoes {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+/* Botão de ação sobre cartão branco (o do cabeçalho é claro sobre azul). */
+.botao-claro {
+  border: 1px solid var(--borda);
+  background: var(--papel);
+  color: var(--azul);
+  font-size: 12.5px;
+  font-weight: 600;
+  padding: 7px 13px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.botao-claro:hover {
+  border-color: var(--azul);
+  background: var(--neutro);
+}
+
 .sub {
   margin: 2px 0 10px;
   font-size: 12px;
@@ -1281,6 +1312,7 @@ body.apresentacao .rolagem {
   .abas,
   .cabecalho-acoes,
   .filtros,
+  .bloco-acoes,
   .limpar {
     display: none !important;
   }

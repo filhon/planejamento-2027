@@ -13,6 +13,7 @@ import type { Avaliador, ProjetoCiclo } from "@/lib/types";
 import { usePainel } from "../contexto";
 import { fmtInt, fmtMoeda, fmtMoedaCurta, ROTULO_STATUS } from "../formato";
 import { Kpi, Secao } from "../ui";
+import Exportar from "./exportar";
 import { ROTULO_TIPO, Tipo } from "./tipo";
 
 /**
@@ -174,6 +175,9 @@ export default function Projetos({
           titulo={`${fmtInt.format(lista.length)} projeto(s) no recorte`}
           sub="Clique no título para abrir a pasta do projeto — texto, anexos, vídeo, parecer e prestação de contas."
           largura="cheia"
+          // A exportação leva a lista JÁ ORDENADA: o diretor recebe o material
+          // na mesma ordem em que está vendo na tela.
+          acoes={<Exportar lista={lista} />}
         >
           <div className="rolagem">
             <table className="tabela">

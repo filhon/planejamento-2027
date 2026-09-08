@@ -40,6 +40,8 @@ export interface EstadoPainel {
   filtros: Filtros;
   aplicar: (parcial: Partial<Filtros>) => void;
   alternarPais: (iso3: string | null) => void;
+  /** Nome em português do país filtrado — null sem filtro de país. */
+  nomePais: string | null;
   limpar: () => void;
   filtroAtivo: boolean;
   /** Projetos do ano ativo, já filtrados. */

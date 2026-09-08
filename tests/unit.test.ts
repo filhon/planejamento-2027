@@ -43,6 +43,7 @@ import {
   similaridadeTitulo,
   sugerirVinculo,
 } from "../src/lib/recorrencia";
+import { crc32, planilha } from "../src/lib/xlsx";
 import type { DocumentoRow, OrcamentoRow } from "../src/lib/queries";
 
 const indice = construirIndicePaises(carregarCountryMap());
@@ -825,4 +826,43 @@ test("pastas: só projetos novos, avaliador vazio aparece, sem-dono por último"
     "avaliador sem pasta continua na lista",
   );
   assert.equal(pastas[2]!.atribuida, false);
+});
+
+// ------------------------------------------- planilha .xlsx da exportação
+
+test("xlsx: zip íntegro, células tipadas e texto escapado", () => {
+  // Valor de conferência canônico do CRC-32 (IEEE): "123456789" → 0xCBF43926.
+  assert.equal(crc32(new TextEncoder().encode("123456789")), 0xcbf43926);
+
+  const bytes = planilha(
+    "Projetos 2026",
+    [
+      ["Projeto", "Instituição", "Solicitado", "Recebido"],
+      ["Água & Vida <BR>", "Missão X", 45000, 12000],
+      ["Sem vínculo", "Missão Y", 1000, null],
+    ],
+    { larguras: [56, 38, 20, 26], congelar: 1 },
+  );
+
+  // Assinaturas do zip: entrada local, diretório central e o fim (5 partes).
+  const cru = new TextDecoder().decode(bytes);
+  assert.equal(cru.slice(0, 4), "PK\u0003\u0004");
+  const fim = bytes.length - 22;
+  assert.equal(
+    new DataView(bytes.buffer, bytes.byteOffset).getUint32(fim, true),
+    0x06054b50,
+  );
+  assert.equal(
+    new DataView(bytes.buffer, bytes.byteOffset).getUint16(fim + 10, true),
+    5,
+  );
+
+  // As partes vão sem compressão, então o XML da aba está legível aqui dentro.
+  assert.match(
+    cru,
+    /<c r="A2" t="inlineStr"><is><t xml:space="preserve">Água &amp; Vida &lt;BR&gt;<\/t><\/is><\/c>/,
+  );
+  assert.match(cru, /<c r="C2"><v>45000<\/v><\/c>/);
+  assert.ok(!cru.includes('r="D3"'), "célula nula é omitida, não vira zero");
+  assert.match(cru, /ySplit="1"/);
 });

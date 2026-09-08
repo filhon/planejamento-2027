@@ -45,7 +45,12 @@ renovação POR PROJETO** (a origem não liga um ciclo ao outro), o **quanto rec
 no ciclo anterior** por projeto, e a **divisão automática dos projetos novos**
 (rejeitado, rascunho e cancelado não entram em pasta) entre diretores/conselheiros;
 `-- --reequilibrar` nivela as pastas quando elas encolhem (projeto reclassificado)
-ou quando entra um avaliador novo.
+ou quando entra um avaliador novo. Traz também a **exportação do recorte** no
+canto da tabela — **PDF** (janela nova + `window.print()`, desenhado como
+documento de conselho: timbre, campos de identificação, relação em tabela com
+`thead` repetido, e legível em preto e branco) e **.xlsx** (quatro colunas,
+números crus), com o **nome do diretor** no campo Responsável quando há
+exatamente um marcado e uma **nota** quando há dois ou mais.
 Manual: [`docs/fase5-projetos.md`](docs/fase5-projetos.md).
 
 ```bash
@@ -85,6 +90,8 @@ cliente: arrasta o driver do banco para o bundle.
 - Esquema opcional de banco próprio do dashboard → [`docs/country_map.sql`](docs/country_map.sql) (NUNCA na origem)
 - Script do papel de leitura, **para a equipe rodar** → [`docs/bi_readonly.sql`](docs/bi_readonly.sql)
 - Manual de marca (fornecido pelo cliente) → [`.docs/Identidade Visual da Hebron Aseec.md`](.docs/Identidade%20Visual%20da%20Hebron%20Aseec.md)
+- **Quem usa, com que tom, e o que NÃO fazer** → [`PRODUCT.md`](PRODUCT.md)
+  (contexto estratégico; os princípios de design saem dali, não de reflexo)
 
 Artefatos visuais publicados (versão apresentação, claude.ai):
 
@@ -207,7 +214,9 @@ de mapas: `d3-geo` + `topojson-client` projetam **no servidor** e mandam paths S
 (TopoJSON vendorizado em `data/countries-110m.json`, casando por **ISO-3** via
 `i18n-iso-countries`). Botão "Atualizar" = Server Action → `atualizar()`.
 
-**Fase 5 (em uso):** nenhuma biblioteca nova. O casamento de título entre remessas
+**Fase 5 (em uso):** nenhuma biblioteca nova — nem para a exportação: `.xlsx` é um
+zip de XMLs, e `src/lib/xlsx.ts` escreve um (sem compressão, sem estilos) em ~200
+linhas puras; o PDF continua sendo `window.print()`. O casamento de título entre remessas
 é Sørensen–Dice sobre bigramas, ~30 linhas em `src/lib/recorrencia.ts` (o Postgres
 da origem **não** tem `pg_trgm`, e instalar extensão lá está fora de questão).
 Vídeo e anexos vêm direto dos **buckets públicos do Storage** (`<video>` nativo com

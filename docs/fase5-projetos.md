@@ -229,6 +229,53 @@ eles dois `Projeto Timoteo` e dois `Missão Vida Internacional` idênticos em 20
 Os filtros globais ganharam dois eixos, **Triagem** e **Responsável**, que cruzam
 com continente/status/categoria como os demais e sobrevivem à troca de página.
 
+#### Exportar (PDF e Excel)
+
+No canto superior direito da tabela, dois botões levam **o recorte como está na
+tela** — na mesma ordem em que ele está ordenado — para o diretor levar embora:
+
+| Situação                   | O que sai                                                                               |
+| -------------------------- | --------------------------------------------------------------------------------------- |
+| **1 responsável** marcado  | capa com o **nome dele** e a lista da pasta abaixo                                      |
+| **nenhum** responsável     | sem nome; a lista é o recorte dos filtros aplicados                                     |
+| **2 ou mais** responsáveis | sem nome, com **aviso em destaque** de que a lista é a soma das pastas, não a de alguém |
+
+Os dois formatos carregam os mesmos quatro campos: **título**, **instituição**,
+**valor solicitado** e **recebido em &lt;ano&gt;** (o valor aprovado na janela do
+ciclo anterior, pago no ciclo ativo — o `recebidoAnterior` da triagem). O
+cabeçalho repete a linha de recorte da impressão (`resumoFiltros()` em
+[`app/(painel)/formato.ts`](<../app/(painel)/formato.ts>), a mesma frase que sai
+na ata), para o material do diretor e a ata nunca divergirem sobre quais números
+estavam na mesa.
+
+- **PDF** — uma janela nova com o documento montado e `window.print()`, a mesma
+  escolha da Fase 4. Sem biblioteca de PDF: quem gera o arquivo é o navegador,
+  em "Salvar como PDF". O desenho é de **documento de conselho**, não de painel
+  fotografado:
+
+  | Peça                     | Por quê                                                                                                      |
+  | ------------------------ | ------------------------------------------------------------------------------------------------------------ |
+  | timbre + régua azul      | assina a folha; a régua vira cinza na fotocópia e continua separando                                         |
+  | campos de identificação  | responsável, recorte, emissão, e os totais alinhados à direita                                               |
+  | relação em `<table>`     | filete por linha, algarismo tabular, valores sem `R$` (a unidade vai no `th`)                                |
+  | `thead` repetido         | a folha 3 continua dizendo o que é cada coluna                                                               |
+  | linha de soma no `tbody` | totais no fim da relação, com régua grossa — e **não** num `tfoot`, que o navegador repetiria em toda página |
+
+  Cor só no timbre e nas réguas: **o documento sai inteiro em preto e branco sem
+  perder hierarquia nenhuma** (verificado em render com `grayscale(1)`). O título
+  muda com o recorte — "Pasta de avaliação" com um responsável, "Relação de
+  projetos" sem —, e o `<title>` carrega essa identificação porque o navegador o
+  usa no cabeçalho corrente de cada página impressa e no nome sugerido do
+  arquivo. As fontes vêm do Google Fonts e a impressão espera por elas
+  (`document.fonts.ready`), senão a primeira página sairia em Times.
+
+- **.xlsx** — quatro colunas, valores como **número** (para somar e filtrar no
+  Excel), cabeçalho congelado. Escrito por
+  [`src/lib/xlsx.ts`](../src/lib/xlsx.ts): um `.xlsx` é um zip de XMLs, e as
+  entradas vão **sem compressão** — cabe em ~200 linhas puras e evita tanto uma
+  dependência nova quanto o `CompressionStream`. Sem `styles.xml` de propósito:
+  número formatado como moeda vira texto na hora de somar.
+
 ### `/projetos/[id]` — a pasta do projeto
 
 Tudo o que a origem guarda, numa tela só, para abrir na TV enquanto o responsável
@@ -273,6 +320,7 @@ já serve. Se um dia os buckets virarem privados, o ponto único de mudança é
 | [`src/lib/enrichment.ts`](../src/lib/enrichment.ts)           | leitura dos dois CSVs novos                                        |
 | [`src/lib/datasets.ts`](../src/lib/datasets.ts)               | `projetoDetalhe()` e a junção da triagem em `ProjetoCiclo.revisao` |
 | [`src/lib/agregar.ts`](../src/lib/agregar.ts)                 | filtros `tipo`/`responsavel` e `montarPastas()`                    |
+| [`src/lib/xlsx.ts`](../src/lib/xlsx.ts)                       | escritor mínimo de `.xlsx` (zip + XML), puro e testado             |
 | [`scripts/regen-avaliacao.ts`](../scripts/regen-avaliacao.ts) | o comando `avaliacao:regen`                                        |
 | [`app/(painel)/projetos/`](<../app/(painel)/projetos/>)       | as duas páginas                                                    |
 

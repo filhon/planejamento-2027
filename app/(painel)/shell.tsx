@@ -15,7 +15,7 @@ import {
   type CicloCarregado,
   type Filtros,
 } from "./contexto";
-import { ROTULO_STATUS } from "./formato";
+import { ROTULO_STATUS, resumoFiltros } from "./formato";
 
 /**
  * Moldura de todas as páginas: marca, navegação, toggle de ano e a barra de
@@ -250,6 +250,7 @@ export default function Shell({
         filtros,
         aplicar,
         alternarPais,
+        nomePais,
         limpar: () => setFiltros(SEM_FILTRO),
         filtroAtivo,
         projetos,
@@ -335,24 +336,7 @@ export default function Shell({
             {PAGINAS.find((p) => p.href === caminho)?.rotulo ?? "Painel"} ·
             Remessa {ano}
           </b>
-          <span>
-            {[
-              filtros.continente.length > 0 &&
-                `Continente: ${filtros.continente.join(", ")}`,
-              filtros.status.length > 0 &&
-                `Status: ${filtros.status.map((s) => ROTULO_STATUS[s as StatusGrupo]).join(", ")}`,
-              filtros.categoria.length > 0 &&
-                `Categoria: ${filtros.categoria.join(", ")}`,
-              filtros.conveniada.length > 0 &&
-                `Instituição: ${filtros.conveniada.map((c) => (c === "true" ? "conveniadas" : "não conveniadas")).join(", ")}`,
-              filtros.tipo.length > 0 && `Triagem: ${filtros.tipo.join(", ")}`,
-              filtros.responsavel.length > 0 &&
-                `Responsável: ${filtros.responsavel.map((r) => (r === SEM_RESPONSAVEL ? "sem responsável" : r)).join(", ")}`,
-              nomePais && `País: ${nomePais}`,
-            ]
-              .filter(Boolean)
-              .join(" · ") || "Sem filtros — ciclo inteiro"}
-          </span>
+          <span>{resumoFiltros(filtros, nomePais)}</span>
           <span>
             {projetos.length} de {todos.length} projetos
           </span>

@@ -117,19 +117,27 @@ export function Barras({
 export function Secao({
   titulo,
   sub,
+  acoes,
   children,
   largura,
 }: {
   titulo: string;
   sub?: string;
+  /** Botões no canto superior direito (ex.: exportar). Somem na impressão. */
+  acoes?: React.ReactNode;
   children: React.ReactNode;
   /** "dupla" = 2 colunas da grade, "cheia" = a fileira inteira. */
   largura?: "cheia" | "dupla";
 }) {
   return (
     <section className={`bloco cartao${largura ? ` ${largura}` : ""}`}>
-      <h2 className="titulo">{titulo}</h2>
-      {sub && <p className="sub">{sub}</p>}
+      <div className="bloco-topo">
+        <div>
+          <h2 className="titulo">{titulo}</h2>
+          {sub && <p className="sub">{sub}</p>}
+        </div>
+        {acoes && <div className="bloco-acoes">{acoes}</div>}
+      </div>
       <div className="rolagem-x">{children}</div>
     </section>
   );

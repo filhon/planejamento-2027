@@ -44,7 +44,7 @@ As rotas `/instituicoes` e `/prestacao` vieram na Fase 4, sobre este mesmo esque
   `npm test`, e a mesma função serve servidor e cliente.
   `is_conveniada` nulo **conta como não conveniada**: é quem disputa aquele teto.
 - **Filtros inclusivos e cruzados.** Cada eixo (Continente, Status, Categoria,
-  Instituição) é multi-seleção: os valores marcados **dentro** de um eixo se
+  Convênio) é multi-seleção: os valores marcados **dentro** de um eixo se
   somam (OU) e os eixos se **cruzam** entre si (E); eixo vazio = sem recorte.
   Na UI é um `<details>` com checkboxes (`CampoMulti`), não `<select multiple>`:
   o painel roda na TV da reunião e ctrl+clique não serve ali. Clicar numa barra

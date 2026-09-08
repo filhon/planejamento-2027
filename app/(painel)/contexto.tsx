@@ -19,6 +19,7 @@ export {
   SEM_FILTRO,
   SEM_RESPONSAVEL,
   alternar,
+  casaBusca,
   ehConveniada,
   filtrar,
   temFiltro,
@@ -54,6 +55,8 @@ export interface EstadoPainel {
     continentes: string[];
     status: StatusGrupo[];
     categorias: string[];
+    /** Nomes das instituições com projeto no ciclo ativo. */
+    instituicoes: string[];
     /** Diretores/conselheiros que já têm pasta no ciclo ativo (Fase 5). */
     responsaveis: string[];
   };

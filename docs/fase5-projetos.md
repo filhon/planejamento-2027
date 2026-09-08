@@ -229,6 +229,25 @@ eles dois `Projeto Timoteo` e dois `Missão Vida Internacional` idênticos em 20
 Os filtros globais ganharam dois eixos, **Triagem** e **Responsável**, que cruzam
 com continente/status/categoria como os demais e sobrevivem à troca de página.
 
+#### Filtro por instituição
+
+O antigo campo "Instituição" só tinha o **regime** (conveniada / não conveniada)
+e passou a se chamar **Convênio**, que é o que ele sempre filtrou. No lugar
+entrou um eixo **Instituição** de verdade, com os nomes do ciclo ativo — dá para
+isolar uma organização e ver mapa, orçamento e pastas só dela.
+
+São 146 nomes longos e parecidos ("Associação…", "Missão…"), então o campo tem
+uma **caixa de pesquisa**: casa por trecho do nome **ou por iniciais** — "MVI"
+acha "Missão Vida Internacional". Acento e pontuação são ignorados dos dois
+lados, e conectivo ("de", "da", "e") não entra nas iniciais, senão ninguém
+acertaria a sigla. A regra é `casaBusca()` em
+[`src/lib/agregar.ts`](../src/lib/agregar.ts), pura e testada em `npm test`.
+O que já está marcado nunca some da lista, mesmo fora da busca — do contrário,
+desmarcar exigiria adivinhar o texto que traz o item de volta.
+
+O eixo guarda o **nome**, não o uuid: é o que a linha de recorte da impressão e
+das exportações precisa imprimir, sem carregar um de-para até lá.
+
 #### Exportar (PDF e Excel)
 
 No canto superior direito da tabela, dois botões levam **o recorte como está na

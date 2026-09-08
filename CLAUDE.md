@@ -77,8 +77,12 @@ Agregações puras **e as regras do recorte** (`filtrar`, `alternar`, `ehConveni
 `src/lib/recorrencia.ts` (também puro). **Não** importar `datasets.ts` num componente
 cliente: arrasta o driver do banco para o bundle.
 
+Os filtros globais são Continente · Status · Categoria · **Convênio**
+(conveniada/não) · **Instituição** (por nome, com busca por nome ou iniciais) ·
+Triagem · Responsável, mais o país clicado no mapa.
+
 **Próximo passo:** nada obrigatório. Em aberto, só se a equipe pedir: exportar PNG
-(hoje é PDF pela impressão), zoom/pan no mapa e filtro global por instituição.
+(hoje é PDF pela impressão) e zoom/pan no mapa.
 
 ### Planejamento (entregue antes)
 

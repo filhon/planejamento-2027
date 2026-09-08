@@ -7,6 +7,7 @@ import type { StatusGrupo } from "@/lib/types";
 import { atualizarDados } from "../actions";
 import {
   alternar,
+  casaBusca,
   filtrar,
   ProvedorPainel,
   SEM_FILTRO,
@@ -64,19 +65,32 @@ interface Opcao {
  *
  * É um <details> com checkboxes em vez de <select multiple> porque o painel
  * roda na TV da reunião: ctrl+clique para marcar dois itens não serve ali.
+ *
+ * `busca` liga a caixa de pesquisa (nome ou iniciais, ver `casaBusca`) — só
+ * vale a pena onde a lista é longa demais para rolar, hoje as instituições.
+ * O que já está marcado nunca some da lista, mesmo fora da busca: senão
+ * desmarcar exigiria adivinhar o texto que traz o item de volta.
  */
 function CampoMulti({
   rotulo,
   opcoes,
   selecionados,
   aoAlternar,
+  busca = false,
 }: {
   rotulo: string;
   opcoes: Opcao[];
   selecionados: string[];
   aoAlternar: (valor: string) => void;
+  busca?: boolean;
 }) {
+  const [termo, setTermo] = useState("");
   const marcados = opcoes.filter((o) => selecionados.includes(o.valor));
+  const visiveis = termo
+    ? opcoes.filter(
+        (o) => selecionados.includes(o.valor) || casaBusca(o.rotulo, termo),
+      )
+    : opcoes;
 
   // Fecha clicando no próprio campo de novo — comportamento nativo do <details>.
   // Nada de fechar no blur: mexer no `open` durante o focusout é sutil demais
@@ -94,7 +108,17 @@ function CampoMulti({
         </span>
       </summary>
       <div className="opcoes">
-        {opcoes.map((o) => (
+        {busca && (
+          <input
+            className="opcoes-busca"
+            type="search"
+            value={termo}
+            placeholder="Nome ou iniciais…"
+            aria-label={`Pesquisar em ${rotulo}`}
+            onChange={(e) => setTermo(e.target.value)}
+          />
+        )}
+        {visiveis.map((o) => (
           <label key={o.valor}>
             <input
               type="checkbox"
@@ -104,6 +128,9 @@ function CampoMulti({
             {o.rotulo}
           </label>
         ))}
+        {visiveis.length === 0 && (
+          <p className="opcoes-vazio">Nada encontrado</p>
+        )}
       </div>
     </details>
   );
@@ -218,6 +245,11 @@ export default function Shell({
       continentes: ordenados(todos.map((p) => p.local.continente)),
       status: ordenados(todos.map((p) => p.statusGrupo)) as StatusGrupo[],
       categorias: ordenados(todos.map((p) => p.categoria)),
+      instituicoes: ordenados(
+        todos
+          .map((p) => p.instituicaoNome)
+          .filter((n): n is string => n !== null),
+      ),
       responsaveis: ordenados(
         todos
           .map((p) => p.revisao.responsavel)
@@ -394,8 +426,11 @@ export default function Shell({
             }
           />
 
+          {/* Convênio e Instituição são eixos separados (e se cruzam): o
+              primeiro é o regime, o segundo é a organização. Antes o campo
+              "Instituição" só tinha o regime — e não dava para isolar UMA. */}
           <CampoMulti
-            rotulo="Instituição"
+            rotulo="Convênio"
             opcoes={[
               { valor: "true", rotulo: "Conveniadas" },
               { valor: "false", rotulo: "Não conveniadas" },
@@ -403,6 +438,16 @@ export default function Shell({
             selecionados={filtros.conveniada}
             aoAlternar={(v) =>
               aplicar({ conveniada: alternar(filtros.conveniada, v) })
+            }
+          />
+
+          <CampoMulti
+            rotulo="Instituição"
+            busca
+            opcoes={opcoes.instituicoes.map((i) => ({ valor: i, rotulo: i }))}
+            selecionados={filtros.instituicao}
+            aoAlternar={(v) =>
+              aplicar({ instituicao: alternar(filtros.instituicao, v) })
             }
           />
 

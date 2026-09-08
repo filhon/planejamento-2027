@@ -76,7 +76,9 @@ export function resumoFiltros(
       filtros.categoria.length > 0 &&
         `Categoria: ${filtros.categoria.join(", ")}`,
       filtros.conveniada.length > 0 &&
-        `Instituição: ${filtros.conveniada.map((c) => (c === "true" ? "conveniadas" : "não conveniadas")).join(", ")}`,
+        `Convênio: ${filtros.conveniada.map((c) => (c === "true" ? "conveniadas" : "não conveniadas")).join(", ")}`,
+      filtros.instituicao.length > 0 &&
+        `Instituição: ${filtros.instituicao.join(", ")}`,
       filtros.tipo.length > 0 && `Triagem: ${filtros.tipo.join(", ")}`,
       filtros.responsavel.length > 0 &&
         `Responsável: ${filtros.responsavel.map(rotuloResponsavel).join(", ")}`,

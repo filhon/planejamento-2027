@@ -56,6 +56,12 @@ export interface Filtros {
   categoria: string[];
   /** "true" | "false" — vazio = todas. */
   conveniada: string[];
+  /**
+   * Nome da instituição (não o uuid): é o que aparece na linha de recorte da
+   * impressão e das exportações, sem precisar carregar um de-para até lá.
+   * Homônimas cairiam na mesma seleção — e nas 146 da origem não há nenhuma.
+   */
+  instituicao: string[];
   iso3: string | null;
   /** novo · renovacao · revisar (Fase 5). */
   tipo: string[];
@@ -68,6 +74,7 @@ export const SEM_FILTRO: Filtros = {
   status: [],
   categoria: [],
   conveniada: [],
+  instituicao: [],
   iso3: null,
   tipo: [],
   responsavel: [],
@@ -86,6 +93,50 @@ export function alternar(selecionados: string[], valor: string): string[] {
 const casa = (selecionados: string[], valor: string): boolean =>
   selecionados.length === 0 || selecionados.includes(valor);
 
+const semAcento = (s: string): string =>
+  s
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .toLowerCase();
+
+/** "de", "da", "e"… não entram nas iniciais: ninguém digita "MEDA" por "Missão Evangélica da Amazônia". */
+const CONECTIVOS = new Set([
+  "de",
+  "da",
+  "do",
+  "das",
+  "dos",
+  "e",
+  "em",
+  "a",
+  "o",
+  "no",
+  "na",
+]);
+
+/**
+ * O texto casa com o que foi digitado — por trecho do nome **ou** por iniciais.
+ *
+ * Existe porque a lista de instituições tem 146 nomes longos e parecidos
+ * ("Associação…", "Missão…"): rolar até achar não serve numa reunião. Quem
+ * conhece a instituição digita a sigla ("MVI"), quem não conhece digita um
+ * pedaço do nome. Sem acento nem pontuação dos dois lados.
+ */
+export function casaBusca(texto: string, busca: string): boolean {
+  const alvo = semAcento(busca).replace(/[^a-z0-9]+/g, "");
+  if (!alvo) return true;
+
+  const nome = semAcento(texto);
+  if (nome.replace(/[^a-z0-9]+/g, "").includes(alvo)) return true;
+
+  const iniciais = nome
+    .split(/[^a-z0-9]+/)
+    .filter((p) => p && !CONECTIVOS.has(p))
+    .map((p) => p[0])
+    .join("");
+  return iniciais.includes(alvo);
+}
+
 /**
  * `institutions.is_conveniada` é `boolean | null`, e projeto sem instituição
  * também chega como null. Para o orçamento, o que não é conveniada disputa o
@@ -102,6 +153,7 @@ export function filtrar(projetos: ProjetoCiclo[], f: Filtros): ProjetoCiclo[] {
       casa(f.status, p.statusGrupo) &&
       casa(f.categoria, p.categoria) &&
       casa(f.conveniada, String(ehConveniada(p))) &&
+      casa(f.instituicao, p.instituicaoNome ?? "") &&
       casa(f.tipo, p.revisao.tipo) &&
       casa(f.responsavel, p.revisao.responsavel ?? SEM_RESPONSAVEL) &&
       (f.iso3 === null || p.local.iso3 === f.iso3),
@@ -114,6 +166,7 @@ export function temFiltro(f: Filtros): boolean {
     f.status.length > 0 ||
     f.categoria.length > 0 ||
     f.conveniada.length > 0 ||
+    f.instituicao.length > 0 ||
     f.tipo.length > 0 ||
     f.responsavel.length > 0 ||
     f.iso3 !== null

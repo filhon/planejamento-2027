@@ -49,10 +49,9 @@ npm run check    # agora também confere os dois datasets novos contra os dados 
   enviado" (43 hoje), não "sem documento" — que seria sempre zero. São 147
   `institution_id` para 146 instituições: um conjunto é órfão, e o `npm run check`
   passou a avisar.
-- **Sem filtro por instituição.** Os filtros globais seguem os quatro do plano
-  (continente, status, categoria, conveniada). Clicar numa instituição para
-  recortar o painel entra quando a equipe pedir — hoje o recorte por conveniada
-  já cobre a decisão de teto.
+- **Sem filtro por instituição** (na Fase 4; entregue depois — ver
+  [`fase5-projetos.md`](fase5-projetos.md)). Aqui os filtros globais ainda eram
+  os quatro do plano: continente, status, categoria, conveniada.
 - **Ainda sem biblioteca de gráficos.** As duas páginas são `Barras` + `<table>`,
   como as da Fase 3.
 

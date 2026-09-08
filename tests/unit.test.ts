@@ -19,6 +19,7 @@ import {
   agregarPorInstituicao,
   alternar,
   avaliavel,
+  casaBusca,
   filtrar,
   montarCobertura,
   montarPastas,
@@ -364,6 +365,62 @@ test("filtros globais se combinam e null conta como não conveniada", () => {
   assert.equal(temFiltro(SEM_FILTRO), false);
   assert.equal(temFiltro({ ...SEM_FILTRO, iso3: "BRA" }), true);
   assert.equal(temFiltro({ ...SEM_FILTRO, conveniada: ["false"] }), true);
+});
+
+test("filtro por instituição isola a organização e cruza com o convênio", () => {
+  const universo = [
+    projeto({ id: "a", instituicaoNome: "Missão Vida Internacional" }),
+    projeto({
+      id: "b",
+      instituicaoNome: "Missão Vida Internacional",
+      conveniada: true,
+    }),
+    projeto({ id: "c", instituicaoNome: "Associação Boa Semente" }),
+    projeto({ id: "d", instituicaoNome: null }),
+  ];
+  const ids = (f: Partial<Filtros>) =>
+    filtrar(universo, { ...SEM_FILTRO, ...f }).map((p) => p.id);
+
+  assert.deepEqual(ids({ instituicao: ["Missão Vida Internacional"] }), [
+    "a",
+    "b",
+  ]);
+  assert.deepEqual(
+    ids({
+      instituicao: ["Missão Vida Internacional", "Associação Boa Semente"],
+    }),
+    ["a", "b", "c"],
+    "duas instituições somam",
+  );
+  assert.deepEqual(
+    ids({ instituicao: ["Missão Vida Internacional"], conveniada: ["true"] }),
+    ["b"],
+    "convênio é outro eixo, e cruza",
+  );
+  assert.deepEqual(
+    ids({ instituicao: ["Associação Boa Semente"] }),
+    ["c"],
+    "projeto sem instituição não entra em recorte de instituição",
+  );
+  assert.ok(temFiltro({ ...SEM_FILTRO, instituicao: ["x"] }));
+});
+
+test("busca da lista casa por trecho do nome e por iniciais", () => {
+  const mvi = "Missão Vida Internacional";
+  assert.ok(casaBusca(mvi, ""), "sem termo, tudo passa");
+  assert.ok(casaBusca(mvi, "vida"));
+  assert.ok(casaBusca(mvi, "VIDA INTERN"), "caixa e espaço não importam");
+  assert.ok(casaBusca(mvi, "missao"), "acento do nome não atrapalha");
+  assert.ok(casaBusca(mvi, "Missão"), "acento digitado também não");
+  assert.ok(casaBusca(mvi, "mvi"), "iniciais");
+  assert.ok(casaBusca(mvi, "M.V.I."), "iniciais com pontuação");
+  assert.ok(!casaBusca(mvi, "semente"));
+  assert.ok(!casaBusca(mvi, "abs"), "iniciais de outra instituição");
+
+  // Conectivo não conta nas iniciais: ninguém digita "MEDA".
+  assert.ok(casaBusca("Missão Evangélica da Amazônia", "mea"));
+  // ...e continua achando pelo nome inteiro.
+  assert.ok(casaBusca("Missão Evangélica da Amazônia", "evangelica da"));
 });
 
 // ------------------------------------------------- instituições (Fase 4)

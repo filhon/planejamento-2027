@@ -14,7 +14,11 @@
   --neutro: #e6eaf3;
   --neutro-forte: #aab3c9;
   --vermelho: #c62828;
+  /* Variantes escuras: o verde e o laranja da marca só passam em contraste
+     quando são TEXTO escurecido. Cheios, servem de fundo; crus, não servem de
+     tinta (laranja puro sobre branco dá 3,5:1 — reprova AA). */
   --verde-escuro: #4d7a0f;
+  --laranja-escuro: #af4a16;
 
   --raio: 14px;
   --sombra: 0 1px 2px rgb(32 44 133 / 6%), 0 8px 24px rgb(32 44 133 / 6%);
@@ -52,6 +56,26 @@ h3,
 button {
   font: inherit;
   cursor: pointer;
+}
+
+/* Um anel de foco para o painel inteiro. Vários controles daqui repintam o
+   fundo no :hover e no [aria-pressed], e sem isto o anel padrão do navegador
+   sumia contra eles. Laranja porque é a cor de ação da marca. */
+:focus-visible {
+  outline: 2px solid var(--laranja);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.cabecalho :focus-visible {
+  outline-color: var(--papel);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 /* ------------------------------------------------------------- cabeçalho */
@@ -105,7 +129,9 @@ button {
   height: 38px;
 }
 
-.cabecalho h1 {
+/* <p class="titulo">, não <h1>: o <h1> da página é o nome do registro aberto,
+   e a moldura não pode disputar o topo do sumário de títulos com ele. */
+.cabecalho .titulo {
   font-size: 19px;
   line-height: 1.1;
 }
@@ -402,20 +428,21 @@ main {
 }
 
 .desceu {
-  color: var(--laranja);
+  color: var(--laranja-escuro);
 }
 
-/* Semáforo: só a borda muda, o número segue azul (sem salada de cores). */
+/* Semáforo: a borda INTEIRA muda, o número segue azul (sem salada de cores).
+   Tarja lateral grossa não — num documento de conselho ela lê como enfeite. */
 .kpi-bom {
-  border-left: 4px solid var(--verde);
+  border-color: var(--verde-escuro);
 }
 
 .kpi-atencao {
-  border-left: 4px solid var(--laranja);
+  border-color: var(--laranja-escuro);
 }
 
 .kpi-ruim {
-  border-left: 4px solid var(--vermelho);
+  border-color: var(--vermelho);
 }
 
 /* ----------------------------------------------------------------- mapa */
@@ -445,10 +472,9 @@ main {
 }
 
 .pais {
-  stroke: #fff;
+  stroke: var(--papel);
   stroke-width: 0.4;
   transition: fill 0.15s;
-  outline: none;
 }
 
 .pais-vazio {
@@ -898,9 +924,24 @@ main {
   border-bottom: 0;
 }
 
-.pastilha {
+/*
+ * Pastilha de classificação (status e triagem). A cor entra por `--cor`, não
+ * por `background` inline: cheia, ela reprovava AA em 4 dos 6 status (verde
+ * 2,0:1, azul-claro 2,4:1, laranja 3,5:1) e virava mancha cinza na fotocópia.
+ * Invertida — tinta escura, fundo de 16% e anel — dá ~13:1 em todas, e o
+ * rótulo continua sendo quem carrega o significado.
+ */
+.pastilha,
+.pastilha-tipo {
   display: inline-block;
-  color: #fff;
+  color: var(--tinta);
+  background: color-mix(
+    in srgb,
+    var(--cor, var(--neutro-forte)) 16%,
+    var(--papel)
+  );
+  box-shadow: inset 0 0 0 1px
+    color-mix(in srgb, var(--cor, var(--neutro-forte)) 70%, var(--papel));
   border-radius: 999px;
   padding: 2px 9px;
   font-size: 11.5px;
@@ -909,7 +950,7 @@ main {
 }
 
 .marca-alerta {
-  color: var(--laranja);
+  color: var(--laranja-escuro);
 }
 
 /* -------------------------------------------------------------- alertas */
@@ -917,7 +958,7 @@ main {
 .alerta-caixa {
   padding: 14px 16px;
   margin-bottom: 16px;
-  border-left: 4px solid var(--laranja);
+  border-color: var(--laranja-escuro);
 }
 
 .alerta-caixa h2 {
@@ -929,7 +970,7 @@ main {
   margin: 8px 0 0;
   padding-left: 18px;
   font-size: 12.5px;
-  color: var(--laranja);
+  color: var(--laranja-escuro);
 }
 
 .alertas li {
@@ -1046,16 +1087,6 @@ main {
   border-color: var(--laranja);
 }
 
-.pastilha-tipo {
-  display: inline-block;
-  color: #fff;
-  border-radius: 999px;
-  padding: 2px 9px;
-  font-size: 11.5px;
-  font-weight: 600;
-  white-space: nowrap;
-}
-
 .ordenar {
   border: 0;
   background: none;
@@ -1097,6 +1128,87 @@ main {
   margin-bottom: 8px;
 }
 
+/*
+ * Duas camadas, não quatro caixas iguais. Solicitado é O número desta página e
+ * fica sozinho; aprovado, recebido e nota são identificação — e num projeto em
+ * avaliação os três estão vazios, então precisam poder dizer a FRASE ("ainda
+ * em avaliação") em vez de repetir um travessão de 30px três vezes.
+ */
+.valores {
+  display: grid;
+  grid-template-columns: minmax(240px, 1fr) minmax(320px, 2fr);
+  gap: 14px;
+  margin-bottom: 16px;
+  align-items: stretch;
+}
+
+@media (max-width: 900px) {
+  .valores {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.valores > h2 {
+  grid-column: 1 / -1;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--tinta-fraca);
+  margin-bottom: -4px;
+}
+
+.valor-principal {
+  padding: 16px 18px;
+}
+
+.valor-principal .kpi-valor {
+  font-size: 38px;
+}
+
+/* Também serve à ficha da instituição, que é a mesma forma: pares rótulo–valor. */
+.identificacao {
+  margin: 0;
+  padding: 0;
+  display: grid;
+  align-content: center;
+}
+
+.valores .identificacao {
+  padding: 6px 18px;
+}
+
+.identificacao > div {
+  display: grid;
+  grid-template-columns: minmax(140px, auto) minmax(0, 1fr);
+  gap: 14px;
+  align-items: baseline;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--borda);
+}
+
+.identificacao > div:last-child {
+  border-bottom: 0;
+}
+
+.identificacao dt {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  font-weight: 600;
+  color: var(--tinta-fraca);
+}
+
+.identificacao dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+/* A ausência é frase, não número: cinza e sem tabular, para não fingir dado. */
+.identificacao dd.ausente {
+  color: var(--tinta-fraca);
+  font-variant-numeric: normal;
+}
+
 .voltar {
   color: var(--tinta-fraca);
   font-size: 13px;
@@ -1107,15 +1219,19 @@ main {
   color: var(--azul);
 }
 
+/* A única ficha que continua cheia: com as pastilhas de classificação agora
+   claras, o sólido é o que faz "Área sensível" ser a coisa que ninguém perde.
+   Laranja escurecido porque o cru dá 3,5:1 com texto branco. */
 .ficha-alerta {
-  background: var(--laranja);
-  color: #fff;
+  background: var(--laranja-escuro);
+  color: var(--papel);
 }
 
 .observacao {
   margin: 8px 0 0;
   padding: 8px 12px;
-  border-left: 4px solid var(--azul-claro);
+  border: 1px solid var(--azul-claro);
+  border-radius: 10px;
   background: var(--fundo);
   font-size: 14px;
 }
@@ -1130,11 +1246,13 @@ main {
   margin: 0;
 }
 
+/* 38vh, e depois do mérito no DOM: o vídeo não pode ser a maior coisa de uma
+   página cujo destino também é o papel e a TV a três metros. */
 .videos video {
   width: 100%;
-  max-height: 62vh;
+  max-height: 38vh;
   border-radius: var(--raio);
-  background: #000;
+  background: var(--tinta);
 }
 
 .videos figcaption {
@@ -1177,8 +1295,11 @@ main {
   color: var(--tinta-fraca);
 }
 
+/* A medida vale mais que a largura disponível: sem o teto, o mérito corria a
+   ~180 caracteres por linha na tela larga e a ~270 mm no A4 deitado. */
 .campo-texto p {
   margin: 0;
+  max-width: 74ch;
   white-space: pre-wrap;
 }
 
@@ -1217,7 +1338,7 @@ main {
   gap: 10px;
   align-items: baseline;
   flex-wrap: wrap;
-  border-left: 3px solid var(--neutro);
+  border-left: 1px solid var(--neutro-forte);
   padding-left: 10px;
 }
 
@@ -1273,8 +1394,29 @@ body.apresentacao .tabela th {
   font-size: 13px;
 }
 
-body.apresentacao .cabecalho h1 {
+body.apresentacao .cabecalho .titulo {
   font-size: 24px;
+}
+
+/* Na TV o nome do projeto é o slide. Antes ficava em 26px enquanto o valor ia
+   a 42px — e a triagem, que é o que a sala está decidindo, ficava em 11,5px. */
+body.apresentacao .cabecalho-projeto h1 {
+  font-size: 46px;
+}
+
+body.apresentacao .pastilha,
+body.apresentacao .pastilha-tipo {
+  font-size: 15px;
+  padding: 4px 12px;
+}
+
+body.apresentacao .campo-texto h3,
+body.apresentacao .identificacao dt {
+  font-size: 15px;
+}
+
+body.apresentacao .observacao {
+  font-size: 17px;
 }
 
 /* Um painel por vez: nada de rolar duas listas dentro da mesma tela. */
@@ -1288,7 +1430,8 @@ body.apresentacao .rolagem {
 
 /* --------------------------------------------------- exportar PDF (print) */
 
-.so-impressao {
+.so-impressao,
+.so-impressao-inline {
   display: none;
 }
 
@@ -1308,12 +1451,17 @@ body.apresentacao .rolagem {
     background: #fff;
   }
 
-  /* Controles não vão para a ata; o recorte vai, na linha .so-impressao. */
+  /* Controles não vão para a ata; o recorte vai, na linha .so-impressao.
+     O vídeo sai da lista porque o papel não o reproduz — e com o
+     print-color-adjust:exact acima ele sairia como um bloco preto de toner de
+     quase uma página. A legenda fica: nomeia o arquivo para quem tem a tela. */
   .abas,
   .cabecalho-acoes,
   .filtros,
   .bloco-acoes,
-  .limpar {
+  .limpar,
+  .voltar,
+  .videos video {
     display: none !important;
   }
 
@@ -1359,9 +1507,63 @@ body.apresentacao .rolagem {
     color: var(--azul);
   }
 
+  .so-impressao-inline {
+    display: inline;
+  }
+
   .cartao {
     box-shadow: none;
     break-inside: avoid;
+  }
+
+  /*
+   * `break-inside: avoid` só funciona no que cabe numa página. Num bloco de
+   * mérito — mais alto que o A4 — o navegador empurra o cartão inteiro para a
+   * página seguinte e quebra assim mesmo, deixando meia página em branco. Os
+   * blocos largos podem quebrar; quem não pode é a linha da tabela.
+   */
+  .bloco.cheia {
+    break-inside: auto;
+  }
+
+  .tabela tbody tr,
+  .anexos li,
+  .relatorio,
+  .identificacao > div {
+    break-inside: avoid;
+  }
+
+  /* Título órfão no pé da página é o que denuncia print de tela. */
+  h2,
+  h3,
+  .bloco-topo {
+    break-after: avoid;
+  }
+
+  .campo-texto p,
+  .tabela td {
+    orphans: 3;
+    widows: 3;
+  }
+
+  /* Cabeçalho grudado é da rolagem da tela; no papel ele tem que repetir. */
+  .rolagem thead th {
+    position: static;
+  }
+
+  .tabela thead {
+    display: table-header-group;
+  }
+
+  /* Um link impresso sem destino é um beco sem saída: o anexo e o projeto do
+     ciclo anterior precisam do endereço ao lado do rótulo. */
+  .anexos a[href]::after,
+  .link-projeto[href]::after {
+    content: " <" attr(href) ">";
+    font-weight: 400;
+    font-size: 10px;
+    color: var(--tinta-fraca);
+    word-break: break-all;
   }
 
   /* Listas roladas na tela precisam sair inteiras no papel. */

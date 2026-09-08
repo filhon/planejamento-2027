@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, type CSSProperties } from "react";
 import { agrupar, estatisticaNota, grupoDeStatus } from "@/lib/agregar";
 import type { AvaliacoesCiclo, ProjetoCiclo } from "@/lib/types";
 import { alternar, usePainel } from "../contexto";
@@ -12,6 +12,7 @@ import {
   fmtMoedaCurta,
   num,
   pct,
+  plural,
 } from "../formato";
 import { Barras, Kpi, Secao } from "../ui";
 
@@ -330,7 +331,11 @@ export default function Pipeline({
                     <td>
                       <span
                         className="pastilha"
-                        style={{ background: COR_STATUS[p.statusGrupo] }}
+                        style={
+                          {
+                            "--cor": COR_STATUS[p.statusGrupo],
+                          } as CSSProperties
+                        }
                       >
                         {ROTULO_STATUS[p.statusGrupo]}
                       </span>
@@ -342,7 +347,8 @@ export default function Pipeline({
             </table>
             {semAvaliacao.length > 15 && (
               <p className="rodape">
-                … e mais {fmtInt.format(semAvaliacao.length - 15)} projeto(s).
+                … e mais{" "}
+                {plural(semAvaliacao.length - 15, "projeto", "projetos")}.
               </p>
             )}
           </Secao>

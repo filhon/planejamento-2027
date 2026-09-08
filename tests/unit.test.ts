@@ -6,6 +6,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 
 import { assertReadOnly, ReadOnlyViolationError } from "../src/lib/db";
+import { plural } from "../app/(painel)/formato";
 import { construirIndicePaises, normalizarLocal } from "../src/lib/geo";
 import {
   escolherLinhaOrcamento,
@@ -865,4 +866,18 @@ test("xlsx: zip íntegro, células tipadas e texto escapado", () => {
   assert.match(cru, /<c r="C2"><v>45000<\/v><\/c>/);
   assert.ok(!cru.includes('r="D3"'), "célula nula é omitida, não vira zero");
   assert.match(cru, /ySplit="1"/);
+});
+
+/* ---------------------------------------------------- vocabulário impresso */
+
+test("plural escreve a palavra, não 'projeto(s)'", () => {
+  // Sai em ata, em PDF de conselho e na TV da reunião: "1 projeto(s)" é forma
+  // de log. O zero é plural em português ("0 projetos"), e o milhar leva
+  // separador pt-BR porque a mesma string vai para o papel.
+  assert.equal(plural(1, "projeto", "projetos"), "1 projeto");
+  assert.equal(plural(2, "projeto", "projetos"), "2 projetos");
+  assert.equal(plural(0, "projeto", "projetos"), "0 projetos");
+  assert.equal(plural(1234, "projeto", "projetos"), "1.234 projetos");
+  assert.equal(plural(1, "avaliação", "avaliações"), "1 avaliação");
+  assert.equal(plural(3, "mês", "meses"), "3 meses");
 });

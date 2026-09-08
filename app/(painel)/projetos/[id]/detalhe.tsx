@@ -1,14 +1,15 @@
 import Link from "next/link";
+import type { CSSProperties } from "react";
 import type { Anexo, ProjetoDetalhe, RelatorioDetalhe } from "@/lib/types";
 import {
   COR_STATUS,
   ROTULO_STATUS,
-  fmtInt,
   fmtMoeda,
   num,
+  plural,
 } from "../../formato";
 import { Secao } from "../../ui";
-import { Tipo } from "../tipo";
+import { ROTULO_TIPO, Tipo } from "../tipo";
 
 /**
  * A pasta do projeto: tudo o que a origem guarda sobre ele, numa tela só, para
@@ -51,7 +52,9 @@ function ListaAnexos({ anexos }: { anexos: Anexo[] }) {
               {a.nome}
             </a>
           ) : (
-            <span title="Sem SUPABASE_URL/IP_HOST no .env.local">{a.nome}</span>
+            <span title="Arquivo sem endereço público — falar com a secretaria">
+              {a.nome}
+            </span>
           )}
           <span className="sub">
             {a.tipo}
@@ -104,16 +107,30 @@ export default function Detalhe({ d }: { d: ProjetoDetalhe }) {
 
   return (
     <>
+      {/* O timbre do papel. Só a pasta sabe o nome do registro aberto, então é
+          ela que carimba a linha — o shell não imprime a dele aqui (ver o
+          !emDetalhe em shell.tsx), senão o dossiê de um projeto saía intitulado
+          "Painel" com o recorte e a contagem de outra página. */}
+      <div className="so-impressao">
+        <b>{p.titulo}</b>
+        <span>Remessa {p.ano}</span>
+        <span>{p.instituicaoNome ?? "sem instituição"}</span>
+        <span>{p.local.nomePt}</span>
+        <span>
+          {ROTULO_TIPO[p.revisao.tipo]} · {ROTULO_STATUS[p.statusGrupo]}
+        </span>
+      </div>
+
       <div className="cabecalho-projeto cartao">
         <Link className="voltar" href="/projetos">
           ← Projetos &amp; Pastas
         </Link>
         <h1 className="titulo">{p.titulo}</h1>
         <div className="fichas">
-          <Tipo revisao={p.revisao} />
+          <Tipo revisao={p.revisao} detalhado />
           <span
             className="pastilha-tipo"
-            style={{ background: COR_STATUS[p.statusGrupo] }}
+            style={{ "--cor": COR_STATUS[p.statusGrupo] } as CSSProperties}
           >
             {ROTULO_STATUS[p.statusGrupo]}
           </span>
@@ -143,77 +160,62 @@ export default function Detalhe({ d }: { d: ProjetoDetalhe }) {
         )}
       </div>
 
-      <div className="kpis">
-        <div className="kpi cartao">
+      {/*
+        Duas camadas, não quatro caixas iguais. Num projeto em avaliação —
+        que é o estado normal de todo projeto de 2026 no dia da reunião — três
+        das quatro caixas antigas liam "—" em 30px, e a frase que de fato
+        informava ficava em 12,5px cinza embaixo. Aqui a ausência É a frase.
+      */}
+      <section className="valores">
+        <h2 className="titulo">Valores e avaliação</h2>
+        <div className="valor-principal cartao">
           <div className="kpi-rotulo">Solicitado</div>
           <div className="kpi-valor">{fmtMoeda.format(p.solicitado)}</div>
           <div className="kpi-delta">
             {p.duracaoMeses
-              ? `${p.duracaoMeses} meses`
+              ? plural(p.duracaoMeses, "mês", "meses")
               : "duração não informada"}
-            {p.numeroParcelas ? ` · ${p.numeroParcelas} parcelas` : ""}
+            {p.numeroParcelas
+              ? ` · ${plural(p.numeroParcelas, "parcela", "parcelas")}`
+              : ""}
           </div>
         </div>
-        <div className="kpi cartao">
-          <div className="kpi-rotulo">Aprovado</div>
-          <div className="kpi-valor">
-            {p.aprovado === null ? "—" : fmtMoeda.format(p.aprovado)}
+        <dl className="identificacao cartao">
+          <div>
+            <dt>Aprovado</dt>
+            <dd className={p.aprovado === null ? "ausente" : undefined}>
+              {p.aprovado === null
+                ? "Ainda em avaliação — nada decidido neste ciclo"
+                : `${fmtMoeda.format(p.aprovado)}${
+                    p.liberado
+                      ? ` · ${fmtMoeda.format(p.liberado)} liberados`
+                      : ""
+                  }`}
+            </dd>
           </div>
-          <div className="kpi-delta">
-            {p.liberado
-              ? `${fmtMoeda.format(p.liberado)} liberados`
-              : "ainda em avaliação"}
+          <div>
+            <dt>
+              Recebeu{" "}
+              {d.anterior ? `em ${d.anterior.ano}` : "no ciclo anterior"}
+            </dt>
+            <dd className={recebido === null ? "ausente" : undefined}>
+              {recebido !== null
+                ? `${fmtMoeda.format(recebido)} — deste mesmo projeto`
+                : recebidoInstituicao
+                  ? `Projeto novo — a instituição recebeu ${fmtMoeda.format(recebidoInstituicao)}`
+                  : "Projeto e instituição sem verba no ciclo anterior"}
+            </dd>
           </div>
-        </div>
-        <div className={`kpi cartao${recebido === null ? "" : " kpi-bom"}`}>
-          <div className="kpi-rotulo">
-            Recebeu {d.anterior ? `em ${d.anterior.ano}` : "no ciclo anterior"}
+          <div>
+            <dt>Nota mediana</dt>
+            <dd className={p.avaliacoes === 0 ? "ausente" : undefined}>
+              {p.avaliacoes === 0
+                ? "Chega ao voto sem nenhuma avaliação registrada"
+                : `${num(p.notaMediana)} · ${plural(p.avaliacoes, "avaliação", "avaliações")} · ${p.votosAprovacao} a favor`}
+            </dd>
           </div>
-          <div className="kpi-valor">
-            {recebido === null ? "—" : fmtMoeda.format(recebido)}
-          </div>
-          <div className="kpi-delta">
-            {recebido !== null
-              ? "deste mesmo projeto"
-              : recebidoInstituicao
-                ? `projeto novo · a instituição recebeu ${fmtMoeda.format(recebidoInstituicao)}`
-                : "projeto e instituição sem verba no ciclo anterior"}
-          </div>
-        </div>
-        <div className="kpi cartao">
-          <div className="kpi-rotulo">Nota mediana</div>
-          <div className="kpi-valor">{num(p.notaMediana)}</div>
-          <div className="kpi-delta">
-            {p.avaliacoes} avaliação(ões) · {p.votosAprovacao} a favor
-          </div>
-        </div>
-      </div>
-
-      {videos.length > 0 && (
-        <Secao
-          titulo={
-            videos.length > 1
-              ? "Vídeos de apresentação"
-              : "Vídeo de apresentação"
-          }
-          sub="Toca direto do repositório de arquivos do sistema de submissão."
-          largura="cheia"
-        >
-          <div className="videos">
-            {videos.map((v) => (
-              <figure key={v.id}>
-                {/* preload=metadata: na reunião não dá para baixar 35 MB de
-                    cada vídeo da pasta antes de alguém apertar o play. */}
-                <video controls preload="metadata" src={v.url} />
-                <figcaption className="sub">
-                  {v.nome}
-                  {tamanho(v.bytes) && ` · ${tamanho(v.bytes)}`}
-                </figcaption>
-              </figure>
-            ))}
-          </div>
-        </Secao>
-      )}
+        </dl>
+      </section>
 
       <div className="grade">
         <Secao titulo="Anexos" sub="Abrem em nova aba, direto do sistema.">
@@ -222,7 +224,7 @@ export default function Detalhe({ d }: { d: ProjetoDetalhe }) {
 
         <Secao
           titulo="Parecer da equipe ASEEC"
-          sub="Campos `parecer_aseec_*` e `reviewer_notes` do projeto."
+          sub="Análise da secretaria, registrada antes da reunião."
         >
           {d.parecerTags.length > 0 && (
             <div className="fichas">
@@ -238,7 +240,10 @@ export default function Detalhe({ d }: { d: ProjetoDetalhe }) {
           {!d.parecerTexto &&
             !d.notasDoRevisor &&
             d.parecerTags.length === 0 && (
-              <p className="sub">A equipe ainda não registrou parecer.</p>
+              <p className="sub">
+                A equipe ainda não registrou parecer — este projeto chega à
+                reunião sem análise prévia da secretaria.
+              </p>
             )}
         </Secao>
 
@@ -275,6 +280,45 @@ export default function Detalhe({ d }: { d: ProjetoDetalhe }) {
               : ""}
           </p>
         </Secao>
+
+        {/* Depois do mérito, e não antes: o vídeo é o único elemento da pasta
+            que não se lê no papel nem se acompanha a três metros sem som. */}
+        {videos.length > 0 && (
+          <Secao
+            titulo={
+              videos.length > 1
+                ? "Vídeos de apresentação"
+                : "Vídeo de apresentação"
+            }
+            sub="Enviado pela instituição junto da proposta."
+            largura="cheia"
+          >
+            <div className="videos">
+              {videos.map((v) => (
+                <figure key={v.id}>
+                  {/* preload=metadata: na reunião não dá para baixar 35 MB de
+                      cada vídeo da pasta antes de alguém apertar o play.
+                      Sem legendas: os arquivos vêm das instituições e a origem
+                      não guarda faixa de legenda para nenhum deles. */}
+                  <video
+                    controls
+                    preload="metadata"
+                    src={v.url}
+                    title={`Vídeo de apresentação — ${p.titulo}`}
+                  />
+                  <figcaption className="sub">
+                    {v.nome}
+                    {tamanho(v.bytes) && ` · ${tamanho(v.bytes)}`}
+                    <span className="so-impressao-inline">
+                      {" "}
+                      · vídeo não reproduzível no papel
+                    </span>
+                  </figcaption>
+                </figure>
+              ))}
+            </div>
+          </Secao>
+        )}
 
         {d.indicadores.length > 0 && (
           <Secao titulo="Indicadores">
@@ -360,7 +404,10 @@ export default function Detalhe({ d }: { d: ProjetoDetalhe }) {
           largura="cheia"
         >
           {d.avaliacoesDetalhe.length === 0 ? (
-            <p className="sub">Nenhuma avaliação registrada.</p>
+            <p className="sub">
+              Nenhuma avaliação registrada — não há nota nem comentário de
+              conselheiro para embasar o voto deste projeto.
+            </p>
           ) : (
             <div className="rolagem">
               <table className="tabela">
@@ -396,7 +443,7 @@ export default function Detalhe({ d }: { d: ProjetoDetalhe }) {
 
         {d.votos.length > 0 && (
           <Secao
-            titulo={`Votos por critério (${fmtInt.format(d.votos.length)})`}
+            titulo={`Votos por critério — ${plural(d.votos.length, "voto", "votos")}`}
             largura="cheia"
           >
             <div className="rolagem">
@@ -414,7 +461,19 @@ export default function Detalhe({ d }: { d: ProjetoDetalhe }) {
                 <tbody>
                   {d.votos.map((v, n) => (
                     <tr key={n}>
-                      <td>{v.criterio ?? v.criterioChave ?? "—"}</td>
+                      {/* `criterioChave` é chave de máquina: quando é tudo o
+                          que a origem tem, sai marcada como tal em vez de
+                          passar por nome de critério. */}
+                      <td>
+                        {v.criterio ??
+                          (v.criterioChave ? (
+                            <span className="sub">
+                              sem nome no sistema ({v.criterioChave})
+                            </span>
+                          ) : (
+                            "—"
+                          ))}
+                      </td>
                       <td>{v.tipo}</td>
                       <td>{v.avaliador}</td>
                       <td>{v.valor ?? "—"}</td>
@@ -430,38 +489,38 @@ export default function Detalhe({ d }: { d: ProjetoDetalhe }) {
 
         {d.instituicao && (
           <Secao titulo="Instituição">
-            <table className="tabela">
-              <tbody>
-                <tr>
-                  <th>Nome</th>
-                  <td>{d.instituicao.nome}</td>
-                </tr>
-                <tr>
-                  <th>CNPJ</th>
-                  <td>{d.instituicao.cnpj ?? "—"}</td>
-                </tr>
-                <tr>
-                  <th>Conveniada</th>
-                  <td>{d.instituicao.conveniada ? "Sim" : "Não"}</td>
-                </tr>
-                <tr>
-                  <th>Responsável</th>
-                  <td>{d.instituicao.contato ?? "—"}</td>
-                </tr>
-                <tr>
-                  <th>Contato</th>
-                  <td>
-                    {[d.instituicao.email, d.instituicao.telefone]
-                      .filter(Boolean)
-                      .join(" · ") || "—"}
-                  </td>
-                </tr>
-                <tr>
-                  <th>Situação no sistema</th>
-                  <td>{p.enriquecimento.situacaoNoSistema ?? "—"}</td>
-                </tr>
-              </tbody>
-            </table>
+            {/* <dl>, não <table>: são pares rótulo–valor, e como tabela isto
+                usava <th> dentro do <tbody> sem `scope`. */}
+            <dl className="identificacao">
+              <div>
+                <dt>Nome</dt>
+                <dd>{d.instituicao.nome}</dd>
+              </div>
+              <div>
+                <dt>CNPJ</dt>
+                <dd>{d.instituicao.cnpj ?? "—"}</dd>
+              </div>
+              <div>
+                <dt>Conveniada</dt>
+                <dd>{d.instituicao.conveniada ? "Sim" : "Não"}</dd>
+              </div>
+              <div>
+                <dt>Responsável</dt>
+                <dd>{d.instituicao.contato ?? "—"}</dd>
+              </div>
+              <div>
+                <dt>Contato</dt>
+                <dd>
+                  {[d.instituicao.email, d.instituicao.telefone]
+                    .filter(Boolean)
+                    .join(" · ") || "—"}
+                </dd>
+              </div>
+              <div>
+                <dt>Situação cadastral</dt>
+                <dd>{p.enriquecimento.situacaoNoSistema ?? "—"}</dd>
+              </div>
+            </dl>
           </Secao>
         )}
 

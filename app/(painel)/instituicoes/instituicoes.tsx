@@ -4,7 +4,7 @@ import { useMemo } from "react";
 import { agregarPorInstituicao } from "@/lib/agregar";
 import type { Conformidade, InstituicaoResumo } from "@/lib/types";
 import { usePainel } from "../contexto";
-import { fmtInt, fmtMoeda, fmtMoedaCurta, num, pct } from "../formato";
+import { fmtInt, fmtMoeda, fmtMoedaCurta, num, pct, plural } from "../formato";
 import { Barras, Kpi, Secao } from "../ui";
 
 /**
@@ -354,7 +354,7 @@ export default function Instituicoes({
                       {i.documentos.pendentes > 0 && (
                         <span
                           className="marca-alerta"
-                          title={`${i.documentos.pendentes} documento(s) pendente(s)`}
+                          title={`${plural(i.documentos.pendentes, "documento pendente", "documentos pendentes")}`}
                         >
                           {" "}
                           ⚠

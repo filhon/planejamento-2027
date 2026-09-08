@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, type CSSProperties } from "react";
 import { agrupar, estatisticaNota, montarResumo } from "@/lib/agregar";
 import type { OrcamentoCiclo, ProjetoCiclo, StatusGrupo } from "@/lib/types";
 import { alternar, usePainel } from "./contexto";
@@ -371,7 +371,11 @@ export default function VisaoGeral({
                   <td>
                     <span
                       className="pastilha"
-                      style={{ background: COR_STATUS[p.statusGrupo] }}
+                      style={
+                        {
+                          "--cor": COR_STATUS[p.statusGrupo],
+                        } as CSSProperties
+                      }
                     >
                       {ROTULO_STATUS[p.statusGrupo]}
                     </span>

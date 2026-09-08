@@ -27,6 +27,14 @@ export const num = (v: number | null, casas = 1) =>
         maximumFractionDigits: casas,
       });
 
+/**
+ * "1 projeto" / "2 projetos". O painel é lido em voz alta na reunião e sai
+ * impresso como documento de conselho — "projeto(s)" é forma de log, não de
+ * ata. Um lugar só, porque o mesmo texto aparecia em seis telas.
+ */
+export const plural = (n: number, um: string, varios: string) =>
+  `${fmtInt.format(n)} ${n === 1 ? um : varios}`;
+
 export const ROTULO_STATUS: Record<StatusGrupo, string> = {
   aprovado: "Aprovado",
   "em-avaliacao": "Em avaliação",

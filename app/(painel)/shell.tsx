@@ -152,34 +152,6 @@ export default function Shell({
   const caminho = usePathname();
   const router = useRouter();
 
-  /**
-   * Modo apresentação/TV: fontes maiores (a classe no <body>, ver globals.css),
-   * um painel por vez e navegação por teclado — ←/→ trocam de página, Esc sai.
-   * Sem biblioteca de slides: as páginas já SÃO os slides.
-   */
-  useEffect(() => {
-    if (!apresentacao) return;
-    document.body.classList.add("apresentacao");
-
-    const ir = (passo: number) => {
-      const i = PAGINAS.findIndex((p) => p.href === caminho);
-      const proximo = (i + passo + PAGINAS.length) % PAGINAS.length;
-      router.push(PAGINAS[proximo]!.href);
-    };
-    const aoTeclar = (e: KeyboardEvent) => {
-      if (digitando(e.target)) return;
-      if (e.key === "ArrowRight" || e.key === "PageDown") ir(1);
-      else if (e.key === "ArrowLeft" || e.key === "PageUp") ir(-1);
-      else if (e.key === "Escape") setApresentacao(false);
-    };
-
-    window.addEventListener("keydown", aoTeclar);
-    return () => {
-      window.removeEventListener("keydown", aoTeclar);
-      document.body.classList.remove("apresentacao");
-    };
-  }, [apresentacao, caminho, router]);
-
   const alternarApresentacao = () => {
     const ligando = !apresentacao;
     setApresentacao(ligando);
@@ -198,6 +170,46 @@ export default function Shell({
     () => (anterior ? filtrar(anterior.projetos, filtros) : []),
     [anterior, filtros],
   );
+
+  /**
+   * Modo apresentação/TV: fontes maiores (a classe no <body>, ver globals.css),
+   * um painel por vez e navegação por teclado — ←/→ trocam de página, Esc sai.
+   * Sem biblioteca de slides: as páginas já SÃO os slides.
+   *
+   * Fica depois de `projetos` de propósito: as setas leem o recorte.
+   */
+  useEffect(() => {
+    if (!apresentacao) return;
+    document.body.classList.add("apresentacao");
+
+    const ir = (passo: number) => {
+      const i = PAGINAS.findIndex((p) => p.href === caminho);
+      // Dentro de uma pasta as setas andam pelos PROJETOS do recorte, não pelas
+      // páginas: no meio da apresentação de um projeto, uma seta que saltava
+      // para a Visão Geral perdia a sala. Fora do recorte, não anda.
+      if (i < 0) {
+        const j = projetos.findIndex((p) => caminho === `/projetos/${p.id}`);
+        if (j < 0) return;
+        const prox = projetos[(j + passo + projetos.length) % projetos.length]!;
+        router.push(`/projetos/${prox.id}`);
+        return;
+      }
+      const proximo = (i + passo + PAGINAS.length) % PAGINAS.length;
+      router.push(PAGINAS[proximo]!.href);
+    };
+    const aoTeclar = (e: KeyboardEvent) => {
+      if (digitando(e.target)) return;
+      if (e.key === "ArrowRight" || e.key === "PageDown") ir(1);
+      else if (e.key === "ArrowLeft" || e.key === "PageUp") ir(-1);
+      else if (e.key === "Escape") setApresentacao(false);
+    };
+
+    window.addEventListener("keydown", aoTeclar);
+    return () => {
+      window.removeEventListener("keydown", aoTeclar);
+      document.body.classList.remove("apresentacao");
+    };
+  }, [apresentacao, caminho, router, projetos]);
 
   // As opções saem do ciclo inteiro; se saíssem do resultado filtrado, o próprio
   // filtro sumiria da lista depois de aplicado.
@@ -272,7 +284,10 @@ export default function Shell({
             height={38}
           />
           <div>
-            <h1>Painel Consultivo · Hebron ASEEC</h1>
+            {/* Moldura, não título da página: o <h1> pertence ao registro
+                aberto (o nome do projeto), senão o sumário de títulos abre
+                com a marca em toda rota. */}
+            <p className="titulo">Painel Consultivo · Hebron ASEEC</p>
             <p>Instrumentos de Deus na transformação de vidas.</p>
           </div>
         </div>
@@ -330,17 +345,25 @@ export default function Shell({
 
       <main>
         {/* Só no PDF: registra o recorte que gerou os números, para a ata.
-            Data e URL o próprio navegador carimba no cabeçalho da impressão. */}
-        <div className="so-impressao">
-          <b>
-            {PAGINAS.find((p) => p.href === caminho)?.rotulo ?? "Painel"} ·
-            Remessa {ano}
-          </b>
-          <span>{resumoFiltros(filtros, nomePais)}</span>
-          <span>
-            {projetos.length} de {todos.length} projetos
-          </span>
-        </div>
+            Data e URL o próprio navegador carimba no cabeçalho da impressão.
+
+            Na pasta de um projeto isto NÃO sai: `PAGINAS.find` não casa a rota
+            de detalhe e carimbava "Painel · Remessa 2026" mais o recorte e a
+            contagem de outra página em cima de um dossiê de um projeto só.
+            Quem sabe o nome do registro é a própria página — ela imprime a
+            sua linha (ver o .so-impressao em projetos/[id]/detalhe.tsx). */}
+        {!emDetalhe && (
+          <div className="so-impressao">
+            <b>
+              {PAGINAS.find((p) => p.href === caminho)?.rotulo ?? "Painel"} ·
+              Remessa {ano}
+            </b>
+            <span>{resumoFiltros(filtros, nomePais)}</span>
+            <span>
+              {projetos.length} de {todos.length} projetos
+            </span>
+          </div>
+        )}
 
         <div className="filtros cartao" hidden={emDetalhe}>
           <CampoMulti

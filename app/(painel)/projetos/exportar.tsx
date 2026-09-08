@@ -3,7 +3,13 @@
 import { planilha, TIPO_XLSX } from "@/lib/xlsx";
 import type { ProjetoCiclo } from "@/lib/types";
 import { usePainel } from "../contexto";
-import { fmtInt, fmtMoeda, resumoFiltros, rotuloResponsavel } from "../formato";
+import {
+  fmtInt,
+  fmtMoeda,
+  plural,
+  resumoFiltros,
+  rotuloResponsavel,
+} from "../formato";
 
 /**
  * Exportar o recorte para o diretor levar embora — PDF e .xlsx.
@@ -84,7 +90,7 @@ export default function Exportar({ lista }: { lista: ProjetoCiclo[] }) {
       [`Recorte: ${recorte}`],
       ...(aviso ? [[aviso]] : []),
       [
-        `${lista.length} projeto(s) · ${fmtMoeda.format(totalSolicitado)} solicitados · ${fmtMoeda.format(totalRecebido)} recebidos`,
+        `${plural(lista.length, "projeto", "projetos")} · ${fmtMoeda.format(totalSolicitado)} solicitados · ${fmtMoeda.format(totalRecebido)} recebidos`,
       ],
       [],
       [
@@ -385,7 +391,7 @@ export default function Exportar({ lista }: { lista: ProjetoCiclo[] }) {
 ${linhas}
       <tr class="soma">
         <td></td>
-        <td class="contagem">Total &middot; ${fmtInt.format(lista.length)} projeto(s)</td>
+        <td class="contagem">Total &middot; ${plural(lista.length, "projeto", "projetos")}</td>
         <td class="valor">${fmtInt.format(totalSolicitado)}</td>
         <td class="valor">${fmtInt.format(totalRecebido)}</td>
       </tr>

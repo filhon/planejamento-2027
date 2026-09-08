@@ -11,7 +11,13 @@ import {
 } from "@/lib/agregar";
 import type { Avaliador, ProjetoCiclo } from "@/lib/types";
 import { usePainel } from "../contexto";
-import { fmtInt, fmtMoeda, fmtMoedaCurta, ROTULO_STATUS } from "../formato";
+import {
+  fmtInt,
+  fmtMoeda,
+  fmtMoedaCurta,
+  plural,
+  ROTULO_STATUS,
+} from "../formato";
 import { Kpi, Secao } from "../ui";
 import Exportar from "./exportar";
 import { ROTULO_TIPO, Tipo } from "./tipo";
@@ -90,7 +96,7 @@ export default function Projetos({
           <h2 className="titulo">
             {foraDaTriagem.length === todos.length
               ? "A triagem ainda não foi gerada"
-              : `${fmtInt.format(foraDaTriagem.length)} projeto(s) fora da triagem`}
+              : `${plural(foraDaTriagem.length, "projeto", "projetos")} fora da triagem`}
           </h2>
           <p className="sub">
             {foraDaTriagem.length === todos.length
@@ -172,7 +178,7 @@ export default function Projetos({
         </Secao>
 
         <Secao
-          titulo={`${fmtInt.format(lista.length)} projeto(s) no recorte`}
+          titulo={`${plural(lista.length, "projeto", "projetos")} no recorte`}
           sub="Clique no título para abrir a pasta do projeto — texto, anexos, vídeo, parecer e prestação de contas."
           largura="cheia"
           // A exportação leva a lista JÁ ORDENADA: o diretor recebe o material

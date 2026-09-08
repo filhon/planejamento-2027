@@ -4,7 +4,7 @@ import { useMemo } from "react";
 import { ehFinanciado, montarCobertura } from "@/lib/agregar";
 import type { ProjetoCiclo, RelatorioPrestacao } from "@/lib/types";
 import { usePainel } from "../contexto";
-import { fmtInt, fmtMoeda, fmtMoedaCurta, pct } from "../formato";
+import { fmtInt, fmtMoeda, fmtMoedaCurta, pct, plural } from "../formato";
 import { Barras, Kpi, Secao } from "../ui";
 
 /**
@@ -139,16 +139,16 @@ export default function Prestacao({
           <ul className="alertas">
             {c.relatoriosForaDoEsperado > 0 && (
               <li>
-                {c.relatoriosForaDoEsperado} relatório(s) entregue(s) contra
-                projeto fora do grupo aprovado/encerrado — contam como
-                relatório, não como cobertura.
+                {plural(c.relatoriosForaDoEsperado, "relatório", "relatórios")}{" "}
+                entregues contra projeto fora do grupo aprovado/encerrado —
+                contam como relatório, não como cobertura.
               </li>
             )}
             {c.relatoriosDeOutroCiclo > 0 && (
               <li>
-                {c.relatoriosDeOutroCiclo} relatório(s) com{" "}
-                <code>cycle_id</code> de outra remessa na origem. Contam aqui
-                porque a remessa vem do projeto — conferir o carimbo com a
+                {plural(c.relatoriosDeOutroCiclo, "relatório", "relatórios")}{" "}
+                com <code>cycle_id</code> de outra remessa na origem. Contam
+                aqui porque a remessa vem do projeto — conferir o carimbo com a
                 equipe.
               </li>
             )}

@@ -45,25 +45,37 @@ export function grupoDeStatus(status: string): StatusGrupo {
 
 // ----------------------------------------------------------------- filtros
 
-/** Valor do <select> "sem recorte" — não colide com nenhum dado real. */
-export const TODOS = "__todos";
-
+/**
+ * Cada eixo é multi-seleção e **inclusivo**: os valores marcados dentro de um
+ * eixo se somam (OU), e os eixos se cruzam entre si (E). Lista vazia = sem
+ * recorte naquele eixo.
+ */
 export interface Filtros {
-  continente: string;
-  status: string;
-  categoria: string;
-  /** "true" | "false" | TODOS. */
-  conveniada: string;
+  continente: string[];
+  status: string[];
+  categoria: string[];
+  /** "true" | "false" — vazio = todas. */
+  conveniada: string[];
   iso3: string | null;
 }
 
 export const SEM_FILTRO: Filtros = {
-  continente: TODOS,
-  status: TODOS,
-  categoria: TODOS,
-  conveniada: TODOS,
+  continente: [],
+  status: [],
+  categoria: [],
+  conveniada: [],
   iso3: null,
 };
+
+/** Liga/desliga um valor num eixo — é o clique nas barras e nos checkboxes. */
+export function alternar(selecionados: string[], valor: string): string[] {
+  return selecionados.includes(valor)
+    ? selecionados.filter((v) => v !== valor)
+    : [...selecionados, valor];
+}
+
+const casa = (selecionados: string[], valor: string): boolean =>
+  selecionados.length === 0 || selecionados.includes(valor);
 
 /**
  * `institutions.is_conveniada` é `boolean | null`, e projeto sem instituição
@@ -77,20 +89,20 @@ export const ehConveniada = (p: ProjetoCiclo): boolean => p.conveniada === true;
 export function filtrar(projetos: ProjetoCiclo[], f: Filtros): ProjetoCiclo[] {
   return projetos.filter(
     (p) =>
-      (f.continente === TODOS || p.local.continente === f.continente) &&
-      (f.status === TODOS || p.statusGrupo === f.status) &&
-      (f.categoria === TODOS || p.categoria === f.categoria) &&
-      (f.conveniada === TODOS || String(ehConveniada(p)) === f.conveniada) &&
+      casa(f.continente, p.local.continente) &&
+      casa(f.status, p.statusGrupo) &&
+      casa(f.categoria, p.categoria) &&
+      casa(f.conveniada, String(ehConveniada(p))) &&
       (f.iso3 === null || p.local.iso3 === f.iso3),
   );
 }
 
 export function temFiltro(f: Filtros): boolean {
   return (
-    f.continente !== TODOS ||
-    f.status !== TODOS ||
-    f.categoria !== TODOS ||
-    f.conveniada !== TODOS ||
+    f.continente.length > 0 ||
+    f.status.length > 0 ||
+    f.categoria.length > 0 ||
+    f.conveniada.length > 0 ||
     f.iso3 !== null
   );
 }

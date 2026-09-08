@@ -16,6 +16,7 @@ import {
 } from "../src/lib/datasets";
 import {
   agregarPorInstituicao,
+  alternar,
   filtrar,
   montarCobertura,
   SEM_FILTRO,
@@ -303,17 +304,42 @@ test("filtros globais se combinam e null conta como não conveniada", () => {
     filtrar(universo, { ...SEM_FILTRO, ...f }).map((p) => p.id);
 
   assert.deepEqual(ids({}), ["a", "b", "c", "d"], "sem filtro não recorta");
-  assert.deepEqual(ids({ conveniada: "true" }), ["a", "d"]);
+  assert.deepEqual(ids({ conveniada: ["true"] }), ["a", "d"]);
   // A instituição sem is_conveniada disputa o teto das NÃO conveniadas.
-  assert.deepEqual(ids({ conveniada: "false" }), ["b", "c"]);
-  assert.deepEqual(ids({ status: "aprovado" }), ["a", "b", "c"]);
+  assert.deepEqual(ids({ conveniada: ["false"] }), ["b", "c"]);
+  assert.deepEqual(ids({ status: ["aprovado"] }), ["a", "b", "c"]);
   assert.deepEqual(ids({ iso3: "AGO" }), ["d"]);
-  assert.deepEqual(ids({ conveniada: "true", status: "aprovado" }), ["a"]);
-  assert.deepEqual(ids({ continente: "África", categoria: "saude" }), ["d"]);
+  assert.deepEqual(ids({ conveniada: ["true"], status: ["aprovado"] }), ["a"]);
+  assert.deepEqual(ids({ continente: ["África"], categoria: ["saude"] }), [
+    "d",
+  ]);
+
+  // Multi-seleção: dentro do eixo soma (OU), entre eixos cruza (E).
+  assert.deepEqual(
+    ids({ status: ["aprovado", "rejeitado"] }),
+    ["a", "b", "c", "d"],
+    "dois status somam",
+  );
+  assert.deepEqual(ids({ conveniada: ["true", "false"] }), [
+    "a",
+    "b",
+    "c",
+    "d",
+  ]);
+  assert.deepEqual(
+    ids({ status: ["aprovado", "rejeitado"], conveniada: ["true"] }),
+    ["a", "d"],
+    "os eixos continuam se cruzando",
+  );
+  assert.deepEqual(ids({ continente: ["África", "Ásia"] }), ["d"]);
+
+  assert.deepEqual(alternar([], "x"), ["x"]);
+  assert.deepEqual(alternar(["x"], "y"), ["x", "y"]);
+  assert.deepEqual(alternar(["x", "y"], "x"), ["y"]);
 
   assert.equal(temFiltro(SEM_FILTRO), false);
   assert.equal(temFiltro({ ...SEM_FILTRO, iso3: "BRA" }), true);
-  assert.equal(temFiltro({ ...SEM_FILTRO, conveniada: "false" }), true);
+  assert.equal(temFiltro({ ...SEM_FILTRO, conveniada: ["false"] }), true);
 });
 
 // ------------------------------------------------- instituições (Fase 4)

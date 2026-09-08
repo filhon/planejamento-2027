@@ -6,11 +6,11 @@ import { useEffect, useMemo, useState, useTransition } from "react";
 import type { StatusGrupo } from "@/lib/types";
 import { atualizarDados } from "../actions";
 import {
+  alternar,
   filtrar,
   ProvedorPainel,
   SEM_FILTRO,
   temFiltro,
-  TODOS,
   type CicloCarregado,
   type Filtros,
 } from "./contexto";
@@ -39,6 +39,70 @@ function ordenados(valores: Iterable<string>): string[] {
 function digitando(alvo: EventTarget | null): boolean {
   const tag = (alvo as HTMLElement | null)?.tagName;
   return tag === "SELECT" || tag === "INPUT" || tag === "TEXTAREA";
+}
+
+interface Opcao {
+  valor: string;
+  rotulo: string;
+}
+
+/**
+ * Filtro de múltipla escolha: marcar dois valores no mesmo campo é OU (soma),
+ * e os campos se cruzam entre si (E). Nada marcado = todos.
+ *
+ * É um <details> com checkboxes em vez de <select multiple> porque o painel
+ * roda na TV da reunião: ctrl+clique para marcar dois itens não serve ali.
+ */
+function CampoMulti({
+  id,
+  rotulo,
+  opcoes,
+  selecionados,
+  aoAlternar,
+}: {
+  id: string;
+  rotulo: string;
+  opcoes: Opcao[];
+  selecionados: string[];
+  aoAlternar: (valor: string) => void;
+}) {
+  const marcados = opcoes.filter((o) => selecionados.includes(o.valor));
+
+  return (
+    <details
+      className="campo campo-multi"
+      // Clicar fora tira o foco do <details> e ele fecha; clicar num checkbox
+      // mantém o foco dentro, então a lista continua aberta para o 2º item.
+      onBlur={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget))
+          e.currentTarget.open = false;
+      }}
+    >
+      <summary aria-label={rotulo}>
+        <span className="campo-rotulo">{rotulo}</span>
+        <span className="campo-resumo">
+          {marcados.length === 0
+            ? "Todos"
+            : marcados.length <= 2
+              ? marcados.map((o) => o.rotulo).join(", ")
+              : `${marcados.length} selecionados`}
+        </span>
+      </summary>
+      <div className="opcoes">
+        {opcoes.map((o) => (
+          <label key={o.valor}>
+            <input
+              type="checkbox"
+              name={id}
+              checked={selecionados.includes(o.valor)}
+              onChange={() => aoAlternar(o.valor)}
+            />
+            {o.rotulo}
+          </label>
+        ))}
+      </div>
+    </details>
+  );
 }
 
 export default function Shell({
@@ -219,13 +283,14 @@ export default function Shell({
           </b>
           <span>
             {[
-              filtros.continente !== TODOS &&
-                `Continente: ${filtros.continente}`,
-              filtros.status !== TODOS &&
-                `Status: ${ROTULO_STATUS[filtros.status as StatusGrupo]}`,
-              filtros.categoria !== TODOS && `Categoria: ${filtros.categoria}`,
-              filtros.conveniada !== TODOS &&
-                `Instituição: ${filtros.conveniada === "true" ? "conveniadas" : "não conveniadas"}`,
+              filtros.continente.length > 0 &&
+                `Continente: ${filtros.continente.join(", ")}`,
+              filtros.status.length > 0 &&
+                `Status: ${filtros.status.map((s) => ROTULO_STATUS[s as StatusGrupo]).join(", ")}`,
+              filtros.categoria.length > 0 &&
+                `Categoria: ${filtros.categoria.join(", ")}`,
+              filtros.conveniada.length > 0 &&
+                `Instituição: ${filtros.conveniada.map((c) => (c === "true" ? "conveniadas" : "não conveniadas")).join(", ")}`,
               nomePais && `País: ${nomePais}`,
             ]
               .filter(Boolean)
@@ -237,62 +302,49 @@ export default function Shell({
         </div>
 
         <div className="filtros cartao">
-          <div className="campo">
-            <label htmlFor="fc">Continente</label>
-            <select
-              id="fc"
-              value={filtros.continente}
-              onChange={(e) => aplicar({ continente: e.target.value })}
-            >
-              <option value={TODOS}>Todos</option>
-              {opcoes.continentes.map((c) => (
-                <option key={c}>{c}</option>
-              ))}
-            </select>
-          </div>
+          <CampoMulti
+            id="fc"
+            rotulo="Continente"
+            opcoes={opcoes.continentes.map((c) => ({ valor: c, rotulo: c }))}
+            selecionados={filtros.continente}
+            aoAlternar={(v) =>
+              aplicar({ continente: alternar(filtros.continente, v) })
+            }
+          />
 
-          <div className="campo">
-            <label htmlFor="fs">Status</label>
-            <select
-              id="fs"
-              value={filtros.status}
-              onChange={(e) => aplicar({ status: e.target.value })}
-            >
-              <option value={TODOS}>Todos</option>
-              {opcoes.status.map((s) => (
-                <option key={s} value={s}>
-                  {ROTULO_STATUS[s]}
-                </option>
-              ))}
-            </select>
-          </div>
+          <CampoMulti
+            id="fs"
+            rotulo="Status"
+            opcoes={opcoes.status.map((s) => ({
+              valor: s,
+              rotulo: ROTULO_STATUS[s],
+            }))}
+            selecionados={filtros.status}
+            aoAlternar={(v) => aplicar({ status: alternar(filtros.status, v) })}
+          />
 
-          <div className="campo">
-            <label htmlFor="fk">Categoria</label>
-            <select
-              id="fk"
-              value={filtros.categoria}
-              onChange={(e) => aplicar({ categoria: e.target.value })}
-            >
-              <option value={TODOS}>Todas</option>
-              {opcoes.categorias.map((c) => (
-                <option key={c}>{c}</option>
-              ))}
-            </select>
-          </div>
+          <CampoMulti
+            id="fk"
+            rotulo="Categoria"
+            opcoes={opcoes.categorias.map((c) => ({ valor: c, rotulo: c }))}
+            selecionados={filtros.categoria}
+            aoAlternar={(v) =>
+              aplicar({ categoria: alternar(filtros.categoria, v) })
+            }
+          />
 
-          <div className="campo">
-            <label htmlFor="fv">Instituição</label>
-            <select
-              id="fv"
-              value={filtros.conveniada}
-              onChange={(e) => aplicar({ conveniada: e.target.value })}
-            >
-              <option value={TODOS}>Todas</option>
-              <option value="true">Conveniadas</option>
-              <option value="false">Não conveniadas</option>
-            </select>
-          </div>
+          <CampoMulti
+            id="fv"
+            rotulo="Instituição"
+            opcoes={[
+              { valor: "true", rotulo: "Conveniadas" },
+              { valor: "false", rotulo: "Não conveniadas" },
+            ]}
+            selecionados={filtros.conveniada}
+            aoAlternar={(v) =>
+              aplicar({ conveniada: alternar(filtros.conveniada, v) })
+            }
+          />
 
           {filtroAtivo && (
             <button className="limpar" onClick={() => setFiltros(SEM_FILTRO)}>

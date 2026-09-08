@@ -3,7 +3,7 @@
 import { useMemo } from "react";
 import { agrupar, estatisticaNota, montarResumo } from "@/lib/agregar";
 import type { OrcamentoCiclo, ProjetoCiclo, StatusGrupo } from "@/lib/types";
-import { TODOS, usePainel } from "./contexto";
+import { alternar, usePainel } from "./contexto";
 import {
   COR_STATUS,
   ORDEM_STATUS,
@@ -207,11 +207,9 @@ export default function VisaoGeral({
               valor: f.projetos,
               texto: `${fmtInt.format(f.projetos)} · ${fmtMoedaCurta.format(f.solicitado)}`,
               cor: COR_STATUS[f.grupo],
-              ativo: filtros.status === f.grupo,
+              ativo: filtros.status.includes(f.grupo),
               aoClicar: () =>
-                aplicar({
-                  status: filtros.status === f.grupo ? TODOS : f.grupo,
-                }),
+                aplicar({ status: alternar(filtros.status, f.grupo) }),
             }))}
           />
         </Secao>
@@ -276,11 +274,10 @@ export default function VisaoGeral({
               rotulo: c.categoria,
               valor: c.solicitado,
               texto: `${fmtInt.format(c.projetos)} · ${fmtMoedaCurta.format(c.solicitado)}`,
-              ativo: filtros.categoria === c.categoria,
+              ativo: filtros.categoria.includes(c.categoria),
               aoClicar: () =>
                 aplicar({
-                  categoria:
-                    filtros.categoria === c.categoria ? TODOS : c.categoria,
+                  categoria: alternar(filtros.categoria, c.categoria),
                 }),
             }))}
           />
@@ -293,11 +290,10 @@ export default function VisaoGeral({
               rotulo: c.continente,
               valor: c.projetos,
               texto: `${fmtInt.format(c.projetos)} · ${fmtMoedaCurta.format(c.solicitado)}`,
-              ativo: filtros.continente === c.continente,
+              ativo: filtros.continente.includes(c.continente),
               aoClicar: () =>
                 aplicar({
-                  continente:
-                    filtros.continente === c.continente ? TODOS : c.continente,
+                  continente: alternar(filtros.continente, c.continente),
                 }),
             }))}
           />

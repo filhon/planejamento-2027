@@ -40,9 +40,15 @@ As rotas `/instituicoes` e `/prestacao` vieram na Fase 4, sobre este mesmo esque
   (~530 linhas) uma vez; trocar de página ou de filtro não vai ao banco. Só o que
   é específico da página (orçamento, avaliações) é buscado na própria página.
 - **As regras do recorte estão em [`src/lib/agregar.ts`](../src/lib/agregar.ts)**
-  (`filtrar`, `TODOS`, `ehConveniada`), não na UI — é código puro, testado em
+  (`filtrar`, `alternar`, `ehConveniada`), não na UI — é código puro, testado em
   `npm test`, e a mesma função serve servidor e cliente.
   `is_conveniada` nulo **conta como não conveniada**: é quem disputa aquele teto.
+- **Filtros inclusivos e cruzados.** Cada eixo (Continente, Status, Categoria,
+  Instituição) é multi-seleção: os valores marcados **dentro** de um eixo se
+  somam (OU) e os eixos se **cruzam** entre si (E); eixo vazio = sem recorte.
+  Na UI é um `<details>` com checkboxes (`CampoMulti`), não `<select multiple>`:
+  o painel roda na TV da reunião e ctrl+clique não serve ali. Clicar numa barra
+  do funil/categoria/continente liga e desliga aquele valor, sem zerar os outros.
 - **Sem biblioteca de gráficos.** Barras são `<div>` com largura em `%` e tabelas
   são `<table>`; o único desenho é o SVG do mapa, que já vinha da Fase 2. Recharts/visx
   entram quando aparecer um gráfico que CSS não resolve (dispersão, série temporal).

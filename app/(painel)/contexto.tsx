@@ -11,13 +11,13 @@ import type { Filtros } from "@/lib/agregar";
  * clicar num país no Mapa e ir para o Orçamento mantém o recorte. Os projetos
  * de todos os ciclos já vêm do servidor; filtrar é só `Array.filter`.
  *
- * As regras do recorte (`filtrar`, `TODOS`, `SEM_FILTRO`) moram em
+ * As regras do recorte (`filtrar`, `alternar`, `SEM_FILTRO`) moram em
  * `src/lib/agregar.ts`, junto das outras regras puras — e são testadas lá.
  */
 
 export {
   SEM_FILTRO,
-  TODOS,
+  alternar,
   ehConveniada,
   filtrar,
   temFiltro,

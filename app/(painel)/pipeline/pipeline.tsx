@@ -3,7 +3,7 @@
 import { useMemo } from "react";
 import { agrupar, estatisticaNota, grupoDeStatus } from "@/lib/agregar";
 import type { AvaliacoesCiclo, ProjetoCiclo } from "@/lib/types";
-import { TODOS, usePainel } from "../contexto";
+import { alternar, usePainel } from "../contexto";
 import {
   COR_STATUS,
   ORDEM_STATUS,
@@ -171,11 +171,9 @@ export default function Pipeline({
               valor: f.projetos,
               texto: `${fmtInt.format(f.projetos)} · ${fmtMoedaCurta.format(f.solicitado)}`,
               cor: COR_STATUS[f.grupo],
-              ativo: filtros.status === f.grupo,
+              ativo: filtros.status.includes(f.grupo),
               aoClicar: () =>
-                aplicar({
-                  status: filtros.status === f.grupo ? TODOS : f.grupo,
-                }),
+                aplicar({ status: alternar(filtros.status, f.grupo) }),
             }))}
           />
           <p className="rodape">

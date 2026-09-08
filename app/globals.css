@@ -663,6 +663,11 @@ main {
 }
 
 .barra {
+  /* É um <span> dentro de .linha-pais: sem `display`, o elemento é INLINE, e
+     `height`/`overflow` não se aplicam a inline não-substituído — a pista de
+     6px nunca era desenhada e o <i> colorido colapsava junto. `.barra-inline`
+     (tabela de conselheiros) já vem depois com inline-block e continua valendo. */
+  display: block;
   height: 6px;
   border-radius: 999px;
   background: var(--neutro);
@@ -909,6 +914,130 @@ main {
   width: 90px;
   vertical-align: middle;
   margin: 0 8px 0 0;
+}
+
+/*
+ * Bullet: duas medidas na MESMA escala, uma dentro da outra — pedido é a pista
+ * clara, a régua de aprovação é o trecho sólido por cima. Aninhado, não lado a
+ * lado: são o mesmo dinheiro visto duas vezes, e dois eixos mentiriam sobre
+ * isso. Na fotocópia a diferença sobrevive como densidade (26% × cheio), e cada
+ * linha repete os dois números em texto.
+ */
+.barra-bullet {
+  position: relative;
+}
+
+.barra-bullet i.referencia {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: var(--azul);
+  /* Filete do lado de fora: sem ele o fim do trecho sólido some contra a
+     pista quando as duas medidas quase empatam. */
+  box-shadow: 1px 0 0 0 var(--papel);
+}
+
+/* Sem `cor` própria, o pedido vira a pista da referência (26% do azul). */
+.barra-bullet i:not(.referencia) {
+  background: color-mix(in srgb, var(--azul) 26%, var(--papel)) !important;
+}
+
+/* ------------------------------------------------------- gráfico em SVG */
+
+/*
+ * Curva de concentração (Visão Geral). Sem biblioteca: duas polilinhas e duas
+ * réguas. Identidade nunca é só cor — cada linha tem traço próprio e legenda
+ * com o mesmo traço, porque isto sai em preto e branco.
+ */
+.grafico {
+  margin: 0;
+}
+
+/* `>` e não descendente: a legenda tem SVGs de 26px (o traço de cada série) e
+   `width: 100%` os esticava até a largura do cartão. */
+.grafico > svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.curva-atual {
+  fill: none;
+  stroke: var(--azul);
+  stroke-width: 2;
+  stroke-linejoin: round;
+}
+
+.curva-anterior {
+  fill: none;
+  stroke: var(--neutro-forte);
+  stroke-width: 2;
+  stroke-dasharray: 5 4;
+  stroke-linejoin: round;
+}
+
+.curva-teto {
+  fill: none;
+  stroke: var(--laranja-escuro);
+  stroke-width: 2;
+  stroke-dasharray: 1 5;
+  stroke-linecap: round;
+}
+
+.grade-linha {
+  stroke: var(--borda);
+  stroke-width: 1;
+}
+
+.eixo {
+  fill: var(--tinta-fraca);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.eixo-teto {
+  fill: var(--laranja-escuro);
+  font-weight: 600;
+}
+
+.marca-haste {
+  stroke: var(--azul);
+  stroke-width: 1;
+  stroke-dasharray: 3 3;
+  opacity: 0.5;
+}
+
+.marca-ponto {
+  fill: var(--azul);
+  stroke: var(--papel);
+  stroke-width: 2;
+}
+
+.marca-rotulo {
+  fill: var(--azul);
+  font-size: 11.5px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.legenda-grafico {
+  display: flex;
+  gap: 18px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--tinta-fraca);
+}
+
+.legenda-grafico span {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.legenda-grafico svg {
+  flex: none;
+  overflow: visible;
 }
 
 .n-inline {
@@ -1459,9 +1588,12 @@ body.apresentacao .campo-rotulo {
 
 body.apresentacao .kpi-delta,
 body.apresentacao .sub,
-body.apresentacao .rodape {
+body.apresentacao .rodape,
+body.apresentacao .legenda-grafico {
   font-size: 15px;
 }
+
+/* O texto DENTRO do SVG já cresce com o viewBox — só a legenda é HTML. */
 
 body.apresentacao .bloco h2,
 body.apresentacao .ranking h2 {

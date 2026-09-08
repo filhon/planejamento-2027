@@ -490,6 +490,99 @@ export function montarCobertura(
   };
 }
 
+// ------------------------------------------ concentração do pedido (Fase 6)
+
+/**
+ * Soma acumulada dos pedidos, do maior para o menor.
+ *
+ * É a leitura que falta na reunião: o teto não corta 31% de cada projeto, corta
+ * uma cauda. Em 2026, metade do valor pedido está em 21 dos 266 projetos — e é
+ * neles que a decisão do conselho tem alavanca.
+ */
+export function curvaAcumulada(projetos: ProjetoCiclo[]): number[] {
+  let acc = 0;
+  return projetos
+    .map((p) => p.solicitado)
+    .filter((v) => v > 0)
+    .sort((a, b) => b - a)
+    .map((v) => (acc += v));
+}
+
+/**
+ * Quantos projetos (1-based) somam até `alvo`. 0 quando nem o maior pedido
+ * chega lá; `cum.length` quando o total inteiro não alcança o alvo — aí o teto
+ * cobre a remessa toda e não há corte a fazer.
+ */
+export function projetosAte(cum: number[], alvo: number): number {
+  const i = cum.findIndex((v) => v >= alvo);
+  return i === -1 ? cum.length : i + 1;
+}
+
+// --------------------------------- renovações: pedido × recebido (Fase 6)
+
+/**
+ * Faixas de variação entre o que a renovação pede agora e o que ela recebeu na
+ * remessa anterior. Ordenadas de "pede menos" a "mais que dobra" — o conselho
+ * lê a cauda da direita, que é onde está o dinheiro novo.
+ *
+ * Só entra projeto com vínculo E valor anterior > 0: sem os dois, a variação
+ * seria divisão por zero disfarçada de crescimento infinito.
+ */
+export const FAIXAS_RENOVACAO: {
+  rotulo: string;
+  dentro: (variacao: number) => boolean;
+}[] = [
+  { rotulo: "Pede menos", dentro: (v) => v < -0.001 },
+  { rotulo: "Repete o valor", dentro: (v) => Math.abs(v) <= 0.001 },
+  { rotulo: "Até +25%", dentro: (v) => v > 0.001 && v <= 0.25 },
+  { rotulo: "+25% a +50%", dentro: (v) => v > 0.25 && v <= 0.5 },
+  { rotulo: "+50% a +100%", dentro: (v) => v > 0.5 && v <= 1 },
+  { rotulo: "Mais que dobra", dentro: (v) => v > 1 },
+];
+
+export interface Renovacoes {
+  projetos: ProjetoCiclo[];
+  /** Soma do que pedem nesta remessa. */
+  pedido: number;
+  /** Soma do que os mesmos projetos receberam na remessa anterior. */
+  recebido: number;
+  /** (pedido − recebido) / recebido; null quando não há base. */
+  variacao: number | null;
+  faixas: {
+    rotulo: string;
+    projetos: number;
+    pedido: number;
+    recebido: number;
+  }[];
+}
+
+export function montarRenovacoes(projetos: ProjetoCiclo[]): Renovacoes {
+  const comBase = projetos.filter(
+    (p) => (p.revisao.recebidoAnterior ?? 0) > 0 && p.solicitado > 0,
+  );
+  const anterior = (p: ProjetoCiclo) => p.revisao.recebidoAnterior ?? 0;
+  const pedido = comBase.reduce((s, p) => s + p.solicitado, 0);
+  const recebido = comBase.reduce((s, p) => s + anterior(p), 0);
+
+  return {
+    projetos: comBase,
+    pedido,
+    recebido,
+    variacao: recebido ? (pedido - recebido) / recebido : null,
+    faixas: FAIXAS_RENOVACAO.map((f) => {
+      const lista = comBase.filter((p) =>
+        f.dentro(p.solicitado / anterior(p) - 1),
+      );
+      return {
+        rotulo: f.rotulo,
+        projetos: lista.length,
+        pedido: lista.reduce((s, p) => s + p.solicitado, 0),
+        recebido: lista.reduce((s, p) => s + anterior(p), 0),
+      };
+    }),
+  };
+}
+
 // ----------------------------------------------------------- resumo (KPIs)
 
 export function montarResumo(projetos: ProjetoCiclo[], ano: Ano): ResumoCiclo {

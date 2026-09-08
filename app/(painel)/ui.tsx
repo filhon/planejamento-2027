@@ -62,6 +62,12 @@ export interface ItemBarra {
   cor?: string;
   ativo?: boolean;
   aoClicar?: () => void;
+  /**
+   * Segunda medida na MESMA escala, desenhada cheia por dentro da barra (forma
+   * de "bullet"): pedido é a pista clara, referência é o trecho sólido. Serve a
+   * "esta categoria pede X; aprovado foi Y" sem inventar um segundo eixo.
+   */
+  referencia?: number;
 }
 
 /** Ranking em barras — categorias, continentes, funil, conselheiros. */
@@ -73,7 +79,10 @@ export function Barras({
   vazio?: string;
 }) {
   if (itens.length === 0) return <p className="sub">{vazio}</p>;
-  const maximo = Math.max(1, ...itens.map((i) => i.valor));
+  const maximo = Math.max(
+    1,
+    ...itens.map((i) => Math.max(i.valor, i.referencia ?? 0)),
+  );
 
   return (
     <ul className="barras">
@@ -84,13 +93,21 @@ export function Barras({
               <b>{i.rotulo}</b>
               <span>{i.texto}</span>
             </span>
-            <span className="barra">
+            <span
+              className={`barra${i.referencia === undefined ? "" : " barra-bullet"}`}
+            >
               <i
                 style={{
                   width: `${Math.max(2, (i.valor / maximo) * 100)}%`,
                   background: i.cor ?? "var(--azul)",
                 }}
               />
+              {i.referencia !== undefined && (
+                <i
+                  className="referencia"
+                  style={{ width: `${(i.referencia / maximo) * 100}%` }}
+                />
+              )}
             </span>
           </>
         );

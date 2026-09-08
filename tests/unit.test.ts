@@ -20,9 +20,12 @@ import {
   alternar,
   avaliavel,
   casaBusca,
+  curvaAcumulada,
   filtrar,
   montarCobertura,
   montarPastas,
+  montarRenovacoes,
+  projetosAte,
   SEM_FILTRO,
   SEM_RESPONSAVEL,
   temFiltro,
@@ -937,4 +940,68 @@ test("plural escreve a palavra, não 'projeto(s)'", () => {
   assert.equal(plural(1234, "projeto", "projetos"), "1.234 projetos");
   assert.equal(plural(1, "avaliação", "avaliações"), "1 avaliação");
   assert.equal(plural(3, "mês", "meses"), "3 meses");
+});
+
+/* ------------------------------------- concentração e renovações (Fase 6) */
+
+test("curva acumulada ordena do maior pedido ao menor e ignora valor zero", () => {
+  const cum = curvaAcumulada([
+    projeto({ id: "a", solicitado: 10 }),
+    projeto({ id: "b", solicitado: 100 }),
+    projeto({ id: "c", solicitado: 0 }),
+    projeto({ id: "d", solicitado: 40 }),
+  ]);
+  // Zero não é projeto pequeno, é ausência de pedido: entraria como um degrau
+  // plano na cauda e diria que há mais projetos disputando do que há.
+  assert.deepEqual(cum, [100, 140, 150]);
+});
+
+test("projetosAte encontra o corte do teto e não inventa um quando não há", () => {
+  const cum = [100, 140, 150];
+  assert.equal(projetosAte(cum, 75), 1);
+  assert.equal(
+    projetosAte(cum, 100),
+    1,
+    "o alvo exato fecha no projeto que o atinge",
+  );
+  assert.equal(projetosAte(cum, 140), 2);
+  // Teto acima do total: a remessa inteira cabe, não há cauda a cortar.
+  assert.equal(projetosAte(cum, 900), 3);
+  assert.equal(projetosAte([], 50), 0);
+});
+
+test("renovações medem o pedido contra o que o projeto recebeu antes", () => {
+  const r = montarRenovacoes([
+    // sem vínculo: entra no ciclo, mas não tem base de comparação
+    projeto({ id: "novo", solicitado: 50_000 }),
+    triado("igual", { recebidoAnterior: 30_000 }, { solicitado: 30_000 }),
+    triado("menos", { recebidoAnterior: 40_000 }, { solicitado: 20_000 }),
+    triado("mais20", { recebidoAnterior: 100_000 }, { solicitado: 120_000 }),
+    triado("dobra", { recebidoAnterior: 10_000 }, { solicitado: 30_000 }),
+    // recebido 0 seria divisão por zero disfarçada de crescimento infinito
+    triado("semBase", { recebidoAnterior: 0 }, { solicitado: 90_000 }),
+  ]);
+
+  assert.equal(r.projetos.length, 4);
+  assert.equal(r.pedido, 200_000);
+  assert.equal(r.recebido, 180_000);
+  assert.ok(Math.abs((r.variacao ?? 0) - 20_000 / 180_000) < 1e-9);
+
+  const faixa = (rotulo: string) => r.faixas.find((f) => f.rotulo === rotulo)!;
+  assert.equal(faixa("Pede menos").projetos, 1);
+  assert.equal(faixa("Repete o valor").projetos, 1);
+  assert.equal(faixa("Até +25%").projetos, 1);
+  assert.equal(faixa("Mais que dobra").projetos, 1);
+  assert.equal(faixa("Mais que dobra").pedido, 30_000);
+  assert.equal(
+    r.faixas.reduce((s, f) => s + f.projetos, 0),
+    4,
+    "as faixas particionam: nenhum projeto em duas, nenhum de fora",
+  );
+});
+
+test("ciclo sem nenhuma renovação vinculada não divide por zero", () => {
+  const r = montarRenovacoes([projeto({ id: "a", solicitado: 10_000 })]);
+  assert.equal(r.projetos.length, 0);
+  assert.equal(r.variacao, null);
 });

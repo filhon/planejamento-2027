@@ -81,6 +81,38 @@ Os filtros globais são Continente · Status · Categoria · **Convênio**
 (conveniada/não) · **Instituição** (por nome, com busca por nome ou iniciais) ·
 Triagem · Responsável, mais o país clicado no mapa.
 
+**Fase 6 (gráficos da Visão Geral)** — a tela de abertura ganhou as leituras que
+nenhum ranking dava:
+
+- **Concentração do pedido** (`Concentracao` em `app/(painel)/visao-geral.tsx`):
+  curva do pedido acumulado, do maior projeto ao menor, com a remessa anterior
+  tracejada e a linha do teto. Responde a pergunta da reunião — _o teto corta uma
+  cauda, não uma fatia de cada projeto_: em 2026, metade dos R$ 21,2 mi está em
+  **21 projetos** e os **60 maiores já esgotam o teto de R$ 14,5 mi**. SVG na mão
+  (~90 linhas), sem biblioteca de gráfico.
+- **Categorias em bullet**: a pista clara é o pedido, o trecho sólido é a régua de
+  aprovação — deste ciclo se ele já decidiu, senão o que a mesma categoria levou no
+  anterior. Nunca projeção: os dois números vêm da origem. Expõe que
+  `construcao-reforma` pede R$ 8,7 mi tendo levado R$ 2,6 mi em 2025.
+- **Renovações: quanto pedem a mais** — as 154 com vínculo pedem R$ 9,37 mi tendo
+  recebido R$ 7,90 mi (**+18,6%**), com 11 que mais que dobram.
+- KPI "Pressão da demanda" agora diz o vão em reais, não só a razão.
+
+Regras puras novas em `src/lib/agregar.ts` (`curvaAcumulada`, `projetosAte`,
+`montarRenovacoes`), cobertas por `npm test`.
+
+⚠️ **Bug de CSS corrigido junto:** `.barra` é um `<span>` e não declarava
+`display`, então era **inline** — `height`/`overflow` não se aplicam a inline
+não-substituído e a pista de 6px nunca era desenhada. **Todas as barras do painel
+estavam colapsadas** (Visão Geral, Pipeline, Instituições, Prestação, Projetos e o
+ranking do Mapa). Uma linha (`display: block`) devolveu o gráfico de barras ao app
+inteiro. `.barra-inline` já tinha `inline-block` e segue valendo.
+
+**Não** vira gráfico (verificado nos dados, não por reflexo): **dispersão nota ×
+valor** (2026 tem zero avaliação), **calendário de desembolso** (`mensal` e
+`alocado` 0% preenchidos em 2026 — só existem após a aprovação) e **série temporal
+de submissões** (mostra o corre do prazo, não decide nada).
+
 **Próximo passo:** nada obrigatório. Em aberto, só se a equipe pedir: exportar PNG
 (hoje é PDF pela impressão) e zoom/pan no mapa.
 

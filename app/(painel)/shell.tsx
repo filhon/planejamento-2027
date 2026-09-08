@@ -54,13 +54,11 @@ interface Opcao {
  * roda na TV da reunião: ctrl+clique para marcar dois itens não serve ali.
  */
 function CampoMulti({
-  id,
   rotulo,
   opcoes,
   selecionados,
   aoAlternar,
 }: {
-  id: string;
   rotulo: string;
   opcoes: Opcao[];
   selecionados: string[];
@@ -68,16 +66,11 @@ function CampoMulti({
 }) {
   const marcados = opcoes.filter((o) => selecionados.includes(o.valor));
 
+  // Fecha clicando no próprio campo de novo — comportamento nativo do <details>.
+  // Nada de fechar no blur: mexer no `open` durante o focusout é sutil demais
+  // para o que economiza, e a lista aberta ajuda a marcar vários de uma vez.
   return (
-    <details
-      className="campo campo-multi"
-      // Clicar fora tira o foco do <details> e ele fecha; clicar num checkbox
-      // mantém o foco dentro, então a lista continua aberta para o 2º item.
-      onBlur={(e) => {
-        if (!e.currentTarget.contains(e.relatedTarget))
-          e.currentTarget.open = false;
-      }}
-    >
+    <details className="campo campo-multi">
       <summary aria-label={rotulo}>
         <span className="campo-rotulo">{rotulo}</span>
         <span className="campo-resumo">
@@ -93,7 +86,6 @@ function CampoMulti({
           <label key={o.valor}>
             <input
               type="checkbox"
-              name={id}
               checked={selecionados.includes(o.valor)}
               onChange={() => aoAlternar(o.valor)}
             />
@@ -303,7 +295,6 @@ export default function Shell({
 
         <div className="filtros cartao">
           <CampoMulti
-            id="fc"
             rotulo="Continente"
             opcoes={opcoes.continentes.map((c) => ({ valor: c, rotulo: c }))}
             selecionados={filtros.continente}
@@ -313,7 +304,6 @@ export default function Shell({
           />
 
           <CampoMulti
-            id="fs"
             rotulo="Status"
             opcoes={opcoes.status.map((s) => ({
               valor: s,
@@ -324,7 +314,6 @@ export default function Shell({
           />
 
           <CampoMulti
-            id="fk"
             rotulo="Categoria"
             opcoes={opcoes.categorias.map((c) => ({ valor: c, rotulo: c }))}
             selecionados={filtros.categoria}
@@ -334,7 +323,6 @@ export default function Shell({
           />
 
           <CampoMulti
-            id="fv"
             rotulo="Instituição"
             opcoes={[
               { valor: "true", rotulo: "Conveniadas" },

@@ -247,38 +247,58 @@ export default function Detalhe({ d }: { d: ProjetoDetalhe }) {
             )}
         </Secao>
 
+        {/*
+          Duas colunas porque são duas leituras. À esquerda o mérito, que se lê
+          corrido e por isso tem medida limitada; à direita a ficha — natureza,
+          parcerias, datas —, que se consulta. Antes tudo caía numa coluna só e
+          a metade direita do bloco largo ficava vazia.
+        */}
         <Secao titulo="O projeto" largura="cheia">
-          <Campo rotulo="Descrição" valor={d.descricao} />
-          <Campo rotulo="Justificativa" valor={d.justificativa} />
-          <Campo rotulo="Resultados esperados" valor={d.resultadosEsperados} />
-          <Campo rotulo="Metodologia" valor={d.metodologia} />
-          <Campo rotulo="Natureza" valor={d.natureza} />
-          <Campo rotulo="Parcerias" valor={d.parcerias} />
-          {d.redeSocial && (
-            <div className="campo-texto">
-              <h3>Rede social</h3>
-              <p>
-                {/^https?:\/\//i.test(d.redeSocial) ? (
-                  <a
-                    href={d.redeSocial}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    {d.redeSocial}
-                  </a>
-                ) : (
-                  d.redeSocial
-                )}
-              </p>
+          <div className="projeto-corpo">
+            <div className="projeto-merito">
+              <Campo rotulo="Descrição" valor={d.descricao} />
+              <Campo rotulo="Justificativa" valor={d.justificativa} />
+              <Campo
+                rotulo="Resultados esperados"
+                valor={d.resultadosEsperados}
+              />
+              <Campo rotulo="Metodologia" valor={d.metodologia} />
             </div>
-          )}
-          <p className="sub">
-            Início {data(d.inicio)} · fim {data(d.fim)} · criado{" "}
-            {data(d.criadoEm)} · atualizado {data(d.atualizadoEm)}
-            {p.mesesParcelas?.length
-              ? ` · parcelas nos meses ${p.mesesParcelas.join(", ")}`
-              : ""}
-          </p>
+            <aside className="projeto-ficha">
+              <Campo rotulo="Natureza" valor={d.natureza} />
+              <Campo rotulo="Parcerias" valor={d.parcerias} />
+              {d.redeSocial && (
+                <div className="campo-texto">
+                  <h3>Rede social</h3>
+                  <p>
+                    {/^https?:\/\//i.test(d.redeSocial) ? (
+                      <a
+                        href={d.redeSocial}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        {d.redeSocial}
+                      </a>
+                    ) : (
+                      d.redeSocial
+                    )}
+                  </p>
+                </div>
+              )}
+              <div className="campo-texto">
+                <h3>Prazos</h3>
+                <p className="sub">
+                  Início {data(d.inicio)} · fim {data(d.fim)}
+                  {p.mesesParcelas?.length
+                    ? ` · parcelas nos meses ${p.mesesParcelas.join(", ")}`
+                    : ""}
+                </p>
+              </div>
+              <p className="sub">
+                Criado {data(d.criadoEm)} · atualizado {data(d.atualizadoEm)}
+              </p>
+            </aside>
+          </div>
         </Secao>
 
         {/* Depois do mérito, e não antes: o vídeo é o único elemento da pasta

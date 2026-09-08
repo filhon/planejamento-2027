@@ -1114,13 +1114,17 @@ main {
 
 /* ------------------------------------------- pasta do projeto (detalhe) */
 
+/* `.cartao` só pinta fundo e borda — quem tem padding é `.bloco`, `.kpi` e
+   companhia. Este cartão não herdava de nenhum e o texto encostava na borda. */
 .cabecalho-projeto {
+  padding: 16px 20px 18px;
   margin-bottom: 14px;
 }
 
 .cabecalho-projeto h1 {
-  margin: 6px 0 10px;
+  margin: 8px 0 12px;
   font-size: 26px;
+  max-width: 60ch;
 }
 
 .cabecalho-projeto .fichas {
@@ -1157,12 +1161,23 @@ main {
   margin-bottom: -4px;
 }
 
+/* O cartão estica até a altura da ficha ao lado. Sem isto o conteúdo ficava
+   empilhado no canto superior esquerdo, com um vão morto embaixo. */
 .valor-principal {
-  padding: 16px 18px;
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
 }
 
 .valor-principal .kpi-valor {
   font-size: 38px;
+  margin-top: 0;
+}
+
+.valor-principal .kpi-delta {
+  margin-top: 0;
 }
 
 /* Também serve à ficha da instituição, que é a mesma forma: pares rótulo–valor. */
@@ -1282,17 +1297,58 @@ main {
   font-weight: 600;
 }
 
+/* ---------------------------------------------- "O projeto": mérito × ficha */
+
+.projeto-corpo {
+  display: grid;
+  grid-template-columns: minmax(0, 74ch) minmax(220px, 1fr);
+  gap: 32px;
+  align-items: start;
+}
+
+@media (max-width: 1000px) {
+  .projeto-corpo {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 20px;
+  }
+}
+
+/* Filete estrutural, não tarja: separa as duas leituras sem virar enfeite. */
+.projeto-ficha {
+  border-left: 1px solid var(--borda);
+  padding-left: 28px;
+}
+
+@media (max-width: 1000px) {
+  .projeto-ficha {
+    border-left: 0;
+    border-top: 1px solid var(--borda);
+    padding: 16px 0 0;
+  }
+}
+
 .campo-texto {
   margin-bottom: 12px;
 }
 
+/*
+ * O que dá hierarquia a uma pilha de campos longos é a separação entre eles,
+ * não o tamanho do rótulo: sem o filete, descrição, justificativa e
+ * metodologia liam como um texto corrido só.
+ */
+.projeto-merito .campo-texto + .campo-texto {
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid var(--borda);
+}
+
 .campo-texto h3 {
-  margin: 0 0 3px;
+  margin: 0 0 6px;
   font-family: var(--fonte-titulo), system-ui, sans-serif;
-  font-size: 13px;
+  font-size: 12px;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--tinta-fraca);
+  letter-spacing: 0.08em;
+  color: var(--azul);
 }
 
 /* A medida vale mais que a largura disponível: sem o teto, o mérito corria a

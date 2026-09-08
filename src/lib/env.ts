@@ -65,6 +65,37 @@ function pick(...keys: string[]): string | undefined {
   return undefined;
 }
 
+/**
+ * Referência do projeto Supabase (`yhauleemahxvbrdkdwju`), tirada do que já
+ * existe em `.env.local` — do host direto ou do usuário `postgres.<ref>` do
+ * pooler. Serve para montar a URL pública do Storage sem pedir uma variável
+ * nova (e sem SDK: os três buckets da origem são públicos).
+ */
+export function getProjectRef(): string | null {
+  const explicito = pick("SUPABASE_PROJECT_REF");
+  if (explicito) return explicito;
+
+  const host = pick("IP_HOST", "DB_HOST", "PGHOST") ?? "";
+  const doHost = /^db\.([a-z0-9]+)\.supabase\.co$/i.exec(host);
+  if (doHost) return doHost[1]!;
+
+  const user = pick("DB_USER", "USER", "PGUSER") ?? "";
+  const doUser = /^postgres\.([a-z0-9]+)$/i.exec(user);
+  return doUser ? doUser[1]! : null;
+}
+
+/**
+ * Base pública do Storage. Ler daqui não escreve nada na origem — é a mesma URL
+ * que o sistema de submissão já serve aos usuários.
+ */
+export function getStorageBaseUrl(): string | null {
+  const explicito = pick("SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_URL");
+  const base = explicito
+    ? explicito.replace(/\/+$/, "")
+    : getProjectRef() && `https://${getProjectRef()}.supabase.co`;
+  return base ? `${base}/storage/v1/object/public` : null;
+}
+
 export interface DbConfig {
   host: string;
   port: number;

@@ -10,6 +10,7 @@ import {
   filtrar,
   ProvedorPainel,
   SEM_FILTRO,
+  SEM_RESPONSAVEL,
   temFiltro,
   type CicloCarregado,
   type Filtros,
@@ -22,14 +23,25 @@ import { ROTULO_STATUS } from "./formato";
  * é o que permite "clicar no país no mapa e ver o efeito no orçamento".
  */
 
-const PAGINAS = [
+/**
+ * A ordem aqui é a ordem dos "slides" no modo apresentação. `menu` tira a página
+ * da fileira de abas e a joga no dropdown de mesmo nome — é assim que o topo
+ * ganha espaço quando entram páginas novas: uma linha, sem mexer no layout.
+ */
+const PAGINAS: { href: string; rotulo: string; menu?: string }[] = [
   { href: "/", rotulo: "Visão Geral" },
   { href: "/mapa", rotulo: "Mapa-múndi" },
+  { href: "/projetos", rotulo: "Projetos & Pastas" },
   { href: "/pipeline", rotulo: "Pipeline & Avaliação" },
-  { href: "/orcamento", rotulo: "Orçamento" },
-  { href: "/instituicoes", rotulo: "Instituições" },
-  { href: "/prestacao", rotulo: "Prestação de contas" },
+  { href: "/orcamento", rotulo: "Orçamento", menu: "Mais" },
+  { href: "/instituicoes", rotulo: "Instituições", menu: "Mais" },
+  { href: "/prestacao", rotulo: "Prestação de contas", menu: "Mais" },
 ];
+
+const ABAS = PAGINAS.filter((p) => !p.menu);
+const GRUPOS = [...new Set(PAGINAS.map((p) => p.menu))].filter(
+  (m): m is string => !!m,
+);
 
 function ordenados(valores: Iterable<string>): string[] {
   return [...new Set(valores)].sort((a, b) => a.localeCompare(b, "pt-BR"));
@@ -92,6 +104,35 @@ function CampoMulti({
             {o.rotulo}
           </label>
         ))}
+      </div>
+    </details>
+  );
+}
+
+/**
+ * Dropdown do cabeçalho — mesmo `<details>` nativo do CampoMulti, sem estado nem
+ * biblioteca. Guarda páginas ou botões que não cabem mais na fileira do topo.
+ * Fecha ao escolher um item (o `open` é do DOM, o React não mexe nele).
+ */
+function Menu({
+  rotulo,
+  ativo,
+  children,
+}: {
+  rotulo: string;
+  ativo?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <details className="menu">
+      <summary aria-current={ativo ? "page" : undefined}>{rotulo}</summary>
+      <div
+        className="menu-itens"
+        onClick={(e) => {
+          e.currentTarget.closest("details")!.open = false;
+        }}
+      >
+        {children}
       </div>
     </details>
   );
@@ -165,9 +206,18 @@ export default function Shell({
       continentes: ordenados(todos.map((p) => p.local.continente)),
       status: ordenados(todos.map((p) => p.statusGrupo)) as StatusGrupo[],
       categorias: ordenados(todos.map((p) => p.categoria)),
+      responsaveis: ordenados(
+        todos
+          .map((p) => p.revisao.responsavel)
+          .filter((r): r is string => r !== null),
+      ),
     }),
     [todos],
   );
+
+  // A pasta do projeto é tela cheia de leitura: filtro global ali só rouba
+  // espaço da TV. Some na rota de detalhe (e só nela).
+  const emDetalhe = caminho.startsWith("/projetos/");
 
   const aplicar = (parcial: Partial<Filtros>) =>
     setFiltros((f) => ({ ...f, ...parcial }));
@@ -179,6 +229,16 @@ export default function Shell({
       filtros.iso3)
     : null;
   const filtroAtivo = temFiltro(filtros);
+
+  const aba = (p: (typeof PAGINAS)[number]) => (
+    <Link
+      key={p.href}
+      href={p.href}
+      aria-current={caminho === p.href ? "page" : undefined}
+    >
+      {p.rotulo}
+    </Link>
+  );
 
   return (
     <ProvedorPainel
@@ -217,15 +277,18 @@ export default function Shell({
         </div>
 
         <nav className="abas" aria-label="Páginas do painel">
-          {PAGINAS.map((p) => (
-            <Link
-              key={p.href}
-              href={p.href}
-              aria-current={caminho === p.href ? "page" : undefined}
-            >
-              {p.rotulo}
-            </Link>
-          ))}
+          {ABAS.map(aba)}
+          {GRUPOS.map((g) => {
+            const dentro = PAGINAS.filter((p) => p.menu === g);
+            const aqui = dentro.find((p) => p.href === caminho);
+            // Estando numa página do grupo, o botão mostra qual — na TV o título
+            // do slide não pode virar um "Mais" genérico.
+            return (
+              <Menu key={g} rotulo={aqui?.rotulo ?? g} ativo={!!aqui}>
+                {dentro.map(aba)}
+              </Menu>
+            );
+          })}
         </nav>
 
         <div className="cabecalho-acoes">
@@ -240,21 +303,20 @@ export default function Shell({
               </button>
             ))}
           </div>
-          <button
-            className="botao-claro"
-            aria-pressed={apresentacao}
-            title="Fontes maiores, tela cheia e navegação por ←/→ (Esc sai)"
-            onClick={alternarApresentacao}
-          >
-            {apresentacao ? "Sair da apresentação" : "Apresentar"}
-          </button>
-          <button
-            className="botao-claro"
-            title="Abre a impressão do navegador — escolha 'Salvar como PDF'"
-            onClick={() => window.print()}
-          >
-            Exportar PDF
-          </button>
+          <Menu rotulo="Ações">
+            <button
+              title="Fontes maiores, tela cheia e navegação por ←/→ (Esc sai)"
+              onClick={alternarApresentacao}
+            >
+              {apresentacao ? "Sair da apresentação" : "Apresentar"}
+            </button>
+            <button
+              title="Abre a impressão do navegador — escolha 'Salvar como PDF'"
+              onClick={() => window.print()}
+            >
+              Exportar PDF
+            </button>
+          </Menu>
           <button
             className="botao-atualizar"
             disabled={atualizando}
@@ -283,6 +345,9 @@ export default function Shell({
                 `Categoria: ${filtros.categoria.join(", ")}`,
               filtros.conveniada.length > 0 &&
                 `Instituição: ${filtros.conveniada.map((c) => (c === "true" ? "conveniadas" : "não conveniadas")).join(", ")}`,
+              filtros.tipo.length > 0 && `Triagem: ${filtros.tipo.join(", ")}`,
+              filtros.responsavel.length > 0 &&
+                `Responsável: ${filtros.responsavel.map((r) => (r === SEM_RESPONSAVEL ? "sem responsável" : r)).join(", ")}`,
               nomePais && `País: ${nomePais}`,
             ]
               .filter(Boolean)
@@ -293,7 +358,7 @@ export default function Shell({
           </span>
         </div>
 
-        <div className="filtros cartao">
+        <div className="filtros cartao" hidden={emDetalhe}>
           <CampoMulti
             rotulo="Continente"
             opcoes={opcoes.continentes.map((c) => ({ valor: c, rotulo: c }))}
@@ -333,6 +398,33 @@ export default function Shell({
               aplicar({ conveniada: alternar(filtros.conveniada, v) })
             }
           />
+
+          {/* Triagem novo × renovação (Fase 5): é o eixo que decide QUEM analisa
+              o projeto na reunião, então anda junto dos outros filtros globais. */}
+          <CampoMulti
+            rotulo="Triagem"
+            opcoes={[
+              { valor: "novo", rotulo: "Novos" },
+              { valor: "renovacao", rotulo: "Renovações" },
+              { valor: "revisar", rotulo: "A revisar" },
+            ]}
+            selecionados={filtros.tipo}
+            aoAlternar={(v) => aplicar({ tipo: alternar(filtros.tipo, v) })}
+          />
+
+          {opcoes.responsaveis.length > 0 && (
+            <CampoMulti
+              rotulo="Responsável"
+              opcoes={[
+                ...opcoes.responsaveis.map((r) => ({ valor: r, rotulo: r })),
+                { valor: SEM_RESPONSAVEL, rotulo: "Sem responsável" },
+              ]}
+              selecionados={filtros.responsavel}
+              aoAlternar={(v) =>
+                aplicar({ responsavel: alternar(filtros.responsavel, v) })
+              }
+            />
+          )}
 
           {filtroAtivo && (
             <button className="limpar" onClick={() => setFiltros(SEM_FILTRO)}>

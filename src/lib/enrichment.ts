@@ -2,7 +2,13 @@ import { readFileSync, existsSync } from "node:fs";
 import { resolve } from "node:path";
 import { parse } from "csv-parse/sync";
 import { REPO_ROOT } from "./env";
-import type { CountryMapRow, InstitutionEnrichmentRow } from "./types";
+import type {
+  Avaliador,
+  CountryMapRow,
+  InstitutionEnrichmentRow,
+  RevisaoProjeto,
+  TipoRevisao,
+} from "./types";
 
 /**
  * Camada de enriquecimento — vive FORA da origem, em data/*.csv
@@ -16,6 +22,11 @@ export const INSTITUTION_ENRICHMENT_CSV = resolve(
   DATA_DIR,
   "institution_enrichment.csv",
 );
+export const PROJETOS_AVALIACAO_CSV = resolve(
+  DATA_DIR,
+  "projetos_avaliacao.csv",
+);
+export const AVALIADORES_CSV = resolve(DATA_DIR, "avaliadores.csv");
 
 function lerCsv(caminho: string): Record<string, string>[] {
   if (!existsSync(caminho)) {
@@ -29,6 +40,11 @@ function lerCsv(caminho: string): Record<string, string>[] {
     trim: true,
     relax_column_count: true,
   }) as Record<string, string>[];
+}
+
+/** Igual, mas devolve vazio quando o arquivo ainda não foi gerado. */
+function lerCsvOpcional(caminho: string): Record<string, string>[] {
+  return existsSync(caminho) ? lerCsv(caminho) : [];
 }
 
 function texto(valor: string | undefined): string | null {
@@ -110,10 +126,90 @@ export function indexarEnrichment(
   return new Map(linhas.map((l) => [l.institutionId, l]));
 }
 
+// -------------------------------------------- triagem da reunião (Fase 5)
+
+const TIPOS: TipoRevisao[] = ["novo", "renovacao", "revisar"];
+
+function tipoOuNulo(valor: string | undefined): TipoRevisao | null {
+  const t = texto(valor)?.toLowerCase().replace("ç", "c").replace("ã", "a");
+  return TIPOS.includes(t as TipoRevisao) ? (t as TipoRevisao) : null;
+}
+
+let cacheAvaliacao: Map<string, RevisaoProjeto> | null = null;
+let cacheAvaliadores: Avaliador[] | null = null;
+
+/**
+ * Triagem por PROJETO (data/projetos_avaliacao.csv): novo × renovação, vínculo
+ * com a remessa anterior e dono da pasta.
+ *
+ * Fica FORA da origem pela regra do projeto (CLAUDE.md) e porque o dado não
+ * existe lá: `cycle_projects` não liga um ciclo ao outro. As colunas `sugestao_*`
+ * são regeneráveis (`npm run avaliacao:regen`); `tipo`, `projeto_anterior_id`,
+ * `responsavel` e `observacoes` são da equipe e nunca são sobrescritas.
+ *
+ * `recebidoAnterior` NÃO sai daqui: é resolvido contra a origem em datasets.ts,
+ * senão editar o vínculo no CSV deixaria o valor velho na tela.
+ */
+export function carregarAvaliacaoProjetos(
+  forcar = false,
+): Map<string, RevisaoProjeto> {
+  if (cacheAvaliacao && !forcar) return cacheAvaliacao;
+
+  const mapa = new Map<string, RevisaoProjeto>();
+  for (const r of lerCsvOpcional(PROJETOS_AVALIACAO_CSV)) {
+    const id = (r["project_id"] ?? "").trim();
+    if (!id) continue;
+
+    const sugestao = tipoOuNulo(r["sugestao_tipo"]) ?? "novo";
+    const curadoTipo = tipoOuNulo(r["tipo"]);
+    const curadoAnterior = texto(r["projeto_anterior_id"]);
+    const similaridade = texto(r["similaridade"]);
+
+    mapa.set(id, {
+      naTriagem: true,
+      tipo: curadoTipo ?? sugestao,
+      sugestao,
+      curado: curadoTipo !== null || curadoAnterior !== null,
+      tipoCurado: curadoTipo,
+      projetoAnteriorIdCurado: curadoAnterior,
+      similaridade: similaridade === null ? null : Number(similaridade),
+      projetoAnteriorId:
+        curadoAnterior ?? texto(r["sugestao_projeto_anterior_id"]),
+      projetoAnteriorTitulo: texto(r["sugestao_projeto_anterior_titulo"]),
+      recebidoAnterior: null,
+      responsavel: texto(r["responsavel"]),
+      observacoes: texto(r["observacoes"]),
+    });
+  }
+
+  cacheAvaliacao = mapa;
+  return mapa;
+}
+
+/** Diretores e conselheiros da rodada (data/avaliadores.csv). */
+export function carregarAvaliadores(forcar = false): Avaliador[] {
+  if (cacheAvaliadores && !forcar) return cacheAvaliadores;
+
+  const linhas = lerCsvOpcional(AVALIADORES_CSV)
+    .map((r) => ({
+      userId: (r["user_id"] ?? "").trim(),
+      nome: (r["nome"] ?? "").trim(),
+      papel: r["papel"] ?? "",
+      // Só um "não" explícito tira alguém da rodada.
+      ativo: booleanoPtOuNulo(r["ativo"]) !== false,
+    }))
+    .filter((r) => r.nome);
+
+  cacheAvaliadores = linhas;
+  return linhas;
+}
+
 /** Esquece os CSVs em memória (usado pelo botão "Atualizar"). */
 export function limparCacheEnriquecimento(): void {
   cacheCountryMap = null;
   cacheEnrichment = null;
+  cacheAvaliacao = null;
+  cacheAvaliadores = null;
 }
 
 /** Cobertura do enriquecimento — insumo do relatório de sanidade. */

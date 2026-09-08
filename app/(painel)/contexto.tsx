@@ -17,6 +17,7 @@ import type { Filtros } from "@/lib/agregar";
 
 export {
   SEM_FILTRO,
+  SEM_RESPONSAVEL,
   alternar,
   ehConveniada,
   filtrar,
@@ -51,6 +52,8 @@ export interface EstadoPainel {
     continentes: string[];
     status: StatusGrupo[];
     categorias: string[];
+    /** Diretores/conselheiros que já têm pasta no ciclo ativo (Fase 5). */
+    responsaveis: string[];
   };
 }
 

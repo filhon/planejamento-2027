@@ -1,4 +1,4 @@
-import { query } from "./db";
+import { query, queryOne } from "./db";
 import type { Ano } from "./types";
 
 /**
@@ -137,6 +137,260 @@ export function fetchProjetos(ano?: Ano): Promise<ProjetoRow[]> {
     order by sc.year, cp.title
   `,
     [ano ?? null],
+  );
+}
+
+/** Chave mínima de todo projeto de todas as remessas — resolve o vínculo entre ciclos. */
+export interface ProjetoChaveRow {
+  id: string;
+  year: number;
+  title: string;
+  status: string;
+  institution_id: string | null;
+  requested_amount: number | null;
+  approved_amount: number | null;
+  liberado: number | null;
+}
+
+/**
+ * Todos os projetos, de todos os ciclos, em 8 colunas.
+ *
+ * Existe separado de `fetchProjetos` porque o vínculo novo × renovação
+ * (docs/fase5-projetos.md) precisa olhar a remessa ANTERIOR enquanto monta a
+ * atual — e puxar `fetchProjetos()` inteiro só para ler `approved_amount` do
+ * ano passado sairia caro (laterais de avaliação, orçamento e reserva).
+ */
+export function fetchProjetosChave(): Promise<ProjetoChaveRow[]> {
+  return query<ProjetoChaveRow>(`
+    select cp.id, sc.year, cp.title, cp.status::text as status, cp.institution_id,
+           cp.requested_amount, cp.approved_amount,
+           (select sum(r.amount) filter (where r.released_at is not null)
+              from cycle_budget_reservations r where r.project_id = cp.id) as liberado
+    from cycle_projects cp
+    join submission_cycles sc on sc.id = cp.cycle_id
+    order by sc.year, cp.title
+  `);
+}
+
+// ------------------------------------------------------------- avaliadores
+
+export interface AvaliadorRow {
+  user_id: string;
+  name: string | null;
+  role: string;
+}
+
+/**
+ * Quem divide as pastas dos projetos novos: diretores e conselheiros ativos.
+ * A equipe ASEEC (papel `gerente`) fica de fora — ela cuida das renovações.
+ */
+export function fetchAvaliadores(): Promise<AvaliadorRow[]> {
+  return query<AvaliadorRow>(`
+    select user_id, name, role
+    from profiles
+    where is_active and role in ('diretor', 'conselheiro')
+    order by role, name
+  `);
+}
+
+// -------------------------------------------------- detalhe de um projeto
+
+export interface ProjetoDetalheRow {
+  description: string | null;
+  justification: string | null;
+  expected_results: string | null;
+  natureza: string | null;
+  metodologia: string | null;
+  parcerias: string | null;
+  rede_social: string | null;
+  indicadores: unknown;
+  equipe: unknown;
+  parecer_aseec_texto: string | null;
+  parecer_aseec_tags: string[] | null;
+  reviewer_notes: string | null;
+  start_date: Date | null;
+  end_date: Date | null;
+  created_at: Date | null;
+  updated_at: Date | null;
+  reviewed_at: Date | null;
+  inst_id: string | null;
+  inst_nome: string | null;
+  inst_cnpj: string | null;
+  inst_conveniada: boolean | null;
+  inst_responsavel: string | null;
+  inst_email: string | null;
+  inst_telefone: string | null;
+}
+
+/** Os campos longos do projeto — só a página de detalhe os carrega. */
+export function fetchProjetoDetalhe(
+  id: string,
+): Promise<ProjetoDetalheRow | null> {
+  return queryOne<ProjetoDetalheRow>(
+    `
+    select cp.description, cp.justification, cp.expected_results, cp.natureza,
+           cp.metodologia, cp.parcerias, cp.rede_social, cp.indicadores, cp.equipe,
+           cp.parecer_aseec_texto, cp.parecer_aseec_tags, cp.reviewer_notes,
+           cp.start_date, cp.end_date, cp.created_at, cp.updated_at, cp.reviewed_at,
+           i.id as inst_id, i.name as inst_nome, i.cnpj as inst_cnpj,
+           i.is_conveniada as inst_conveniada, i.responsavel_legal as inst_responsavel,
+           i.email as inst_email, i.telefone as inst_telefone
+    from cycle_projects cp
+    left join institutions i on i.id = cp.institution_id
+    where cp.id = $1
+  `,
+    [id],
+  );
+}
+
+export interface AnexoRow {
+  id: string;
+  project_id: string;
+  file_name: string;
+  file_path: string;
+  file_size: number | null;
+  file_type: string;
+  uploaded_at: Date | null;
+  uploader_name: string | null;
+}
+
+/** Anexos do projeto (e do projeto anterior, quando houver vínculo). */
+export function fetchAnexos(projetoIds: string[]): Promise<AnexoRow[]> {
+  return query<AnexoRow>(
+    `
+    select a.id, a.project_id, a.file_name, a.file_path, a.file_size,
+           a.file_type, a.uploaded_at, p.name as uploader_name
+    from cycle_project_attachments a
+    left join profiles p on p.user_id = a.uploaded_by
+    where a.project_id = any($1::uuid[])
+    order by a.file_type, a.uploaded_at
+  `,
+    [projetoIds],
+  );
+}
+
+export interface AvaliacaoProjetoRow {
+  voter_name: string | null;
+  voter_role: string | null;
+  is_approved: boolean | null;
+  final_score: number | null;
+  general_comments: string | null;
+  submitted_at: Date | null;
+}
+
+/** O parecer de cada conselheiro neste projeto, com o comentário aberto. */
+export function fetchAvaliacoesDoProjeto(
+  id: string,
+): Promise<AvaliacaoProjetoRow[]> {
+  return query<AvaliacaoProjetoRow>(
+    `
+    select p.name as voter_name, p.role as voter_role, e.is_approved,
+           e.final_score, e.general_comments, e.submitted_at
+    from cycle_project_evaluations e
+    left join profiles p on p.user_id = e.voter_id
+    where e.project_id = $1
+    order by e.final_score desc nulls last, p.name
+  `,
+    [id],
+  );
+}
+
+export interface VotoProjetoRow {
+  voter_name: string | null;
+  vote_type: string;
+  criterion_key: string | null;
+  criterion_name: string | null;
+  vote_value: string | null;
+  score_value: number | null;
+  comments: string | null;
+}
+
+export function fetchVotosDoProjeto(id: string): Promise<VotoProjetoRow[]> {
+  return query<VotoProjetoRow>(
+    `
+    select p.name as voter_name, v.vote_type::text as vote_type, v.criterion_key,
+           v.criterion_name, v.vote_value::text as vote_value, v.score_value, v.comments
+    from cycle_project_votes v
+    left join profiles p on p.user_id = v.voter_id
+    where v.project_id = $1
+    order by v.vote_type, v.criterion_name, p.name
+  `,
+    [id],
+  );
+}
+
+export interface HistoricoRow {
+  old_status: string | null;
+  new_status: string;
+  changed_at: Date | null;
+  changed_by_name: string | null;
+}
+
+export function fetchHistoricoDoProjeto(id: string): Promise<HistoricoRow[]> {
+  return query<HistoricoRow>(
+    `
+    select h.old_status::text as old_status, h.new_status::text as new_status,
+           h.changed_at, p.name as changed_by_name
+    from cycle_project_status_history h
+    left join profiles p on p.user_id = h.changed_by
+    where h.project_id = $1
+    order by h.changed_at
+  `,
+    [id],
+  );
+}
+
+export interface RelatorioDetalheRow {
+  id: string;
+  project_id: string;
+  quarter: number;
+  year: number;
+  status: string | null;
+  project_progress: string | null;
+  objectives_achieved: string | null;
+  changes_or_delays: string | null;
+  submitted_at: Date | null;
+  reviewer_notes: string | null;
+}
+
+/** Prestação de contas, texto completo — é o que a equipe lê na renovação. */
+export function fetchRelatoriosDosProjetos(
+  projetoIds: string[],
+): Promise<RelatorioDetalheRow[]> {
+  return query<RelatorioDetalheRow>(
+    `
+    select r.id, r.project_id, r.quarter, r.year, r.status, r.project_progress,
+           r.objectives_achieved, r.changes_or_delays, r.submitted_at, r.reviewer_notes
+    from cycle_project_accountability_reports r
+    where r.project_id = any($1::uuid[])
+    order by r.year, r.quarter
+  `,
+    [projetoIds],
+  );
+}
+
+export interface AnexoRelatorioRow {
+  id: string;
+  report_id: string;
+  file_name: string;
+  file_path: string;
+  file_size: number | null;
+  file_type: string;
+  uploaded_at: Date | null;
+}
+
+export function fetchAnexosDeRelatorios(
+  relatorioIds: string[],
+): Promise<AnexoRelatorioRow[]> {
+  if (relatorioIds.length === 0) return Promise.resolve([]);
+  return query<AnexoRelatorioRow>(
+    `
+    select id, report_id, file_name, file_path, file_size, file_type, uploaded_at
+    from cycle_accountability_report_attachments
+    where report_id = any($1::uuid[])
+    order by uploaded_at
+  `,
+    [relatorioIds],
   );
 }
 

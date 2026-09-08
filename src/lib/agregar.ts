@@ -57,6 +57,10 @@ export interface Filtros {
   /** "true" | "false" — vazio = todas. */
   conveniada: string[];
   iso3: string | null;
+  /** novo · renovacao · revisar (Fase 5). */
+  tipo: string[];
+  /** Nome do diretor/conselheiro dono da pasta; "__sem" = sem responsável. */
+  responsavel: string[];
 }
 
 export const SEM_FILTRO: Filtros = {
@@ -65,7 +69,12 @@ export const SEM_FILTRO: Filtros = {
   categoria: [],
   conveniada: [],
   iso3: null,
+  tipo: [],
+  responsavel: [],
 };
+
+/** Chave de agrupamento por responsável — projeto sem dono tem uma cesta só. */
+export const SEM_RESPONSAVEL = "__sem";
 
 /** Liga/desliga um valor num eixo — é o clique nas barras e nos checkboxes. */
 export function alternar(selecionados: string[], valor: string): string[] {
@@ -93,6 +102,8 @@ export function filtrar(projetos: ProjetoCiclo[], f: Filtros): ProjetoCiclo[] {
       casa(f.status, p.statusGrupo) &&
       casa(f.categoria, p.categoria) &&
       casa(f.conveniada, String(ehConveniada(p))) &&
+      casa(f.tipo, p.revisao.tipo) &&
+      casa(f.responsavel, p.revisao.responsavel ?? SEM_RESPONSAVEL) &&
       (f.iso3 === null || p.local.iso3 === f.iso3),
   );
 }
@@ -103,6 +114,8 @@ export function temFiltro(f: Filtros): boolean {
     f.status.length > 0 ||
     f.categoria.length > 0 ||
     f.conveniada.length > 0 ||
+    f.tipo.length > 0 ||
+    f.responsavel.length > 0 ||
     f.iso3 !== null
   );
 }
@@ -269,6 +282,88 @@ export function agregarPorInstituicao(
       };
     })
     .sort((a, b) => b.aprovado - a.aprovado || b.solicitado - a.solicitado);
+}
+
+// ---------------------------------------------- pastas da reunião (Fase 5)
+
+/**
+ * Status que tiram o projeto da avaliação: não há o que avaliar, e cada vaga de
+ * pasta é tempo de leitura de alguém.
+ *
+ * `rascunho` sai porque foi escrito e **nunca submetido** — não é candidatura.
+ * `devolvido-para-correcao` FICA: foi submetido e ainda pode voltar corrigido.
+ */
+const FORA_DA_AVALIACAO = new Set([
+  "rejeitado",
+  "reprovado",
+  "rascunho",
+  "cancelado",
+]);
+
+/**
+ * O projeto entra na avaliação da reunião? Regra de STATUS, separada da triagem
+ * de propósito — o script de distribuição só tem o status em mãos.
+ */
+export const avaliavel = (status: string): boolean =>
+  !FORA_DA_AVALIACAO.has(status);
+
+const ehNovo = (p: ProjetoCiclo): boolean => p.revisao.tipo !== "renovacao";
+
+/** Quem entra na pasta de um diretor/conselheiro: novo (ou a revisar) e não rejeitado. */
+export const vaiParaPasta = (p: ProjetoCiclo): boolean =>
+  ehNovo(p) && avaliavel(p.status);
+
+/** Uma pasta: os projetos novos que um diretor/conselheiro vai apresentar. */
+export interface Pasta {
+  responsavel: string;
+  /** Falso só na cesta dos projetos ainda sem dono. */
+  atribuida: boolean;
+  projetos: ProjetoCiclo[];
+  solicitado: number;
+  /** Quantos ainda estão como "revisar" — vínculo não decidido. */
+  aRevisar: number;
+}
+
+/**
+ * Agrupa os projetos novos por dono da pasta. Avaliador sem nenhum projeto
+ * continua na lista (com zero): na reunião, "o Fulano não tem pasta" é
+ * informação, e uma linha que some parece bug.
+ *
+ * Rejeitado fica de fora mesmo que o CSV ainda tenha um responsável na linha —
+ * a pasta mostra o que a pessoa vai apresentar, não o histórico da atribuição.
+ */
+export function montarPastas(
+  projetos: ProjetoCiclo[],
+  avaliadores: string[] = [],
+): Pasta[] {
+  const novos = projetos.filter(vaiParaPasta);
+  const porDono = agrupar(
+    novos,
+    (p) => p.revisao.responsavel ?? SEM_RESPONSAVEL,
+  );
+  const nomes = [...new Set([...avaliadores, ...porDono.keys()])];
+
+  return (
+    nomes
+      .map((responsavel) => {
+        const lista = porDono.get(responsavel) ?? [];
+        return {
+          responsavel,
+          atribuida: responsavel !== SEM_RESPONSAVEL,
+          projetos: lista.sort((a, b) =>
+            a.titulo.localeCompare(b.titulo, "pt-BR"),
+          ),
+          solicitado: lista.reduce((s, p) => s + p.solicitado, 0),
+          aRevisar: lista.filter((p) => p.revisao.tipo === "revisar").length,
+        };
+      })
+      // Sem dono por último: é a fila de trabalho, não uma pasta de apresentação.
+      .sort(
+        (a, b) =>
+          Number(b.atribuida) - Number(a.atribuida) ||
+          a.responsavel.localeCompare(b.responsavel, "pt-BR"),
+      )
+  );
 }
 
 // ---------------------------------------- prestação de contas (Fase 4)

@@ -18,7 +18,7 @@ aprovação e a alocação de recursos dos projetos.
   escrever, criar tabelas/views ou alterar nada nele — deve ser preservado. Toda
   normalização e todo dado novo vivem FORA, em `data/*.csv` (ver enriquecimento abaixo).
 
-## Estado atual (2026-09-05) — Fases 1 a 4 entregues
+## Estado atual (2026-09-08) — Fases 1 a 5 entregues
 
 **Fase 1 (fundação de dados)** — camada TypeScript em [`src/lib/`](src/lib/) que lê a
 origem só com `SELECT` e junta com `data/*.csv` em memória. Nada foi criado na origem.
@@ -37,26 +37,40 @@ sobrevive à troca de página**. Manual: [`docs/fase3-analise.md`](docs/fase3-an
 ←/→ trocam de página, Esc sai) e **Exportar PDF** (`window.print()` + folha `@media print`,
 sem biblioteca). Manual: [`docs/fase4-reuniao.md`](docs/fase4-reuniao.md).
 
+**Fase 5 (pasta do projeto + triagem)** — **Projetos & Pastas** (`/projetos`) e a
+**pasta do projeto** (`/projetos/[id]`: texto completo, anexos, **vídeo tocando na
+página**, parecer ASEEC, avaliações com comentário, votos, e — nas renovações — o
+projeto anterior com a prestação de contas dele). Traz a triagem **novo ×
+renovação POR PROJETO** (a origem não liga um ciclo ao outro), o **quanto recebeu
+no ciclo anterior** por projeto, e a **divisão automática dos projetos novos**
+(rejeitado, rascunho e cancelado não entram em pasta) entre diretores/conselheiros;
+`-- --reequilibrar` nivela as pastas quando elas encolhem (projeto reclassificado)
+ou quando entra um avaliador novo.
+Manual: [`docs/fase5-projetos.md`](docs/fase5-projetos.md).
+
 ```bash
 npm install
 npm run dev            # painel em http://localhost:3000
 npm run build && npm start
 npm run check          # relatório de sanidade contra os dados vivos (só SELECT)
-npm test               # regras puras (país, guarda de leitura, orçamento, notas, mapa)
+npm test               # regras puras (país, guarda, orçamento, notas, mapa, triagem)
 npm run enrich:regen   # regenera as colunas derivadas do CSV (preserva as curadas)
+npm run avaliacao:regen  # triagem novo×renovação + divisão das pastas (idem)
 ```
 
 Datasets prontos para a UI (fachada com cache em `src/lib/cache.ts`):
 `dados.ciclos()` · `dados.projetos(ano)` · `dados.locais(ano)` (choropleth) ·
 `dados.resumo(ano)` (KPIs) · `dados.orcamento(ano)` · `dados.avaliacoes(ano)` ·
 `dados.conformidade()` e `dados.prestacao()` (sem eixo de ano — são pequenos e
-servem todos os ciclos); `atualizar()` é o botão "Atualizar" da reunião.
+servem todos os ciclos); `dados.detalhe(id)` (a pasta de um projeto) e
+`dados.avaliadores()`; `atualizar()` é o botão "Atualizar" da reunião.
 
 Agregações puras **e as regras do recorte** (`filtrar`, `alternar`, `ehConveniada`,
-`ehFinanciado`, `agregarPorInstituicao`, `montarCobertura`) ficam em
+`ehFinanciado`, `agregarPorInstituicao`, `montarCobertura`, `montarPastas`) ficam em
 `src/lib/agregar.ts` (sem `pg`/`fs`) porque o cliente as usa para reagregar os filtros —
-`datasets.ts` reexporta tudo. **Não** importar `datasets.ts` num componente cliente:
-arrasta o driver do banco para o bundle.
+`datasets.ts` reexporta tudo. O casamento de título entre remessas mora em
+`src/lib/recorrencia.ts` (também puro). **Não** importar `datasets.ts` num componente
+cliente: arrasta o driver do banco para o bundle.
 
 **Próximo passo:** nada obrigatório. Em aberto, só se a equipe pedir: exportar PNG
 (hoje é PDF pela impressão), zoom/pan no mapa e filtro global por instituição.
@@ -67,7 +81,7 @@ arrasta o driver do banco para o bundle.
 - Plano do dashboard → [`docs/plano-dashboard.md`](docs/plano-dashboard.md)
 - Normalização de país (de-para ISO) → [`docs/normalizacao-paises.md`](docs/normalizacao-paises.md)
 - **Enriquecimento sem tocar na origem** → [`docs/enriquecimento-dados.md`](docs/enriquecimento-dados.md)
-- Dados do enriquecimento (fonte de verdade): [`data/country_map.csv`](data/country_map.csv), [`data/institution_enrichment.csv`](data/institution_enrichment.csv)
+- Dados do enriquecimento (fonte de verdade): [`data/country_map.csv`](data/country_map.csv), [`data/institution_enrichment.csv`](data/institution_enrichment.csv), [`data/projetos_avaliacao.csv`](data/projetos_avaliacao.csv), [`data/avaliadores.csv`](data/avaliadores.csv)
 - Esquema opcional de banco próprio do dashboard → [`docs/country_map.sql`](docs/country_map.sql) (NUNCA na origem)
 - Script do papel de leitura, **para a equipe rodar** → [`docs/bi_readonly.sql`](docs/bi_readonly.sql)
 - Manual de marca (fornecido pelo cliente) → [`.docs/Identidade Visual da Hebron Aseec.md`](.docs/Identidade%20Visual%20da%20Hebron%20Aseec.md)
@@ -99,6 +113,14 @@ Levantadas na Fase 4:
 7. **43 das 146 instituições sem nenhum documento enviado** (5 tipos exigidos), e
    **1 conjunto de documentos órfão** (`institution_id` sem instituição).
 
+Levantadas na Fase 5 (ver [`docs/fase5-projetos.md`](docs/fase5-projetos.md)):
+
+8. **54 projetos de 2026 na faixa "a revisar":** o casamento com 2025 é plausível
+   mas não conclusivo. A equipe decide na coluna `tipo` de
+   `data/projetos_avaliacao.csv`; até lá contam como novos e ocupam pasta.
+9. **9 projetos de 2025 vinculados por mais de um de 2026** — inclui duas
+   submissões duplicadas em 2026 (`Projeto Timoteo`, `Missão Vida Internacional`).
+
 ## Acesso ao banco (somente leitura, por acordo)
 
 - Supabase / **PostgreSQL 17.4**. Credenciais em [`.env.local`](.env.local) (NÃO commitar).
@@ -128,9 +150,15 @@ duplicam o ciclo 2025). Tudo gira em `submission_cycles` (a remessa/ano) → `cy
 - `submission_cycles` — a remessa (2025 fechado, 2026 aberto).
 - `cycle_projects` — o projeto: título, categoria, `country`/`city`/`state`,
   `requested_amount`/`approved_amount`, `status`, `institution_id`, `area_sensivel`.
-- Satélites por `project_id`+`cycle_id`: `cycle_project_evaluations` (nota),
-  `cycle_project_votes`, `cycle_project_status_history`, `cycle_project_budget_allocations`,
-  `cycle_budget_reservations`, `cycle_project_accountability_reports`.
+- Satélites por `project_id`+`cycle_id`: `cycle_project_evaluations` (nota +
+  `general_comments`), `cycle_project_votes`, `cycle_project_status_history`,
+  `cycle_project_budget_allocations`, `cycle_budget_reservations`,
+  `cycle_project_accountability_reports`, `cycle_project_attachments` (1.792 anexos:
+  vídeo, orçamento, cronograma, portfólio…).
+- ⚠️ **Não existe vínculo entre remessas:** nenhuma coluna liga o projeto de 2026 ao
+  de 2025. Novo × renovação por projeto é derivado fora da origem (Fase 5).
+- Os três buckets do Storage são **públicos** — `file_path` vira URL direta em
+  `https://<ref>.supabase.co/storage/v1/object/public/<bucket>/<file_path>`.
 - `institutions` (146, campo `is_conveniada`), `profiles` (→ `auth.users`).
 - Nomes de pessoas: juntar via `profiles.user_id` (nunca ler schema `auth` direto).
 
@@ -178,6 +206,12 @@ chamam a fachada `dados.*` — é essa a "API de leitura", sem rotas REST. Mapa 
 de mapas: `d3-geo` + `topojson-client` projetam **no servidor** e mandam paths SVG prontos
 (TopoJSON vendorizado em `data/countries-110m.json`, casando por **ISO-3** via
 `i18n-iso-countries`). Botão "Atualizar" = Server Action → `atualizar()`.
+
+**Fase 5 (em uso):** nenhuma biblioteca nova. O casamento de título entre remessas
+é Sørensen–Dice sobre bigramas, ~30 linhas em `src/lib/recorrencia.ts` (o Postgres
+da origem **não** tem `pg_trgm`, e instalar extensão lá está fora de questão).
+Vídeo e anexos vêm direto dos **buckets públicos do Storage** (`<video>` nativo com
+Range — HTTP 206 confirmado), sem SDK do Supabase e sem rota de proxy.
 
 **Fases 3 e 4 (em uso):** nenhuma biblioteca nova. Gráficos são barras em CSS e
 `<table>`; apresentação/TV é uma classe no `<body>` + `requestFullscreen()`; exportar

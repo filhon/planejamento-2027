@@ -7,16 +7,19 @@ import {
   montarOrcamento,
   montarResumo,
   prestacaoContas,
+  projetoDetalhe,
   projetosCiclo,
 } from "./datasets";
-import { limparCacheEnriquecimento } from "./enrichment";
+import { carregarAvaliadores, limparCacheEnriquecimento } from "./enrichment";
 import type {
   Ano,
+  Avaliador,
   AvaliacoesCiclo,
   Ciclo,
   Conformidade,
   OrcamentoCiclo,
   ProjetoCiclo,
+  ProjetoDetalhe,
   ProjetoLocal,
   RelatorioPrestacao,
   ResumoCiclo,
@@ -104,4 +107,12 @@ export const dados = {
 
   prestacao: (): Promise<RelatorioPrestacao[]> =>
     memo("prestacao", prestacaoContas),
+
+  /** A "pasta" de um projeto — a página de detalhe (Fase 5). */
+  detalhe: (id: string): Promise<ProjetoDetalhe | null> =>
+    memo(`detalhe:${id}`, () => projetoDetalhe(id)),
+
+  /** Só o CSV; entra no cache junto para o "Atualizar" derrubar tudo de uma vez. */
+  avaliadores: (): Promise<Avaliador[]> =>
+    memo("avaliadores", async () => carregarAvaliadores()),
 };

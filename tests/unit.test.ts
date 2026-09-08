@@ -17,19 +17,32 @@ import {
 import {
   agregarPorInstituicao,
   alternar,
+  avaliavel,
   filtrar,
   montarCobertura,
+  montarPastas,
   SEM_FILTRO,
+  SEM_RESPONSAVEL,
   temFiltro,
+  vaiParaPasta,
   type Filtros,
 } from "../src/lib/agregar";
 import { carregarCountryMap } from "../src/lib/enrichment";
 import { geometriaMundo } from "../src/lib/mapa";
 import {
   GRUPO_SENSIVEL,
+  SEM_REVISAO,
   type ProjetoCiclo,
   type RelatorioPrestacao,
 } from "../src/lib/types";
+import {
+  LIMIAR,
+  distribuir,
+  normalizarTitulo,
+  reequilibrar,
+  similaridadeTitulo,
+  sugerirVinculo,
+} from "../src/lib/recorrencia";
 import type { DocumentoRow, OrcamentoRow } from "../src/lib/queries";
 
 const indice = construirIndicePaises(carregarCountryMap());
@@ -240,6 +253,7 @@ const projeto = (p: Partial<ProjetoCiclo>): ProjetoCiclo =>
     notaMediana: null,
     instituicaoId: "i1",
     instituicaoNome: "Instituição 1",
+    status: "em-validacao",
     statusGrupo: "em-avaliacao",
     conveniada: null,
     local: normalizarLocal({ country: "Brasil" }, indice),
@@ -253,8 +267,16 @@ const projeto = (p: Partial<ProjetoCiclo>): ProjetoCiclo =>
       projetos2025: null,
       projetos2026: null,
     },
+    revisao: SEM_REVISAO,
     ...p,
   }) as ProjetoCiclo;
+
+/** Projeto com triagem — atalho para os testes da Fase 5. */
+const triado = (
+  id: string,
+  r: Partial<ProjetoCiclo["revisao"]>,
+  extra: Partial<ProjetoCiclo> = {},
+): ProjetoCiclo => projeto({ id, ...extra, revisao: { ...SEM_REVISAO, ...r } });
 
 test("agregação por país soma valores e conta instituições distintas", () => {
   const locais = agregarPorPais([
@@ -534,4 +556,273 @@ test("geometria do mundo casa com o de-para por ISO-3", () => {
 
   const brasil = paises.find((p) => p.iso3 === "BRA");
   assert.ok(brasil?.d.startsWith("M"), "path SVG do Brasil não foi gerado");
+});
+
+// ------------------------------------- triagem novo × renovação (Fase 5)
+
+test("normalização de título tira acento, pontuação, ano e palavra vazia", () => {
+  assert.equal(normalizarTitulo("Venha o Teu Reino"), "venha teu reino");
+  assert.equal(normalizarTitulo("VENHA A TEU REINO"), "venha teu reino");
+  assert.equal(normalizarTitulo("Boa Semente 2026"), "boa semente");
+  assert.equal(normalizarTitulo("Boa Semente 2025"), "boa semente");
+  // "Projeto" é palavra vazia aqui: metade dos títulos da base começa com ela.
+  assert.equal(normalizarTitulo("Projeto Âncora"), "ancora");
+});
+
+test("similaridade reconhece renovação e rejeita projeto diferente", () => {
+  assert.equal(similaridadeTitulo("Venha o Teu Reino", "VENHA A TEU REINO"), 1);
+
+  // Plural e acréscimo de palavra continuam sendo o mesmo projeto.
+  assert.ok(
+    similaridadeTitulo("Projeto Parceiro Logos", "Projeto Parceiros Logos") >=
+      LIMIAR.renovacao,
+  );
+
+  // Mesmo modelo de título, missionários diferentes: NÃO é renovação.
+  assert.ok(
+    similaridadeTitulo(
+      "Sustento Família Maciel Corrêa",
+      "Sustento Família Missionária - Valter, Luane e Estêvão Dias",
+    ) < LIMIAR.renovacao,
+  );
+
+  // Projetos sem nada em comum ficam fora até da faixa de revisão.
+  assert.ok(
+    similaridadeTitulo(
+      "Construção de Casas Missionárias",
+      "Reforma dos quartos femininos",
+    ) < LIMIAR.revisar,
+  );
+});
+
+test("vínculo só casa dentro da mesma instituição", () => {
+  const anteriores = [
+    { id: "v1", titulo: "Projeto Âncora", instituicaoId: "i1", aprovado: 5000 },
+    { id: "v2", titulo: "Projeto Âncora", instituicaoId: "i2", aprovado: 900 },
+  ];
+
+  const mesma = sugerirVinculo(
+    { titulo: "Projeto Âncora", instituicaoId: "i1" },
+    anteriores,
+  );
+  assert.equal(mesma.tipo, "renovacao");
+  assert.equal(mesma.anteriorId, "v1");
+  assert.equal(
+    mesma.recebidoAnterior,
+    5000,
+    "pega o aprovado do projeto casado",
+  );
+
+  // Título idêntico em OUTRA instituição não é candidato — "Bolsa de Estudos"
+  // existe em meia dúzia delas.
+  const outra = sugerirVinculo(
+    { titulo: "Projeto Âncora", instituicaoId: "i9" },
+    anteriores,
+  );
+  assert.equal(outra.tipo, "novo");
+  assert.equal(outra.anteriorId, null);
+
+  // Projeto sem instituição não tem como casar.
+  assert.equal(
+    sugerirVinculo(
+      { titulo: "Projeto Âncora", instituicaoId: null },
+      anteriores,
+    ).tipo,
+    "novo",
+  );
+});
+
+test("candidato plausível mas não conclusivo vira 'revisar', não renovação", () => {
+  const s = sugerirVinculo(
+    { titulo: "Cresce Criança Caruaru", instituicaoId: "i1" },
+    [
+      {
+        id: "v1",
+        titulo: "Cresce Criança Mirandiba",
+        instituicaoId: "i1",
+        aprovado: 100,
+      },
+    ],
+  );
+  assert.equal(s.tipo, "revisar", "outra cidade: a equipe é que decide");
+  assert.equal(s.anteriorId, "v1", "mas o candidato fica à vista no CSV");
+});
+
+test("ruído abaixo da faixa de revisão não sugere candidato nenhum", () => {
+  const s = sugerirVinculo(
+    { titulo: "Construção de Casas Missionárias", instituicaoId: "i1" },
+    [
+      {
+        id: "v1",
+        titulo: "Reforma dos quartos femininos",
+        instituicaoId: "i1",
+        aprovado: 100,
+      },
+    ],
+  );
+  assert.equal(s.tipo, "novo");
+  assert.equal(s.anteriorId, null, "não polui o CSV com casamento improvável");
+  assert.ok(s.similaridade !== null, "mas registra a nota, para auditoria");
+});
+
+test("distribuição das pastas fica equilibrada e nunca reatribui", () => {
+  const avaliadores = ["Ana", "Beto", "Caio"];
+
+  const primeira = distribuir(["a", "b", "c", "d", "e", "f", "g"], avaliadores);
+  const carga = new Map<string, number>();
+  for (const nome of primeira.values()) {
+    carga.set(nome, (carga.get(nome) ?? 0) + 1);
+  }
+  assert.deepEqual([...carga.values()].sort(), [2, 2, 3]);
+
+  // Chegaram projetos novos no fim do mês: quem já tem pasta não a vê mudar,
+  // e os que chegam vão para quem está mais leve.
+  const segunda = distribuir(["h", "i"], avaliadores, carga);
+  assert.equal(segunda.size, 2);
+  for (const [id, nome] of primeira) {
+    assert.equal(segunda.get(id), undefined, `${id} não foi redistribuído`);
+    assert.equal(primeira.get(id), nome);
+  }
+  const cargaFinal = new Map(carga);
+  for (const nome of segunda.values()) {
+    cargaFinal.set(nome, (cargaFinal.get(nome) ?? 0) + 1);
+  }
+  assert.deepEqual([...cargaFinal.values()].sort(), [3, 3, 3]);
+
+  // Sem avaliador ativo ninguém recebe — e o script avisa em vez de estourar.
+  assert.equal(distribuir(["a"], []).size, 0);
+});
+
+test("reequilibrar nivela movendo o mínimo, sem tocar em quem está no ponto", () => {
+  const avaliadores = ["Ana", "Beto", "Caio"];
+
+  // Ana perdeu projetos (viraram renovação na revisão) e Dina acabou de entrar.
+  const atribuicoes = [
+    ...["a1", "a2"].map((id) => ({ id, responsavel: "Ana" })),
+    ...["b1", "b2", "b3", "b4"].map((id) => ({ id, responsavel: "Beto" })),
+    ...["c1", "c2", "c3"].map((id) => ({ id, responsavel: "Caio" })),
+  ];
+
+  const movidos = reequilibrar(atribuicoes, avaliadores);
+  const final = new Map(atribuicoes.map((a) => [a.id, a.responsavel]));
+  for (const [id, nome] of movidos) final.set(id, nome);
+
+  const carga = (nome: string) =>
+    [...final.values()].filter((v) => v === nome).length;
+  assert.deepEqual([carga("Ana"), carga("Beto"), carga("Caio")], [3, 3, 3]);
+  assert.equal(movidos.size, 1, "só um projeto precisa mudar de dono");
+  // Caio já estava no teto: nada dele se mexe.
+  for (const id of ["c1", "c2", "c3"]) assert.equal(final.get(id), "Caio");
+
+  // Avaliador novo entra com zero e só empata aqui.
+  const comDina = reequilibrar(atribuicoes, [...avaliadores, "Dina"]);
+  const depois = new Map(atribuicoes.map((a) => [a.id, a.responsavel]));
+  for (const [id, nome] of comDina) depois.set(id, nome);
+  assert.equal(
+    [...depois.values()].filter((v) => v === "Dina").length,
+    2,
+    "Dina recebe o excedente das pastas cheias",
+  );
+
+  // Já nivelado: não mexe em nada. E nome fora da lista não é redistribuído.
+  assert.equal(reequilibrar(atribuicoes, avaliadores).size > 0, true);
+  assert.equal(
+    reequilibrar([{ id: "x", responsavel: "Gerente de fora" }], avaliadores)
+      .size,
+    0,
+    "atribuição manual a quem não é avaliador fica de pé",
+  );
+});
+
+test("filtros de triagem e de responsável cruzam com os demais", () => {
+  const projetos = [
+    triado("a", { tipo: "novo", responsavel: "Ana" }),
+    triado("b", { tipo: "renovacao" }),
+    triado("c", { tipo: "revisar", responsavel: "Beto" }),
+    triado("d", { tipo: "novo" }),
+  ];
+
+  const f = (p: Partial<Filtros>): string[] =>
+    filtrar(projetos, { ...SEM_FILTRO, ...p }).map((x) => x.id);
+
+  assert.deepEqual(f({ tipo: ["novo"] }), ["a", "d"]);
+  assert.deepEqual(f({ tipo: ["novo", "revisar"] }), ["a", "c", "d"]);
+  assert.deepEqual(f({ responsavel: ["Ana"] }), ["a"]);
+  assert.deepEqual(f({ responsavel: [SEM_RESPONSAVEL] }), ["b", "d"]);
+  assert.deepEqual(f({ tipo: ["novo"], responsavel: ["Ana"] }), ["a"]);
+  assert.ok(temFiltro({ ...SEM_FILTRO, tipo: ["novo"] }));
+  assert.ok(temFiltro({ ...SEM_FILTRO, responsavel: ["Ana"] }));
+});
+
+test("rejeitado, rascunho e cancelado não entram em pasta de diretor", () => {
+  assert.equal(avaliavel("em-validacao"), true);
+  assert.equal(avaliavel("rejeitado"), false);
+  assert.equal(avaliavel("reprovado"), false);
+  assert.equal(avaliavel("rascunho"), false, "escrito, nunca submetido");
+  assert.equal(avaliavel("cancelado"), false);
+  // Foi submetido e ainda pode voltar corrigido: continua na avaliação.
+  assert.equal(avaliavel("devolvido-para-correcao"), true);
+
+  const novoAtivo = triado("a", { tipo: "novo" }, { status: "em-validacao" });
+  const novoRejeitado = triado("b", { tipo: "novo" }, { status: "rejeitado" });
+  const revisarRascunho = triado(
+    "c",
+    { tipo: "revisar" },
+    { status: "rascunho" },
+  );
+
+  assert.equal(vaiParaPasta(novoAtivo), true);
+  assert.equal(vaiParaPasta(novoRejeitado), false);
+  assert.equal(vaiParaPasta(revisarRascunho), false);
+
+  // Rejeitado depois de distribuído some da pasta mesmo com o CSV ainda cheio.
+  const pastas = montarPastas(
+    [
+      triado(
+        "d",
+        { tipo: "novo", responsavel: "Ana" },
+        { status: "em-validacao" },
+      ),
+      triado(
+        "e",
+        { tipo: "novo", responsavel: "Ana" },
+        { status: "rejeitado" },
+      ),
+    ],
+    ["Ana"],
+  );
+  assert.deepEqual(
+    pastas[0]!.projetos.map((p) => p.id),
+    ["d"],
+  );
+});
+
+test("pastas: só projetos novos, avaliador vazio aparece, sem-dono por último", () => {
+  const projetos = [
+    triado("a", { tipo: "novo", responsavel: "Ana" }, { solicitado: 100 }),
+    triado("b", { tipo: "revisar", responsavel: "Ana" }, { solicitado: 50 }),
+    triado("c", { tipo: "renovacao", responsavel: "Ana" }, { solicitado: 999 }),
+    triado("d", { tipo: "novo" }, { solicitado: 10 }),
+  ];
+
+  const pastas = montarPastas(projetos, ["Ana", "Zuleide"]);
+  assert.deepEqual(
+    pastas.map((p) => p.responsavel),
+    ["Ana", "Zuleide", SEM_RESPONSAVEL],
+  );
+
+  const ana = pastas[0]!;
+  assert.deepEqual(
+    ana.projetos.map((p) => p.id),
+    ["a", "b"],
+  );
+  assert.equal(ana.solicitado, 150, "renovação não entra na pasta");
+  assert.equal(ana.aRevisar, 1);
+
+  assert.equal(
+    pastas[1]!.projetos.length,
+    0,
+    "avaliador sem pasta continua na lista",
+  );
+  assert.equal(pastas[2]!.atribuida, false);
 });

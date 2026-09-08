@@ -65,10 +65,11 @@ button {
   gap: 20px;
   flex-wrap: wrap;
   position: relative;
-  overflow: hidden;
 }
 
-/* Motivo gráfico da marca: círculos (pessoas / comunhão). */
+/* Motivo gráfico da marca: círculos (pessoas / comunhão). Os gradientes já se
+   limitam à caixa do ::after, então o cabeçalho não precisa de overflow:hidden —
+   e não pode ter: cortaria os dropdowns do topo (ver Menu em shell.tsx). */
 .cabecalho::after {
   content: "";
   position: absolute;
@@ -654,6 +655,95 @@ main {
   box-shadow: inset 0 0 0 1px rgb(255 255 255 / 25%);
 }
 
+/*
+ * Dropdown do cabeçalho: <details> nativo (ver Menu em shell.tsx), para agrupar
+ * páginas ou ações quando o topo aperta. O gatilho imita a aba; o painel é
+ * branco como os cartões, senão sumiria no azul.
+ * Vem DEPOIS de .abas de propósito: os links do painel têm a mesma
+ * especificidade das abas e precisam ganhar no desempate por ordem.
+ */
+.menu {
+  position: relative;
+  z-index: 2;
+}
+
+.menu > summary {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  color: rgb(255 255 255 / 78%);
+  font-size: 13.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  list-style: none;
+}
+
+.menu > summary::-webkit-details-marker {
+  display: none;
+}
+
+.menu > summary::after {
+  content: "▾";
+  font-size: 11px;
+}
+
+.menu > summary:hover,
+.menu[open] > summary {
+  background: rgb(255 255 255 / 12%);
+  color: #fff;
+}
+
+.menu > summary[aria-current="page"] {
+  background: rgb(255 255 255 / 16%);
+  color: #fff;
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 25%);
+}
+
+.menu-itens {
+  position: absolute;
+  z-index: 30;
+  top: calc(100% + 6px);
+  left: 0;
+  min-width: 100%;
+  padding: 6px;
+  background: var(--papel);
+  border: 1px solid var(--borda);
+  border-radius: 11px;
+  box-shadow: 0 12px 30px rgb(32 44 133 / 22%);
+}
+
+/* Ancorado à direita nas ações, que ficam na borda da tela. */
+.cabecalho-acoes .menu-itens {
+  left: auto;
+  right: 0;
+}
+
+.menu-itens a,
+.menu-itens button {
+  display: block;
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: var(--tinta);
+  text-align: left;
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 9px 11px;
+  border-radius: 7px;
+  white-space: nowrap;
+}
+
+.menu-itens a:hover,
+.menu-itens button:hover,
+.menu-itens a[aria-current="page"] {
+  background: var(--neutro);
+  color: var(--azul);
+}
+
 /* --------------------------------------------------- blocos das páginas */
 
 /*
@@ -865,6 +955,241 @@ main {
   z-index: 1;
 }
 
+/* --------------------------------------- projetos & pastas (Fase 5) */
+
+.pastas {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 10px;
+}
+
+.pasta {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 2px 10px;
+  align-items: baseline;
+  text-align: left;
+  padding: 10px 12px;
+  border: 1px solid var(--borda);
+  border-radius: var(--raio);
+  background: var(--papel);
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.pasta:hover {
+  border-color: var(--azul);
+}
+
+.pasta[aria-pressed="true"] {
+  border-color: var(--azul);
+  background: var(--azul);
+  color: #fff;
+}
+
+.pasta[aria-pressed="true"] .sub {
+  color: rgb(255 255 255 / 78%);
+}
+
+.pasta b {
+  font-family: var(--fonte-titulo), system-ui, sans-serif;
+}
+
+.pasta .pasta-n {
+  font-family: var(--fonte-titulo), system-ui, sans-serif;
+  font-size: 22px;
+  line-height: 1;
+  grid-row: span 2;
+  align-self: center;
+}
+
+.pasta .sub {
+  grid-column: 1;
+  font-size: 12px;
+}
+
+/* A fila sem dono não é uma pasta de apresentação — é trabalho pendente. */
+.pasta-sem-dono {
+  border-style: dashed;
+  border-color: var(--laranja);
+}
+
+.pastilha-tipo {
+  display: inline-block;
+  color: #fff;
+  border-radius: 999px;
+  padding: 2px 9px;
+  font-size: 11.5px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.ordenar {
+  border: 0;
+  background: none;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  text-transform: inherit;
+  letter-spacing: inherit;
+  cursor: pointer;
+}
+
+.ordenar:hover {
+  color: var(--laranja);
+}
+
+.link-projeto {
+  color: var(--azul);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.link-projeto:hover {
+  text-decoration: underline;
+}
+
+/* ------------------------------------------- pasta do projeto (detalhe) */
+
+.cabecalho-projeto {
+  margin-bottom: 14px;
+}
+
+.cabecalho-projeto h1 {
+  margin: 6px 0 10px;
+  font-size: 26px;
+}
+
+.cabecalho-projeto .fichas {
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.voltar {
+  color: var(--tinta-fraca);
+  font-size: 13px;
+  text-decoration: none;
+}
+
+.voltar:hover {
+  color: var(--azul);
+}
+
+.ficha-alerta {
+  background: var(--laranja);
+  color: #fff;
+}
+
+.observacao {
+  margin: 8px 0 0;
+  padding: 8px 12px;
+  border-left: 4px solid var(--azul-claro);
+  background: var(--fundo);
+  font-size: 14px;
+}
+
+.videos {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 14px;
+}
+
+.videos figure {
+  margin: 0;
+}
+
+.videos video {
+  width: 100%;
+  max-height: 62vh;
+  border-radius: var(--raio);
+  background: #000;
+}
+
+.videos figcaption {
+  margin-top: 6px;
+}
+
+.anexos {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.anexos li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: baseline;
+  padding: 7px 10px;
+  border: 1px solid var(--borda);
+  border-radius: 10px;
+}
+
+.anexos a {
+  color: var(--azul);
+  font-weight: 600;
+}
+
+.campo-texto {
+  margin-bottom: 12px;
+}
+
+.campo-texto h3 {
+  margin: 0 0 3px;
+  font-family: var(--fonte-titulo), system-ui, sans-serif;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--tinta-fraca);
+}
+
+.campo-texto p {
+  margin: 0;
+  white-space: pre-wrap;
+}
+
+.relatorios {
+  display: grid;
+  gap: 12px;
+}
+
+.relatorio {
+  padding: 12px;
+  border: 1px solid var(--borda);
+  border-radius: var(--raio);
+  background: var(--fundo);
+}
+
+.relatorio h3 {
+  margin: 0 0 10px;
+  font-family: var(--fonte-titulo), system-ui, sans-serif;
+  font-size: 16px;
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+  flex-wrap: wrap;
+}
+
+.historico {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.historico li {
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+  flex-wrap: wrap;
+  border-left: 3px solid var(--neutro);
+  padding-left: 10px;
+}
+
 /* ------------------------------------------------- modo apresentação/TV */
 
 /*
@@ -906,6 +1231,9 @@ body.apresentacao .linha-topo,
 body.apresentacao .tabela,
 body.apresentacao .ficha,
 body.apresentacao .abas a,
+body.apresentacao .menu > summary,
+body.apresentacao .menu-itens a,
+body.apresentacao .menu-itens button,
 body.apresentacao .anos button {
   font-size: 16px;
 }

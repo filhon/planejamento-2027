@@ -16,7 +16,11 @@ import {
   ReadOnlyViolationError,
 } from "../src/lib/db";
 import { dados } from "../src/lib/cache";
-import { agregarPorInstituicao, montarCobertura } from "../src/lib/agregar";
+import {
+  agregarPorInstituicao,
+  montarCobertura,
+  vaiParaPasta,
+} from "../src/lib/agregar";
 import {
   carregarCountryMap,
   carregarInstitutionEnrichment,
@@ -215,6 +219,118 @@ async function checarEnriquecimento(): Promise<void> {
   else ok(`colunas curadas preenchidas — ${curadas}`);
 }
 
+/**
+ * Fase 5: a triagem da reunião. O risco real aqui é a planilha ficar velha —
+ * projeto novo continua chegando até o fim do mês, e um projeto que entra
+ * depois do último `avaliacao:regen` fica sem triagem e sem dono.
+ */
+async function checarTriagem(ano: number): Promise<void> {
+  titulo(`4b. Triagem da reunião ${ano} (data/projetos_avaliacao.csv)`);
+
+  const projetos = await dados.projetos(ano);
+  const avaliadores = await dados.avaliadores();
+  const ativos = avaliadores.filter((a) => a.ativo);
+
+  if (avaliadores.length === 0) {
+    aviso(
+      "data/avaliadores.csv ainda não existe — rodar `npm run avaliacao:regen`",
+    );
+  } else {
+    ok(`${avaliadores.length} avaliadores (${ativos.length} ativos)`);
+  }
+
+  const conta = (t: string) =>
+    projetos.filter((p) => p.revisao.tipo === t).length;
+  const semLinha = projetos.filter((p) => !p.revisao.naTriagem);
+  const semDono = projetos.filter(
+    (p) => vaiParaPasta(p) && !p.revisao.responsavel,
+  );
+  // Rejeitado em pasta é justamente o que o `avaliacao:regen` desfaz.
+  const rejeitadoEmPasta = projetos.filter(
+    (p) =>
+      !vaiParaPasta(p) &&
+      p.revisao.tipo !== "renovacao" &&
+      p.revisao.responsavel,
+  );
+
+  ok(
+    `${projetos.length} projetos · renovação ${conta("renovacao")} · novo ${conta("novo")} · a revisar ${conta("revisar")}`,
+  );
+  ok(
+    `${projetos.filter(vaiParaPasta).length} vão para pasta de diretor (rejeitado, rascunho e cancelado ficam de fora)`,
+  );
+
+  if (rejeitadoEmPasta.length > 0) {
+    aviso(
+      `ciclo ${ano}: ${rejeitadoEmPasta.length} projeto(s) fora da avaliação ainda com responsável no CSV — rodar \`npm run avaliacao:regen\` para devolver as vagas`,
+    );
+  }
+
+  // O caso "todos sem linha" é CSV inexistente; alguns sem linha é CSV velho.
+  if (semLinha.length === projetos.length && projetos.length > 0) {
+    aviso(
+      `ciclo ${ano}: triagem não gerada — rodar \`npm run avaliacao:regen\` antes da reunião`,
+    );
+  } else if (semLinha.length > 0) {
+    aviso(
+      `ciclo ${ano}: ${semLinha.length} projeto(s) sem linha na triagem (chegaram depois do último regen) — rodar \`npm run avaliacao:regen\``,
+    );
+  }
+
+  if (semDono.length > 0 && ativos.length > 0) {
+    aviso(
+      `ciclo ${ano}: ${semDono.length} projeto(s) novo(s) sem responsável — rodar \`npm run avaliacao:regen\``,
+    );
+  }
+
+  if (conta("revisar") > 0) {
+    aviso(
+      `ciclo ${ano}: ${conta("revisar")} projeto(s) com vínculo a decidir (coluna \`tipo\` do CSV) — hoje entram como novos`,
+    );
+  }
+
+  // Dois projetos não renovam o mesmo: sinal de vínculo errado ou submissão duplicada.
+  const porAnterior = new Map<string, number>();
+  for (const p of projetos) {
+    const id = p.revisao.projetoAnteriorId;
+    if (id) porAnterior.set(id, (porAnterior.get(id) ?? 0) + 1);
+  }
+  const disputados = [...porAnterior.values()].filter((n) => n > 1).length;
+  if (disputados > 0) {
+    aviso(
+      `ciclo ${ano}: ${disputados} projeto(s) da remessa anterior vinculados por mais de um projeto desta — conferir no CSV`,
+    );
+  }
+
+  const cargas = ativos.map(
+    (a) =>
+      projetos.filter(
+        (p) => vaiParaPasta(p) && p.revisao.responsavel === a.nome,
+      ).length,
+  );
+  if (cargas.length > 0) {
+    const min = Math.min(...cargas);
+    const max = Math.max(...cargas);
+    ok(`pastas: ${min} a ${max} projetos por avaliador`);
+    const vazios = ativos.filter(
+      (a) =>
+        !projetos.some(
+          (p) => vaiParaPasta(p) && p.revisao.responsavel === a.nome,
+        ),
+    );
+    // 1–2 de diferença é o arredondamento da divisão; zero é avaliador esquecido.
+    if (vazios.length > 0 || max - min > 2) {
+      aviso(
+        `ciclo ${ano}: pastas desequilibradas (${min} a ${max})` +
+          (vazios.length
+            ? ` — sem pasta: ${vazios.map((a) => a.nome).join(", ")} (entrou depois da distribuição?)`
+            : "") +
+          " — `npm run avaliacao:regen -- --reequilibrar` nivela movendo o mínimo",
+      );
+    }
+  }
+}
+
 async function checarCiclo(ano: number): Promise<void> {
   titulo(`5. Ciclo ${ano} — datasets`);
 
@@ -370,6 +486,11 @@ async function main(): Promise<void> {
   }
 
   const anos = argAno ? [argAno] : listaCiclos.map((c) => c.ano);
+
+  // A triagem só faz sentido na remessa aberta — é a que vai à reunião.
+  const anoAberto = Math.max(...listaCiclos.map((c) => c.ano));
+  if (anos.includes(anoAberto)) await checarTriagem(anoAberto);
+
   for (const ano of anos) await checarCiclo(ano);
 
   titulo("Resultado");

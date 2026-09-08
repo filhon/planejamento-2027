@@ -1,15 +1,24 @@
 import {
+  fetchAnexos,
+  fetchAnexosDeRelatorios,
   fetchAvaliacoes,
+  fetchAvaliacoesDoProjeto,
   fetchCiclos,
   fetchDocumentos,
+  fetchHistoricoDoProjeto,
   fetchOrcamentos,
   fetchPrestacaoContas,
+  fetchProjetoDetalhe,
   fetchProjetos,
+  fetchProjetosChave,
+  fetchRelatoriosDosProjetos,
+  fetchVotosDoProjeto,
 } from "./queries";
 import type {
   AvaliacaoRow,
   DocumentoRow,
   OrcamentoRow,
+  ProjetoChaveRow,
   ProjetoRow,
 } from "./queries";
 import {
@@ -19,18 +28,27 @@ import {
   grupoDeStatus,
   montarResumo,
 } from "./agregar";
-import { carregarCountryMap, indexarEnrichment } from "./enrichment";
+import {
+  carregarAvaliacaoProjetos,
+  carregarCountryMap,
+  indexarEnrichment,
+} from "./enrichment";
+import { getStorageBaseUrl } from "./env";
 import { construirIndicePaises, normalizarLocal } from "./geo";
+import { SEM_REVISAO } from "./types";
 import type {
+  Anexo,
   Ano,
   AvaliacoesCiclo,
   Ciclo,
   Conformidade,
   OrcamentoCiclo,
   ProjetoCiclo,
+  ProjetoDetalhe,
   ProjetoLocal,
   RelatorioPrestacao,
   ResumoCiclo,
+  RevisaoProjeto,
 } from "./types";
 
 /**
@@ -70,20 +88,52 @@ export async function ciclos(): Promise<Ciclo[]> {
 
 // -------------------------------------------------------- projetos_ciclo
 
-export function montarProjeto(
-  row: ProjetoRow,
-  anoReferencia: Ano,
-): ProjetoCiclo {
-  const indice = construirIndicePaises(carregarCountryMap());
-  return montarProjetoCom(row, anoReferencia, indice, indexarEnrichment());
+/** O que `montarProjetoCom` precisa ter em mãos, montado uma vez por lote. */
+interface ContextoJuncao {
+  indice: ReturnType<typeof construirIndicePaises>;
+  enriquecimento: ReturnType<typeof indexarEnrichment>;
+  revisoes: Map<string, RevisaoProjeto>;
+  /** Todos os projetos de todas as remessas, por id — resolve o vínculo. */
+  chaves: Map<string, ProjetoChaveRow>;
+}
+
+async function contextoJuncao(): Promise<ContextoJuncao> {
+  return {
+    indice: construirIndicePaises(carregarCountryMap()),
+    enriquecimento: indexarEnrichment(),
+    revisoes: carregarAvaliacaoProjetos(),
+    chaves: new Map((await fetchProjetosChave()).map((p) => [p.id, p])),
+  };
+}
+
+/**
+ * Resolve a triagem do projeto: tipo, vínculo com a remessa anterior e — o que
+ * a diretoria pede — quanto ESTE projeto recebeu no ciclo passado.
+ *
+ * O valor é lido da origem pelo id vinculado, não do CSV: assim, corrigir o
+ * vínculo na planilha corrige o número na tela sem regerar nada.
+ */
+function montarRevisao(id: string, ctx: ContextoJuncao): RevisaoProjeto {
+  const csv = ctx.revisoes.get(id);
+  if (!csv) return SEM_REVISAO;
+
+  const anterior = csv.projetoAnteriorId
+    ? ctx.chaves.get(csv.projetoAnteriorId)
+    : undefined;
+
+  return {
+    ...csv,
+    projetoAnteriorTitulo: anterior?.title ?? csv.projetoAnteriorTitulo,
+    recebidoAnterior: anterior?.approved_amount ?? null,
+  };
 }
 
 function montarProjetoCom(
   row: ProjetoRow,
   anoReferencia: Ano,
-  indice: ReturnType<typeof construirIndicePaises>,
-  enriquecimentoPorInstituicao: ReturnType<typeof indexarEnrichment>,
+  ctx: ContextoJuncao,
 ): ProjetoCiclo {
+  const { indice, enriquecimento: enriquecimentoPorInstituicao } = ctx;
   const e = row.institution_id
     ? enriquecimentoPorInstituicao.get(row.institution_id)
     : undefined;
@@ -144,19 +194,209 @@ function montarProjetoCom(
       projetos2025: e?.projetos2025 ?? null,
       projetos2026: e?.projetos2026 ?? null,
     },
+
+    revisao: montarRevisao(row.id, ctx),
   };
 }
 
 /** 1 linha por projeto, país normalizado e enriquecimento já unidos. */
 export async function projetosCiclo(ano: Ano): Promise<ProjetoCiclo[]> {
-  const rows = await fetchProjetos(ano);
-  const indice = construirIndicePaises(carregarCountryMap());
-  const enriquecimento = indexarEnrichment();
-  return rows.map((r) => montarProjetoCom(r, ano, indice, enriquecimento));
+  const [rows, ctx] = await Promise.all([fetchProjetos(ano), contextoJuncao()]);
+  return rows.map((r) => montarProjetoCom(r, ano, ctx));
 }
 
 export async function projetoLocal(ano: Ano): Promise<ProjetoLocal[]> {
   return agregarPorPais(await projetosCiclo(ano));
+}
+
+// ------------------------------------------ detalhe do projeto (Fase 5)
+
+const BUCKET_PROJETO = "project-attachments";
+const BUCKET_PRESTACAO = "accountability-documents";
+
+/** Extensões que o `<video>` do navegador toca sem plugin nenhum. */
+const EXT_VIDEO = /\.(mp4|webm|ogg|ogv|mov|m4v)$/i;
+
+function montarAnexo(
+  r: {
+    id: string;
+    file_name: string;
+    file_path: string;
+    file_size: number | null;
+    file_type: string;
+    uploaded_at: Date | null;
+  },
+  bucket: string,
+  enviadoPor: string | null = null,
+): Anexo {
+  const base = getStorageBaseUrl();
+  return {
+    id: r.id,
+    nome: r.file_name,
+    tipo: r.file_type,
+    // Sem base configurada o link fica vazio e a UI mostra "sem URL" — melhor
+    // que um href quebrado no meio da reunião.
+    url: base
+      ? `${base}/${bucket}/${r.file_path.split("/").map(encodeURIComponent).join("/")}`
+      : "",
+    bytes: r.file_size,
+    enviadoEm: r.uploaded_at,
+    enviadoPor,
+    ehVideo:
+      r.file_type === "video" ||
+      EXT_VIDEO.test(r.file_name) ||
+      EXT_VIDEO.test(r.file_path),
+  };
+}
+
+/** `indicadores`/`equipe` são jsonb livre — só aceitamos o que tem forma de lista. */
+function lista(valor: unknown): Record<string, unknown>[] {
+  return Array.isArray(valor)
+    ? valor.filter(
+        (i): i is Record<string, unknown> => !!i && typeof i === "object",
+      )
+    : [];
+}
+
+const str = (v: unknown): string | null =>
+  typeof v === "string" && v.trim() ? v.trim() : null;
+
+/**
+ * A "pasta" do projeto: tudo o que a origem guarda sobre ele, mais o projeto
+ * anterior vinculado (com a prestação de contas dele — é o que a equipe ASEEC
+ * analisa numa renovação). Ver docs/fase5-projetos.md.
+ */
+export async function projetoDetalhe(
+  id: string,
+): Promise<ProjetoDetalhe | null> {
+  const [linhas, ctx, detalhe] = await Promise.all([
+    fetchProjetos(),
+    contextoJuncao(),
+    fetchProjetoDetalhe(id),
+  ]);
+
+  const row = linhas.find((l) => l.id === id);
+  if (!row || !detalhe) return null;
+
+  const projeto = montarProjetoCom(row, row.year, ctx);
+  const anteriorId = projeto.revisao.projetoAnteriorId;
+  const alvos = anteriorId ? [id, anteriorId] : [id];
+
+  const [anexos, avaliacoesDetalhe, votos, historico, relatorios] =
+    await Promise.all([
+      fetchAnexos(alvos),
+      fetchAvaliacoesDoProjeto(id),
+      fetchVotosDoProjeto(id),
+      fetchHistoricoDoProjeto(id),
+      fetchRelatoriosDosProjetos(alvos),
+    ]);
+
+  const anexosRelatorio = await fetchAnexosDeRelatorios(
+    relatorios.map((r) => r.id),
+  );
+
+  const relatoriosDe = (projetoId: string) =>
+    relatorios
+      .filter((r) => r.project_id === projetoId)
+      .map((r) => ({
+        id: r.id,
+        ano: r.year,
+        trimestre: r.quarter,
+        status: r.status,
+        andamento: r.project_progress,
+        objetivosAlcancados: r.objectives_achieved,
+        mudancasOuAtrasos: r.changes_or_delays,
+        enviadoEm: r.submitted_at,
+        notasDoRevisor: r.reviewer_notes,
+        anexos: anexosRelatorio
+          .filter((a) => a.report_id === r.id)
+          .map((a) => montarAnexo(a, BUCKET_PRESTACAO)),
+      }));
+
+  const chaveAnterior = anteriorId ? ctx.chaves.get(anteriorId) : undefined;
+
+  return {
+    projeto,
+    descricao: detalhe.description,
+    justificativa: detalhe.justification,
+    resultadosEsperados: detalhe.expected_results,
+    natureza: detalhe.natureza,
+    metodologia: detalhe.metodologia,
+    parcerias: detalhe.parcerias,
+    redeSocial: str(detalhe.rede_social),
+    inicio: detalhe.start_date,
+    fim: detalhe.end_date,
+    criadoEm: detalhe.created_at,
+    atualizadoEm: detalhe.updated_at,
+    avaliadoEm: detalhe.reviewed_at,
+
+    indicadores: lista(detalhe.indicadores).map((i) => ({
+      nome: str(i["nome"]),
+      meta: str(i["meta"]),
+    })),
+    equipe: lista(detalhe.equipe).map((m) => ({
+      nome: str(m["nome"]),
+      funcao: str(m["funcao"]),
+      contato: str(m["contato"]),
+    })),
+
+    parecerTexto: detalhe.parecer_aseec_texto,
+    parecerTags: (detalhe.parecer_aseec_tags ?? []).filter(Boolean),
+    notasDoRevisor: detalhe.reviewer_notes,
+
+    anexos: anexos
+      .filter((a) => a.project_id === id)
+      .map((a) => montarAnexo(a, BUCKET_PROJETO, a.uploader_name)),
+    avaliacoesDetalhe: avaliacoesDetalhe.map((a) => ({
+      avaliador: a.voter_name ?? "(sem nome no profiles)",
+      papel: a.voter_role,
+      aprovou: a.is_approved,
+      nota: a.final_score,
+      comentario: a.general_comments,
+      enviadaEm: a.submitted_at,
+    })),
+    votos: votos.map((v) => ({
+      avaliador: v.voter_name ?? "(sem nome no profiles)",
+      tipo: v.vote_type,
+      criterioChave: v.criterion_key,
+      criterio: v.criterion_name,
+      valor: v.vote_value,
+      pontuacao: v.score_value,
+      comentario: v.comments,
+    })),
+    historico: historico.map((h) => ({
+      de: h.old_status,
+      para: h.new_status,
+      em: h.changed_at,
+      por: h.changed_by_name,
+    })),
+    relatorios: relatoriosDe(id),
+
+    anterior: chaveAnterior
+      ? {
+          id: chaveAnterior.id,
+          ano: chaveAnterior.year,
+          titulo: chaveAnterior.title,
+          status: chaveAnterior.status,
+          solicitado: chaveAnterior.requested_amount ?? 0,
+          aprovado: chaveAnterior.approved_amount,
+          liberado: chaveAnterior.liberado,
+          relatorios: relatoriosDe(chaveAnterior.id),
+        }
+      : null,
+
+    instituicao: detalhe.inst_id
+      ? {
+          id: detalhe.inst_id,
+          nome: detalhe.inst_nome ?? "(sem nome)",
+          cnpj: detalhe.inst_cnpj,
+          conveniada: detalhe.inst_conveniada,
+          contato: detalhe.inst_responsavel,
+          email: detalhe.inst_email,
+          telefone: detalhe.inst_telefone,
+        }
+      : null,
+  };
 }
 
 // -------------------------------------------------------- orcamento_ciclo

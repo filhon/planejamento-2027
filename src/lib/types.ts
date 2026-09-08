@@ -63,6 +63,82 @@ export interface EnriquecimentoProjeto {
   projetos2026: number | null;
 }
 
+// --------------------------------------------- triagem da reunião (Fase 5)
+
+/**
+ * Como o projeto entra na reunião:
+ *  - `renovacao` — continuação de um projeto da remessa anterior. Só a equipe
+ *    ASEEC analisa (prestação de contas + valor pedido) e dá o parecer.
+ *  - `novo` — vai para a pasta de um diretor/conselheiro, que avalia a fundo e
+ *    apresenta; todos votam.
+ *  - `revisar` — o casamento automático achou um candidato plausível mas não
+ *    conclusivo. Pendência da equipe: decidir no CSV.
+ */
+export type TipoRevisao = "novo" | "renovacao" | "revisar";
+
+/** Um avaliador da rodada (data/avaliadores.csv). */
+export interface Avaliador {
+  userId: string;
+  nome: string;
+  papel: string;
+  ativo: boolean;
+}
+
+/** Uma linha de data/projetos_avaliacao.csv, já com o curado sobrepondo. */
+export interface RevisaoProjeto {
+  /**
+   * false = o projeto não tem linha no CSV. Acontece com quem foi submetido
+   * depois do último `avaliacao:regen` — e é diferente de "analisado e
+   * classificado como novo", que é o que `tipo` diz.
+   */
+  naTriagem: boolean;
+  /** Vale para a reunião: o curado vence a sugestão. */
+  tipo: TipoRevisao;
+  /** O que o casamento automático propôs (auditoria). */
+  sugestao: TipoRevisao;
+  /** true quando a equipe decidiu na mão, no CSV. */
+  curado: boolean;
+  /**
+   * Exatamente o que a equipe escreveu nas colunas curadas — null quando a
+   * célula está em branco. Guardado cru porque o regen grava **isto** de volta:
+   * se gravasse o valor efetivo, um `projeto_anterior_id` preenchido sozinho
+   * carimbaria a sugestão na coluna `tipo` e viraria decisão humana sem ninguém
+   * ter decidido nada.
+   */
+  tipoCurado: TipoRevisao | null;
+  projetoAnteriorIdCurado: string | null;
+  /** 0..1 do casamento de título; null se não houve candidato. */
+  similaridade: number | null;
+  /** Projeto da remessa anterior a que este dá continuidade. */
+  projetoAnteriorId: string | null;
+  projetoAnteriorTitulo: string | null;
+  /**
+   * Quanto ESTE projeto recebeu na remessa anterior — o `approved_amount` do
+   * projeto casado. Null quando não há vínculo (aí vale o valor da instituição,
+   * em `enriquecimento.valorAprovado2025`).
+   */
+  recebidoAnterior: number | null;
+  /** Diretor/conselheiro dono da pasta. Só projeto novo recebe. */
+  responsavel: string | null;
+  observacoes: string | null;
+}
+
+/** Sem CSV ainda: tudo é "novo" até a triagem rodar. */
+export const SEM_REVISAO: RevisaoProjeto = {
+  naTriagem: false,
+  tipo: "novo",
+  sugestao: "novo",
+  curado: false,
+  tipoCurado: null,
+  projetoAnteriorIdCurado: null,
+  similaridade: null,
+  projetoAnteriorId: null,
+  projetoAnteriorTitulo: null,
+  recebidoAnterior: null,
+  responsavel: null,
+  observacoes: null,
+};
+
 // ------------------------------------------------------------------- ciclos
 
 export interface Ciclo {
@@ -125,6 +201,134 @@ export interface ProjetoCiclo {
   votosAprovacao: number;
 
   enriquecimento: EnriquecimentoProjeto;
+  /** Triagem novo × renovação e dono da pasta (Fase 5). */
+  revisao: RevisaoProjeto;
+}
+
+// ------------------------------------------ detalhe do projeto (Fase 5)
+
+/** Um anexo, já com a URL pública do Storage montada. */
+export interface Anexo {
+  id: string;
+  nome: string;
+  /** Rótulo da origem: video · orcamento · cronograma · portfolio · … */
+  tipo: string;
+  /** URL pública do bucket (os três buckets da origem são públicos). */
+  url: string;
+  bytes: number | null;
+  enviadoEm: Date | null;
+  enviadoPor: string | null;
+  /** Deriva da extensão — decide se toca no `<video>` ou vira link. */
+  ehVideo: boolean;
+}
+
+export interface AvaliacaoProjeto {
+  avaliador: string;
+  papel: string | null;
+  aprovou: boolean | null;
+  nota: number | null;
+  comentario: string | null;
+  enviadaEm: Date | null;
+}
+
+export interface VotoProjeto {
+  avaliador: string;
+  tipo: string;
+  criterioChave: string | null;
+  criterio: string | null;
+  valor: string | null;
+  pontuacao: number | null;
+  comentario: string | null;
+}
+
+export interface MudancaStatus {
+  de: string | null;
+  para: string;
+  em: Date | null;
+  por: string | null;
+}
+
+export interface RelatorioDetalhe {
+  id: string;
+  ano: Ano;
+  trimestre: number;
+  status: string | null;
+  andamento: string | null;
+  objetivosAlcancados: string | null;
+  mudancasOuAtrasos: string | null;
+  enviadoEm: Date | null;
+  notasDoRevisor: string | null;
+  anexos: Anexo[];
+}
+
+/** Uma pessoa da equipe do projeto (`cycle_projects.equipe`, jsonb). */
+export interface MembroEquipe {
+  nome: string | null;
+  funcao: string | null;
+  contato: string | null;
+}
+
+/** Um indicador (`cycle_projects.indicadores`, jsonb). */
+export interface Indicador {
+  nome: string | null;
+  meta: string | null;
+}
+
+/** O projeto anterior casado — a base da renovação. */
+export interface ProjetoAnterior {
+  id: string;
+  ano: Ano;
+  titulo: string;
+  status: string;
+  solicitado: number;
+  aprovado: number | null;
+  liberado: number | null;
+  relatorios: RelatorioDetalhe[];
+}
+
+/** Tudo o que a origem guarda sobre um projeto — a "pasta" da reunião. */
+export interface ProjetoDetalhe {
+  projeto: ProjetoCiclo;
+
+  descricao: string | null;
+  justificativa: string | null;
+  resultadosEsperados: string | null;
+  natureza: string | null;
+  metodologia: string | null;
+  parcerias: string | null;
+  redeSocial: string | null;
+  inicio: Date | null;
+  fim: Date | null;
+  criadoEm: Date | null;
+  atualizadoEm: Date | null;
+  avaliadoEm: Date | null;
+
+  indicadores: Indicador[];
+  equipe: MembroEquipe[];
+
+  /** Parecer da equipe ASEEC, direto de `cycle_projects`. */
+  parecerTexto: string | null;
+  parecerTags: string[];
+  notasDoRevisor: string | null;
+
+  anexos: Anexo[];
+  avaliacoesDetalhe: AvaliacaoProjeto[];
+  votos: VotoProjeto[];
+  historico: MudancaStatus[];
+  /** Prestação de contas DESTE projeto (existe quando o ciclo já executou). */
+  relatorios: RelatorioDetalhe[];
+  /** Prestação de contas do projeto anterior — o que a equipe cobra na renovação. */
+  anterior: ProjetoAnterior | null;
+
+  instituicao: {
+    id: string;
+    nome: string;
+    cnpj: string | null;
+    conveniada: boolean | null;
+    contato: string | null;
+    email: string | null;
+    telefone: string | null;
+  } | null;
 }
 
 // ------------------------------------------------------- datasets agregados

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { CSSProperties } from "react";
-import type { Anexo, ProjetoDetalhe, RelatorioDetalhe } from "@/lib/types";
+import type { ProjetoDetalhe, RelatorioDetalhe } from "@/lib/types";
 import {
   COR_STATUS,
   ROTULO_STATUS,
@@ -8,11 +8,13 @@ import {
   num,
   plural,
   rotuloCategoria,
+  tamanhoArquivo,
   variacaoPedido,
 } from "../../formato";
 import { Secao } from "../../ui";
 import { ROTULO_TIPO, Tipo } from "../tipo";
 import Barra from "./barra";
+import ListaAnexos from "./visor";
 
 /**
  * A pasta do projeto: tudo o que a origem guarda sobre ele, numa tela só, para
@@ -43,12 +45,6 @@ const fmtData = new Intl.DateTimeFormat("pt-BR", { dateStyle: "short" });
 
 const data = (d: Date | null) => (d ? fmtData.format(new Date(d)) : "—");
 
-function tamanho(bytes: number | null): string {
-  if (!bytes) return "";
-  const mb = bytes / 1024 / 1024;
-  return mb >= 1 ? `${mb.toFixed(1)} MB` : `${Math.round(bytes / 1024)} kB`;
-}
-
 /** Campo de texto longo — some quando a origem não tem o dado. */
 function Campo({ rotulo, valor }: { rotulo: string; valor: string | null }) {
   if (!valor?.trim()) return null;
@@ -57,31 +53,6 @@ function Campo({ rotulo, valor }: { rotulo: string; valor: string | null }) {
       <h3>{rotulo}</h3>
       <p>{valor}</p>
     </div>
-  );
-}
-
-function ListaAnexos({ anexos }: { anexos: Anexo[] }) {
-  if (anexos.length === 0) return <p className="sub">Nenhum anexo.</p>;
-  return (
-    <ul className="anexos">
-      {anexos.map((a) => (
-        <li key={a.id}>
-          {a.url ? (
-            <a href={a.url} target="_blank" rel="noopener noreferrer">
-              {a.nome}
-            </a>
-          ) : (
-            <span title="Arquivo sem endereço público — falar com a secretaria">
-              {a.nome}
-            </span>
-          )}
-          <span className="sub">
-            {a.tipo}
-            {tamanho(a.bytes) && ` · ${tamanho(a.bytes)}`}
-          </span>
-        </li>
-      ))}
-    </ul>
   );
 }
 
@@ -422,7 +393,7 @@ export default function Detalhe({ d }: { d: ProjetoDetalhe }) {
                   />
                   <figcaption className="sub">
                     {v.nome}
-                    {tamanho(v.bytes) && ` · ${tamanho(v.bytes)}`}
+                    {tamanhoArquivo(v.bytes) && ` · ${tamanhoArquivo(v.bytes)}`}
                     <span className="so-impressao-inline">
                       {" "}
                       · vídeo não reproduzível no papel
@@ -531,7 +502,9 @@ export default function Detalhe({ d }: { d: ProjetoDetalhe }) {
       {/* A faixa que não decide nada. Estava misturada com o mérito, com o
           mesmo peso de cartão; agora vem depois e anunciada, para a sala saber
           que dali para baixo é conferência de cadastro. */}
-      <h2 className="titulo faixa-titulo faixa-registro">Registro e cadastro</h2>
+      <h2 className="titulo faixa-titulo faixa-registro">
+        Registro e cadastro
+      </h2>
       <div className="grade">
         {d.indicadores.length > 0 && (
           <Secao titulo="Indicadores">

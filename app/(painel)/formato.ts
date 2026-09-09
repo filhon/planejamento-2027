@@ -27,6 +27,13 @@ export const num = (v: number | null, casas = 1) =>
         maximumFractionDigits: casas,
       });
 
+/** Tamanho de anexo — kB abaixo de 1 MB, que é a escala dos orçamentos. */
+export function tamanhoArquivo(bytes: number | null): string {
+  if (!bytes) return "";
+  const mb = bytes / 1024 / 1024;
+  return mb >= 1 ? `${mb.toFixed(1)} MB` : `${Math.round(bytes / 1024)} kB`;
+}
+
 /**
  * "1 projeto" / "2 projetos". O painel é lido em voz alta na reunião e sai
  * impresso como documento de conselho — "projeto(s)" é forma de log, não de

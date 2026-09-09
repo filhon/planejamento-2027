@@ -1559,8 +1559,151 @@ main {
   border-radius: 10px;
 }
 
-.anexos a {
+.anexos a,
+.anexo-abrir {
   color: var(--azul);
+  font-weight: 600;
+}
+
+/* O nome do anexo abre o visor — é botão, mas se lê como o link que já era. */
+.anexo-abrir {
+  background: none;
+  border: 0;
+  padding: 0;
+  text-align: left;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* ----------------------------------------------- visor de anexo (<dialog>) */
+
+.visor {
+  width: min(1180px, 94vw);
+  height: min(88vh, 900px);
+  padding: 0;
+  border: 0;
+  border-radius: var(--raio);
+  box-shadow: var(--sombra);
+  background: var(--papel);
+  color: var(--tinta);
+  overflow: hidden;
+}
+
+.visor::backdrop {
+  background: rgb(22 32 63 / 55%);
+}
+
+.visor > header {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--borda);
+}
+
+.visor > header b {
+  font-family: var(--fonte-titulo), var(--fonte-corpo), system-ui, sans-serif;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Os dois links e o Fechar vão para a direita; o nome fica com o espaço. */
+.visor > header .sub {
+  margin-right: auto;
+  white-space: nowrap;
+}
+
+.visor > header a {
+  color: var(--azul);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.visor > header button {
+  background: var(--neutro);
+  border: 0;
+  border-radius: 999px;
+  padding: 5px 12px;
+  color: var(--tinta);
+  font-weight: 600;
+}
+
+.visor-corpo {
+  height: calc(100% - 50px);
+  overflow: auto;
+  background: var(--fundo);
+}
+
+.visor-corpo iframe {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  display: block;
+}
+
+.visor-corpo img {
+  display: block;
+  max-width: 100%;
+  margin: 0 auto;
+}
+
+.visor-aviso {
+  padding: 24px;
+  color: var(--tinta-fraca);
+  text-align: center;
+}
+
+.visor-abas {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding: 8px 10px 0;
+}
+
+.visor-abas button {
+  border: 1px solid var(--borda);
+  border-bottom: 0;
+  border-radius: 8px 8px 0 0;
+  background: var(--neutro);
+  color: var(--tinta-fraca);
+  padding: 5px 12px;
+  white-space: nowrap;
+}
+
+.visor-abas button.ativa {
+  background: var(--papel);
+  color: var(--azul);
+  font-weight: 600;
+}
+
+.visor-tabela {
+  overflow: auto;
+  background: var(--papel);
+}
+
+.visor-tabela table {
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.visor-tabela td {
+  border: 1px solid var(--borda);
+  padding: 4px 8px;
+  max-width: 42ch;
+  vertical-align: top;
+  white-space: pre-wrap;
+}
+
+.visor-tabela td.num {
+  text-align: right;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+/* A primeira linha da planilha quase sempre é o cabeçalho de quem a montou. */
+.visor-tabela tr:first-child td {
+  background: var(--neutro);
   font-weight: 600;
 }
 

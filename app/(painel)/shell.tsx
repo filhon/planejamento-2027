@@ -226,6 +226,9 @@ export default function Shell({
     };
     const aoTeclar = (e: KeyboardEvent) => {
       if (digitando(e.target)) return;
+      // Com o visor de anexo aberto, o teclado é dele: Esc fecha o documento
+      // (e não a apresentação) e as setas não trocam de projeto por baixo.
+      if (document.querySelector("dialog[open]")) return;
       if (e.key === "ArrowRight" || e.key === "PageDown") ir(1);
       else if (e.key === "ArrowLeft" || e.key === "PageUp") ir(-1);
       else if (e.key === "Escape") setApresentacao(false);

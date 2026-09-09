@@ -136,8 +136,37 @@ reordenada pela sequência das perguntas da mesa, não pela das tabelas da orige
   filete com o valor em aberto — é a pendência 5, que saía em cinza de rodapé
   justo na tela onde se decide dar mais dinheiro.
 
+**Fase 8 (o anexo abre dentro da página)** — todo anexo era um link para outra
+guia; planilha então virava download e Excel por cima da reunião. Agora o nome do
+arquivo abre um `<dialog>` nativo sobre o painel (`[id]/visor.tsx`): **PDF** no
+leitor do próprio navegador (`<iframe>` — os buckets servem `application/pdf` sem
+`Content-Disposition`), **imagem** em `<img>`, e **.xlsx desenhado como tabela**,
+lido no cliente por `src/lib/xlsx-ler.ts`. No cabeçalho ficam "Abrir original ↗" e
+"Baixar" (`?download=<nome>`, que o Storage honra com `attachment`).
+
+- **Por que valeu:** dos anexos de 2026, **372 são PDF, 220 .xlsx** (quase sempre
+  o orçamento detalhado), 28 .docx e 12 imagens. Metade da dor era a planilha.
+- `xlsx-ler.ts` é o irmão de leitura de `xlsx.ts`: zip pelo diretório central,
+  `DecompressionStream("deflate-raw")` para inflar (nativo), e regex sobre
+  `sharedStrings`/`styles`/`sheetN.xml`. **Sem biblioteca** — SheetJS traria
+  ~800 kB para desenhar tabela de texto. Formata o que a planilha mandou formatar
+  (R$, %, data), e só isso: agrupar por reflexo viraria o ano "2026" em "2.026".
+  Traz abas (uma planilha da origem tem 15), teto de 400 linhas × 40 colunas por
+  aba e o aviso do corte. **Não** traz mesclagem, fórmula nem imagem colada na
+  aba — para isso existe o "abrir original". Coberto por `npm test` (round-trip
+  com o escritor, e um zip comprimido de propósito).
+- O `fetch` da planilha sai do navegador porque os buckets respondem
+  `Access-Control-Allow-Origin: *` — sem rota de proxy, e **nada sai para
+  serviço de terceiro** (nem Google/Office viewer): documento de projeto
+  missionário, com `area_sensivel` na origem, não vai para fora por conveniência.
+- .docx/.xls/.ods (41 anexos em 2026) mostram a mensagem e o link do original.
+- Com o visor aberto o teclado é dele: `shell.tsx` ignora ←/→/Esc enquanto houver
+  `dialog[open]`, senão Esc fechava a apresentação e a seta trocava de projeto
+  por baixo do documento.
+
 **Próximo passo:** nada obrigatório. Em aberto, só se a equipe pedir: exportar PNG
-(hoje é PDF pela impressão) e zoom/pan no mapa.
+(hoje é PDF pela impressão), zoom/pan no mapa e ler .docx no visor (o
+descompactador já está lá; falta extrair o texto de `word/document.xml`).
 
 ### Planejamento (entregue antes)
 

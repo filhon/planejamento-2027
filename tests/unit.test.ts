@@ -49,6 +49,8 @@ import {
   sugerirVinculo,
 } from "../src/lib/recorrencia";
 import { crc32, planilha } from "../src/lib/xlsx";
+import { lerXlsx } from "../src/lib/xlsx-ler";
+import { deflateRawSync } from "node:zlib";
 import type { DocumentoRow, OrcamentoRow } from "../src/lib/queries";
 
 const indice = construirIndicePaises(carregarCountryMap());
@@ -926,6 +928,159 @@ test("xlsx: zip íntegro, células tipadas e texto escapado", () => {
   assert.match(cru, /<c r="C2"><v>45000<\/v><\/c>/);
   assert.ok(!cru.includes('r="D3"'), "célula nula é omitida, não vira zero");
   assert.match(cru, /ySplit="1"/);
+});
+
+/* ------------------------------------- leitura de .xlsx do visor de anexos */
+
+/** Zip com uma entrada por parte, comprimida — é assim que o Excel grava. */
+function ziparComprimido(
+  partes: { nome: string; texto: string }[],
+): Uint8Array {
+  const enc = new TextEncoder();
+  const locais: Uint8Array[] = [];
+  const central: Uint8Array[] = [];
+  let desloc = 0;
+
+  for (const p of partes) {
+    const nome = enc.encode(p.nome);
+    const cru = enc.encode(p.texto);
+    const dados = new Uint8Array(deflateRawSync(cru));
+    const crc = crc32(cru);
+
+    const local = new Uint8Array(30 + nome.length);
+    const lv = new DataView(local.buffer);
+    lv.setUint32(0, 0x04034b50, true);
+    lv.setUint16(4, 20, true);
+    lv.setUint16(6, 0x0800, true);
+    lv.setUint16(8, 8, true); // método 8 = deflate
+    lv.setUint32(14, crc, true);
+    lv.setUint32(18, dados.length, true);
+    lv.setUint32(22, cru.length, true);
+    lv.setUint16(26, nome.length, true);
+    local.set(nome, 30);
+    locais.push(local, dados);
+
+    const c = new Uint8Array(46 + nome.length);
+    const cv = new DataView(c.buffer);
+    cv.setUint32(0, 0x02014b50, true);
+    cv.setUint16(10, 8, true);
+    cv.setUint32(16, crc, true);
+    cv.setUint32(20, dados.length, true);
+    cv.setUint32(24, cru.length, true);
+    cv.setUint16(28, nome.length, true);
+    cv.setUint32(42, desloc, true);
+    c.set(nome, 46);
+    central.push(c);
+    desloc += local.length + dados.length;
+  }
+
+  const dir = central.reduce((s, c) => s + c.length, 0);
+  const fim = new Uint8Array(22);
+  const fv = new DataView(fim.buffer);
+  fv.setUint32(0, 0x06054b50, true);
+  fv.setUint16(8, partes.length, true);
+  fv.setUint16(10, partes.length, true);
+  fv.setUint32(12, dir, true);
+  fv.setUint32(16, desloc, true);
+
+  const total = [...locais, ...central, fim];
+  const saida = new Uint8Array(total.reduce((s, p) => s + p.length, 0));
+  let i = 0;
+  for (const p of total) {
+    saida.set(p, i);
+    i += p.length;
+  }
+  return saida;
+}
+
+test("xlsx-ler: entrada comprimida, texto compartilhado e formato da célula", async () => {
+  const REL =
+    "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
+  const bytes = ziparComprimido([
+    {
+      nome: "xl/workbook.xml",
+      texto:
+        `<workbook><sheets>` +
+        `<sheet name="Or&#231;amento" sheetId="1" r:id="rId1"/>` +
+        `<sheet name="Cronograma" sheetId="2" r:id="rId2"/>` +
+        `</sheets></workbook>`,
+    },
+    {
+      nome: "xl/_rels/workbook.xml.rels",
+      texto:
+        `<Relationships>` +
+        `<Relationship Id="rId1" Type="${REL}/worksheet" Target="worksheets/sheet1.xml"/>` +
+        `<Relationship Id="rId2" Type="${REL}/worksheet" Target="worksheets/sheet2.xml"/>` +
+        `</Relationships>`,
+    },
+    {
+      nome: "xl/sharedStrings.xml",
+      // Texto quebrado em runs (negrito no meio) é um <si> com dois <t>.
+      texto: `<sst><si><t>Impress</t><t>ão &amp; frete</t></si><si><t>Total</t></si></sst>`,
+    },
+    {
+      nome: "xl/styles.xml",
+      texto:
+        `<styleSheet>` +
+        `<numFmts><numFmt numFmtId="164" formatCode="&quot;R$&quot;\\ #,##0.00"/>` +
+        `<numFmt numFmtId="165" formatCode="0.0%"/></numFmts>` +
+        `<cellStyleXfs><xf numFmtId="0"/></cellStyleXfs>` +
+        `<cellXfs><xf numFmtId="0"/><xf numFmtId="164"/><xf numFmtId="165"/>` +
+        `<xf numFmtId="14"/></cellXfs></styleSheet>`,
+    },
+    {
+      nome: "xl/worksheets/sheet1.xml",
+      texto:
+        `<worksheet><sheetData>` +
+        `<row r="1"><c r="A1" t="s"><v>0</v></c><c r="B1" s="1"><v>6000</v></c></row>` +
+        // Buraco em B, valor em C: a coluna precisa cair no lugar certo.
+        `<row r="2"><c r="A2" t="s"><v>1</v></c><c r="C2" s="2"><v>0.219</v></c></row>` +
+        `<row r="3"><c r="A3" s="3"><v>45292</v></c><c r="B3" t="inlineStr"><is><t>2026</t></is></c></row>` +
+        `<row r="4"><c r="A4"/></row>` +
+        `</sheetData></worksheet>`,
+    },
+    {
+      nome: "xl/worksheets/sheet2.xml",
+      texto: `<worksheet><sheetData/></worksheet>`,
+    },
+  ]);
+
+  const abas = await lerXlsx(bytes);
+  assert.equal(abas.length, 2);
+  assert.deepEqual(
+    abas.map((a) => a.nome),
+    ["Orçamento", "Cronograma"],
+  );
+
+  const [orcamento] = abas;
+  // A linha 4 é só uma célula vazia: não vira linha na tela.
+  assert.deepEqual(orcamento!.linhas, [
+    ["Impressão & frete", "R$ 6.000,00", ""],
+    ["Total", "", "21,9%"],
+    // 45292 é 01/01/2024 no serial do Excel; "2026" ao lado é texto, e por ser
+    // texto não pode virar data nem ganhar separador de milhar.
+    ["01/01/2024", "2026", ""],
+  ]);
+  assert.equal(orcamento!.linhasTotal, 3);
+  // Aba sem célula nenhuma existe (planilha montada com imagens coladas).
+  assert.deepEqual(abas[1]!.linhas, []);
+});
+
+test("xlsx-ler: lê de volta o que o exportador do painel grava", async () => {
+  // Round-trip com o escritor real: entradas ARMAZENADAS (método 0), inlineStr
+  // e número cru — o outro caminho do zip, que o teste comprimido não cobre.
+  const abas = await lerXlsx(
+    planilha("Projetos 2026", [
+      ["Projeto", "Solicitado"],
+      ["Água & Vida <BR>", 45000],
+      ["Sem vínculo", null],
+    ]),
+  );
+  assert.deepEqual(abas[0]!.linhas, [
+    ["Projeto", "Solicitado"],
+    ["Água & Vida <BR>", "45000"],
+    ["Sem vínculo", ""],
+  ]);
 });
 
 /* ---------------------------------------------------- vocabulário impresso */

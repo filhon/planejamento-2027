@@ -842,6 +842,9 @@ main {
 .bloco {
   padding: 14px 16px;
   min-width: 0;
+  /* A barra da pasta é grudada: sem isto o ▶ Vídeo levava o título do bloco
+     para debaixo dela. */
+  scroll-margin-top: 58px;
 }
 
 .bloco.cheia {
@@ -1276,6 +1279,112 @@ main {
 
 /* ------------------------------------------- pasta do projeto (detalhe) */
 
+/*
+ * A barra da pasta (ver barra.tsx): fica no topo enquanto a sala rola o
+ * projeto. O `.cabecalho` do painel rola junto com a página (é `relative`),
+ * então `top: 0` é o topo mesmo. z-index acima do 1 do `thead` grudado das
+ * tabelas, senão o cabeçalho de coluna passa por cima ao rolar.
+ */
+.pasta-barra {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  flex-wrap: wrap;
+  padding: 10px 2px;
+  margin-bottom: 6px;
+  background: var(--fundo);
+  border-bottom: 1px solid var(--borda);
+}
+
+.pasta-passo {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--tinta-fraca);
+  font-variant-numeric: tabular-nums;
+}
+
+.pasta-passo a {
+  padding: 0 8px;
+  border: 1px solid var(--borda);
+  border-radius: 8px;
+  background: var(--papel);
+  color: var(--azul);
+  font-size: 16px;
+  line-height: 1.6;
+  text-decoration: none;
+}
+
+.pasta-passo a:hover {
+  border-color: var(--azul);
+}
+
+/* O nome empurra o pedido para a direita e cede espaço antes dele: numa tela
+   estreita quem some é o fim do título, nunca o valor. */
+.pasta-titulo {
+  flex: 1 1 12ch;
+  min-width: 0;
+  font-family: var(--fonte-titulo), system-ui, sans-serif;
+  font-size: 15px;
+  color: var(--azul);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pasta-ancora {
+  color: var(--laranja-escuro);
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.pasta-pedido {
+  font-family: var(--fonte-titulo), system-ui, sans-serif;
+  font-size: 17px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.pasta-pedido span {
+  font-family: var(--fonte-corpo), system-ui, sans-serif;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--tinta-fraca);
+}
+
+/* Título de faixa: divide a página em camadas de decisão sem virar cartão. */
+.faixa-titulo {
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--tinta-fraca);
+  margin: 0 0 8px;
+}
+
+.faixa-registro {
+  margin-top: 22px;
+  padding-top: 14px;
+  border-top: 1px solid var(--borda);
+}
+
+/* Alerta em filete, não em tarja: sobrevive à fotocópia em preto e branco, e
+   a frase carrega o aviso sozinha (nunca só cor). */
+.aviso {
+  margin: 10px 0 0;
+  padding: 10px 12px;
+  border: 1px solid var(--laranja-escuro);
+  border-left-width: 4px;
+  border-radius: 10px;
+  background: var(--fundo);
+}
+
 /* `.cartao` só pinta fundo e borda — quem tem padding é `.bloco`, `.kpi` e
    companhia. Este cartão não herdava de nenhum e o texto encostava na borda. */
 .cabecalho-projeto {
@@ -1284,7 +1393,7 @@ main {
 }
 
 .cabecalho-projeto h1 {
-  margin: 8px 0 12px;
+  margin: 0 0 12px;
   font-size: 26px;
   max-width: 60ch;
 }
@@ -1314,12 +1423,8 @@ main {
   }
 }
 
-.valores > h2 {
+.valores > .faixa-titulo {
   grid-column: 1 / -1;
-  font-size: 13px;
-  text-transform: uppercase;
-  letter-spacing: 0.07em;
-  color: var(--tinta-fraca);
   margin-bottom: -4px;
 }
 
@@ -1489,6 +1594,14 @@ main {
   }
 }
 
+/* Na coluna estreita da ficha o nome do arquivo e o tipo não cabem lado a
+   lado — empilham em vez de quebrar no meio do nome. */
+.projeto-ficha .anexos li {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 2px;
+}
+
 .campo-texto {
   margin-bottom: 12px;
 }
@@ -1519,6 +1632,12 @@ main {
   margin: 0;
   max-width: 74ch;
   white-space: pre-wrap;
+}
+
+/* `.fichas` nasceu no cabeçalho, onde o `margin-left: auto` empurra as fichas
+   para a direita. Como campo rotulado, elas começam na margem do rótulo. */
+.campo-texto .fichas {
+  margin-left: 0;
 }
 
 .relatorios {
@@ -1636,6 +1755,26 @@ body.apresentacao .identificacao dt {
   font-size: 15px;
 }
 
+/* Na TV a barra da pasta é a única coisa sempre visível: o nome e o pedido
+   têm que ser legíveis a três metros sem comer meia tela. */
+body.apresentacao .pasta-titulo {
+  font-size: 20px;
+}
+
+body.apresentacao .pasta-pedido {
+  font-size: 24px;
+}
+
+body.apresentacao .pasta-passo,
+body.apresentacao .pasta-ancora,
+body.apresentacao .faixa-titulo {
+  font-size: 16px;
+}
+
+body.apresentacao .bloco {
+  scroll-margin-top: 76px;
+}
+
 body.apresentacao .observacao {
   font-size: 17px;
 }
@@ -1682,6 +1821,7 @@ body.apresentacao .rolagem {
   .bloco-acoes,
   .limpar,
   .voltar,
+  .pasta-barra,
   .videos video {
     display: none !important;
   }

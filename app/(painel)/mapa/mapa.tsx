@@ -5,7 +5,13 @@ import { agregarPorPais, montarResumo } from "@/lib/agregar";
 import type { PaisGeo } from "@/lib/mapa";
 import type { ProjetoLocal } from "@/lib/types";
 import { usePainel } from "../contexto";
-import { fmtInt, fmtMoeda, fmtMoedaCurta, pct } from "../formato";
+import {
+  fmtInt,
+  fmtMoeda,
+  fmtMoedaCurta,
+  pct,
+  rotuloCategoria,
+} from "../formato";
 import { Kpi } from "../ui";
 
 /**
@@ -201,7 +207,10 @@ export default function Mapa({
                   <div className="dica-categorias">
                     {dica.local.categorias
                       .slice(0, 3)
-                      .map((c) => `${c.categoria} (${c.projetos})`)
+                      .map(
+                        (c) =>
+                          `${rotuloCategoria(c.categoria)} (${c.projetos})`,
+                      )
                       .join(" · ")}
                   </div>
                 )}

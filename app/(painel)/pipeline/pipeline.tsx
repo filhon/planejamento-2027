@@ -13,6 +13,7 @@ import {
   num,
   pct,
   plural,
+  rotuloCategoria,
 } from "../formato";
 import { Barras, Kpi, Secao } from "../ui";
 
@@ -221,7 +222,7 @@ export default function Pipeline({
             <tbody>
               {porCategoria.map((c) => (
                 <tr key={c.categoria}>
-                  <td>{c.categoria}</td>
+                  <td>{rotuloCategoria(c.categoria)}</td>
                   <td className="n">{fmtInt.format(c.projetos)}</td>
                   <td className="n">{fmtInt.format(c.n)}</td>
                   <td className="n">{num(c.mediana, 2)}</td>

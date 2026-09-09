@@ -35,6 +35,21 @@ export const num = (v: number | null, casas = 1) =>
 export const plural = (n: number, um: string, varios: string) =>
   `${fmtInt.format(n)} ${n === 1 ? um : varios}`;
 
+/**
+ * "pede 34,5% a mais" — a conta que a renovação obrigava a fazer de cabeça na
+ * reunião, com o pedido numa linha e o recebido na outra. Sem base (o projeto
+ * não recebeu nada no ciclo anterior) não há percentual: devolve "".
+ */
+export function variacaoPedido(
+  solicitado: number,
+  recebido: number | null,
+): string {
+  if (!recebido || recebido <= 0) return "";
+  const d = solicitado / recebido - 1;
+  if (Math.abs(d) < 0.005) return "pede o mesmo valor";
+  return `pede ${pct(Math.abs(d))} ${d > 0 ? "a mais" : "a menos"}`;
+}
+
 export const ROTULO_STATUS: Record<StatusGrupo, string> = {
   aprovado: "Aprovado",
   "em-avaliacao": "Em avaliação",
@@ -59,6 +74,26 @@ export const rotuloResponsavel = (r: string) =>
   r === SEM_RESPONSAVEL ? "Sem responsável" : r;
 
 /**
+ * A origem guarda a categoria em slug (`missoes-nacionais`). O slug segue sendo
+ * o valor do filtro e da URL — só o rótulo muda, porque acento não se deriva do
+ * slug. Categoria nova cai no fallback (hífen vira espaço, primeira maiúscula)
+ * e aparece legível mesmo antes de entrar na lista.
+ */
+const ROTULO_CATEGORIA: Record<string, string> = {
+  "missoes-transculturais": "Missões Transculturais",
+  "missoes-nacionais": "Missões Nacionais",
+  "construcao-reforma": "Construção / Reforma",
+  educacao: "Educação",
+  "projetos-sociais-cristaos": "Projetos Sociais Cristãos",
+  saude: "Saúde",
+  outros: "Outros",
+};
+
+export const rotuloCategoria = (c: string) =>
+  ROTULO_CATEGORIA[c] ??
+  c.replace(/-/g, " ").replace(/^./, (l) => l.toUpperCase());
+
+/**
  * O recorte em uma linha. Sai no rodapé da impressão (shell.tsx) e no
  * cabeçalho das exportações de projetos — o mesmo texto nos dois, senão a ata
  * e o PDF do diretor divergem sobre quais números estão na mesa.
@@ -74,7 +109,7 @@ export function resumoFiltros(
       filtros.status.length > 0 &&
         `Status: ${filtros.status.map((s) => ROTULO_STATUS[s as StatusGrupo]).join(", ")}`,
       filtros.categoria.length > 0 &&
-        `Categoria: ${filtros.categoria.join(", ")}`,
+        `Categoria: ${filtros.categoria.map(rotuloCategoria).join(", ")}`,
       filtros.conveniada.length > 0 &&
         `Convênio: ${filtros.conveniada.map((c) => (c === "true" ? "conveniadas" : "não conveniadas")).join(", ")}`,
       filtros.instituicao.length > 0 &&

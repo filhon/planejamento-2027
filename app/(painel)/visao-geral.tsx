@@ -21,6 +21,7 @@ import {
   num,
   pct,
   plural,
+  rotuloCategoria,
 } from "./formato";
 import { Barras, Kpi, Secao } from "./ui";
 
@@ -498,7 +499,7 @@ export default function VisaoGeral({
               const ref = referenciaCategoria(c.categoria, c.aprovado);
               return {
                 chave: c.categoria,
-                rotulo: c.categoria,
+                rotulo: rotuloCategoria(c.categoria),
                 valor: c.solicitado,
                 referencia: temReferenciaCategoria ? (ref ?? 0) : undefined,
                 texto: temReferenciaCategoria

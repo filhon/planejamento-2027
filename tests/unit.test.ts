@@ -6,7 +6,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 
 import { assertReadOnly, ReadOnlyViolationError } from "../src/lib/db";
-import { plural } from "../app/(painel)/formato";
+import { plural, variacaoPedido } from "../app/(painel)/formato";
 import { construirIndicePaises, normalizarLocal } from "../src/lib/geo";
 import {
   escolherLinhaOrcamento,
@@ -940,6 +940,16 @@ test("plural escreve a palavra, não 'projeto(s)'", () => {
   assert.equal(plural(1234, "projeto", "projetos"), "1.234 projetos");
   assert.equal(plural(1, "avaliação", "avaliações"), "1 avaliação");
   assert.equal(plural(3, "mês", "meses"), "3 meses");
+});
+
+test("variacaoPedido diz o salto da renovação, e cala sem base", () => {
+  // É a conta que a mesa fazia de cabeça na pasta do projeto. Sem verba no
+  // ciclo anterior não há percentual — devolve "" e a linha não inventa nada.
+  assert.equal(variacaoPedido(150, 100), "pede 50% a mais");
+  assert.equal(variacaoPedido(80, 100), "pede 20% a menos");
+  assert.equal(variacaoPedido(100, 100), "pede o mesmo valor");
+  assert.equal(variacaoPedido(100_000, null), "");
+  assert.equal(variacaoPedido(100_000, 0), "");
 });
 
 /* ------------------------------------- concentração e renovações (Fase 6) */

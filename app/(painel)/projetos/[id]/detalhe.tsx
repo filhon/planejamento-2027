@@ -7,13 +7,32 @@ import {
   fmtMoeda,
   num,
   plural,
+  rotuloCategoria,
+  variacaoPedido,
 } from "../../formato";
 import { Secao } from "../../ui";
 import { ROTULO_TIPO, Tipo } from "../tipo";
+import Barra from "./barra";
 
 /**
  * A pasta do projeto: tudo o que a origem guarda sobre ele, numa tela só, para
  * ser aberta na TV enquanto o responsável apresenta.
+ *
+ * A ordem da página é a ordem das perguntas da reunião, e não a ordem das
+ * tabelas da origem:
+ *
+ *  1. quanto pede, quanto recebeu, o que já foi decidido  → `.valores`
+ *  2. se é renovação, o que fez com o dinheiro do ano passado
+ *  3. o que a secretaria achou (quando achou)
+ *  4. o mérito — descrição, justificativa, resultados, metodologia
+ *  5. vídeo, prestação deste ciclo, avaliações e votos
+ *  6. o registro (indicadores, equipe, cadastro, histórico), que não decide nada
+ *
+ * O que a origem não tem NÃO vira cartão vazio: em 2026 o parecer da ASEEC
+ * existe em 32 dos 266 projetos e não há uma única avaliação registrada — a
+ * grade abria com um cartão dizendo "ainda não registrado" em quase todo
+ * projeto. Essas ausências viraram uma linha na ficha de valores, que é onde
+ * a mesa lê os números, e as seções só aparecem quando têm conteúdo.
  *
  * O vídeo toca direto do bucket público do Supabase (`<video>` nativo, com
  * Range — testado: 206 num arquivo de 35 MB). Sem player, sem SDK, sem rota de
@@ -104,9 +123,25 @@ export default function Detalhe({ d }: { d: ProjetoDetalhe }) {
   // vínculo, sobra o total da instituição — e a tela precisa dizer qual é qual.
   const recebido = p.revisao.recebidoAnterior;
   const recebidoInstituicao = p.enriquecimento.valorAprovado2025;
+  const variacao = variacaoPedido(p.solicitado, recebido);
+
+  const temParecer =
+    !!d.parecerTexto || !!d.notasDoRevisor || d.parecerTags.length > 0;
+
+  // Renovação de projeto que de fato recebeu verba: aí a falta de relatório é
+  // cobrança em aberto, e não a consequência normal de não ter sido aprovado.
+  const anteriorRecebeu =
+    (d.anterior?.liberado ?? d.anterior?.aprovado ?? 0) > 0;
 
   return (
     <>
+      <Barra
+        id={p.id}
+        titulo={p.titulo}
+        solicitado={p.solicitado}
+        temVideo={videos.length > 0}
+      />
+
       {/* O timbre do papel. Só a pasta sabe o nome do registro aberto, então é
           ela que carimba a linha — o shell não imprime a dele aqui (ver o
           !emDetalhe em shell.tsx), senão o dossiê de um projeto saía intitulado
@@ -122,9 +157,6 @@ export default function Detalhe({ d }: { d: ProjetoDetalhe }) {
       </div>
 
       <div className="cabecalho-projeto cartao">
-        <Link className="voltar" href="/projetos">
-          ← Projetos &amp; Pastas
-        </Link>
         <h1 className="titulo">{p.titulo}</h1>
         <div className="fichas">
           <Tipo revisao={p.revisao} detalhado />
@@ -142,7 +174,9 @@ export default function Detalhe({ d }: { d: ProjetoDetalhe }) {
           {(p.areaSensivel || p.local.sensivel) && (
             <span className="ficha ficha-alerta">Área sensível</span>
           )}
-          <span className="ficha ficha-clara">{p.categoria}</span>
+          <span className="ficha ficha-clara">
+            {rotuloCategoria(p.categoria)}
+          </span>
           <span className="ficha ficha-clara">
             {p.local.nomePt}
             {p.cidade ? ` · ${p.cidade}` : ""}
@@ -167,7 +201,7 @@ export default function Detalhe({ d }: { d: ProjetoDetalhe }) {
         informava ficava em 12,5px cinza embaixo. Aqui a ausência É a frase.
       */}
       <section className="valores">
-        <h2 className="titulo">Valores e avaliação</h2>
+        <h2 className="titulo faixa-titulo">Valores e avaliação</h2>
         <div className="valor-principal cartao">
           <div className="kpi-rotulo">Solicitado</div>
           <div className="kpi-valor">{fmtMoeda.format(p.solicitado)}</div>
@@ -200,7 +234,11 @@ export default function Detalhe({ d }: { d: ProjetoDetalhe }) {
             </dt>
             <dd className={recebido === null ? "ausente" : undefined}>
               {recebido !== null
-                ? `${fmtMoeda.format(recebido)} — deste mesmo projeto`
+                ? // O salto do pedido é a discussão da renovação; deixar as duas
+                  // cifras em linhas separadas obrigava a mesa a fazer a conta.
+                  `${fmtMoeda.format(recebido)} — deste mesmo projeto${
+                    variacao ? `, ${variacao}` : ""
+                  }`
                 : recebidoInstituicao
                   ? `Projeto novo — a instituição recebeu ${fmtMoeda.format(recebidoInstituicao)}`
                   : "Projeto e instituição sem verba no ciclo anterior"}
@@ -214,44 +252,94 @@ export default function Detalhe({ d }: { d: ProjetoDetalhe }) {
                 : `${num(p.notaMediana)} · ${plural(p.avaliacoes, "avaliação", "avaliações")} · ${p.votosAprovacao} a favor`}
             </dd>
           </div>
+          {/* Só a ausência ocupa linha: havendo parecer, ele fala por si na
+              seção logo abaixo — repeti-lo aqui seria um "ver abaixo". */}
+          {!temParecer && (
+            <div>
+              <dt>Parecer da ASEEC</dt>
+              <dd className="ausente">
+                Não registrado — sem análise prévia da secretaria
+              </dd>
+            </div>
+          )}
         </dl>
       </section>
 
       <div className="grade">
-        <Secao titulo="Anexos" sub="Abrem em nova aba, direto do sistema.">
-          <ListaAnexos anexos={arquivos} />
-        </Secao>
-
-        <Secao
-          titulo="Parecer da equipe ASEEC"
-          sub="Análise da secretaria, registrada antes da reunião."
-        >
-          {d.parecerTags.length > 0 && (
-            <div className="fichas">
-              {d.parecerTags.map((t) => (
-                <span key={t} className="ficha ficha-clara">
-                  {t}
-                </span>
-              ))}
-            </div>
-          )}
-          <Campo rotulo="Parecer" valor={d.parecerTexto} />
-          <Campo rotulo="Notas do revisor" valor={d.notasDoRevisor} />
-          {!d.parecerTexto &&
-            !d.notasDoRevisor &&
-            d.parecerTags.length === 0 && (
-              <p className="sub">
-                A equipe ainda não registrou parecer — este projeto chega à
-                reunião sem análise prévia da secretaria.
+        {/* Antes do mérito: numa renovação a pergunta da mesa não é "o que ele
+            quer fazer", é "o que ele fez com o dinheiro do ano passado". */}
+        {d.anterior && (
+          <Secao
+            titulo={`Renovação — o que foi a Remessa ${d.anterior.ano}`}
+            sub="É isto que a equipe ASEEC analisa numa renovação: o que foi aprovado e como foi prestado."
+            largura="cheia"
+          >
+            <p>
+              <Link
+                className="link-projeto"
+                href={`/projetos/${d.anterior.id}`}
+              >
+                {d.anterior.titulo}
+              </Link>{" "}
+              <span className="sub">
+                · {d.anterior.status} · solicitou{" "}
+                {fmtMoeda.format(d.anterior.solicitado)} · aprovado{" "}
+                {d.anterior.aprovado === null
+                  ? "—"
+                  : fmtMoeda.format(d.anterior.aprovado)}
+                {d.anterior.liberado
+                  ? ` · liberado ${fmtMoeda.format(d.anterior.liberado)}`
+                  : ""}
+              </span>
+            </p>
+            {d.anterior.relatorios.length === 0 && anteriorRecebeu ? (
+              // Só 25 dos 223 projetos aprovados em 2025 prestaram contas
+              // (pendência 5 do CLAUDE.md). Em cinza de rodapé isso passava
+              // batido justamente na tela onde se decide dar mais dinheiro.
+              <p className="aviso">
+                Sem prestação de contas da Remessa {d.anterior.ano}: a renovação
+                chega à mesa sem relatório do que foi feito com{" "}
+                {fmtMoeda.format(
+                  d.anterior.liberado ?? d.anterior.aprovado ?? 0,
+                )}
+                .
               </p>
+            ) : (
+              <Relatorios relatorios={d.anterior.relatorios} />
             )}
-        </Secao>
+          </Secao>
+        )}
+
+        {temParecer && (
+          <Secao
+            titulo="Parecer da equipe ASEEC"
+            sub="Análise da secretaria, registrada antes da reunião."
+            largura="cheia"
+          >
+            {d.parecerTags.length > 0 && (
+              <div className="campo-texto">
+                <h3>Tags</h3>
+                <div className="fichas">
+                  {d.parecerTags.map((t) => (
+                    <span key={t} className="ficha ficha-clara">
+                      {t}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+            <Campo rotulo="Parecer" valor={d.parecerTexto} />
+            <Campo rotulo="Notas do revisor" valor={d.notasDoRevisor} />
+          </Secao>
+        )}
 
         {/*
           Duas colunas porque são duas leituras. À esquerda o mérito, que se lê
           corrido e por isso tem medida limitada; à direita a ficha — natureza,
-          parcerias, datas —, que se consulta. Antes tudo caía numa coluna só e
-          a metade direita do bloco largo ficava vazia.
+          parcerias, prazos e os arquivos —, que se consulta. Os anexos moram
+          aqui, e não num cartão próprio no topo da grade: ninguém abre um PDF
+          na TV, mas quem prepara a pasta procura o orçamento ao lado dos
+          prazos. Um cartão a menos, e o mérito passa a abrir a página.
         */}
         <Secao titulo="O projeto" largura="cheia">
           <div className="projeto-corpo">
@@ -294,6 +382,10 @@ export default function Detalhe({ d }: { d: ProjetoDetalhe }) {
                     : ""}
                 </p>
               </div>
+              <div className="campo-texto">
+                <h3>Documentos</h3>
+                <ListaAnexos anexos={arquivos} />
+              </div>
               <p className="sub">
                 Criado {data(d.criadoEm)} · atualizado {data(d.atualizadoEm)}
               </p>
@@ -302,9 +394,11 @@ export default function Detalhe({ d }: { d: ProjetoDetalhe }) {
         </Secao>
 
         {/* Depois do mérito, e não antes: o vídeo é o único elemento da pasta
-            que não se lê no papel nem se acompanha a três metros sem som. */}
+            que não se lê no papel nem se acompanha a três metros sem som. Quem
+            precisa dele no meio da reunião chega pelo ▶ Vídeo da barra. */}
         {videos.length > 0 && (
           <Secao
+            id="video"
             titulo={
               videos.length > 1
                 ? "Vídeos de apresentação"
@@ -340,95 +434,21 @@ export default function Detalhe({ d }: { d: ProjetoDetalhe }) {
           </Secao>
         )}
 
-        {d.indicadores.length > 0 && (
-          <Secao titulo="Indicadores">
-            <table className="tabela">
-              <thead>
-                <tr>
-                  <th>Indicador</th>
-                  <th>Meta</th>
-                </tr>
-              </thead>
-              <tbody>
-                {d.indicadores.map((i, n) => (
-                  <tr key={n}>
-                    <td>{i.nome ?? "—"}</td>
-                    <td>{i.meta ?? "—"}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </Secao>
-        )}
-
-        {d.equipe.length > 0 && (
-          <Secao titulo="Equipe">
-            <table className="tabela">
-              <thead>
-                <tr>
-                  <th>Nome</th>
-                  <th>Função</th>
-                  <th>Contato</th>
-                </tr>
-              </thead>
-              <tbody>
-                {d.equipe.map((m, n) => (
-                  <tr key={n}>
-                    <td>{m.nome ?? "—"}</td>
-                    <td>{m.funcao ?? "—"}</td>
-                    <td>{m.contato ?? "—"}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </Secao>
-        )}
-
-        {d.anterior && (
-          <Secao
-            titulo={`Renovação — o que foi a Remessa ${d.anterior.ano}`}
-            sub="É isto que a equipe ASEEC analisa numa renovação: o que foi aprovado e como foi prestado."
-            largura="cheia"
-          >
-            <p>
-              <Link
-                className="link-projeto"
-                href={`/projetos/${d.anterior.id}`}
-              >
-                {d.anterior.titulo}
-              </Link>{" "}
-              <span className="sub">
-                · {d.anterior.status} · solicitou{" "}
-                {fmtMoeda.format(d.anterior.solicitado)} · aprovado{" "}
-                {d.anterior.aprovado === null
-                  ? "—"
-                  : fmtMoeda.format(d.anterior.aprovado)}
-                {d.anterior.liberado
-                  ? ` · liberado ${fmtMoeda.format(d.anterior.liberado)}`
-                  : ""}
-              </span>
-            </p>
-            <Relatorios relatorios={d.anterior.relatorios} />
-          </Secao>
-        )}
-
         {d.relatorios.length > 0 && (
           <Secao titulo="Prestação de contas deste projeto" largura="cheia">
             <Relatorios relatorios={d.relatorios} />
           </Secao>
         )}
 
-        <Secao
-          titulo="Avaliações"
-          sub="Nota e comentário de cada conselheiro. As notas são infladas no histórico — leia o comentário."
-          largura="cheia"
-        >
-          {d.avaliacoesDetalhe.length === 0 ? (
-            <p className="sub">
-              Nenhuma avaliação registrada — não há nota nem comentário de
-              conselheiro para embasar o voto deste projeto.
-            </p>
-          ) : (
+        {/* Sem avaliação não há seção: a frase "chega ao voto sem nenhuma
+            avaliação" já está na ficha de valores, e em 2026 este bloco era um
+            cartão de fileira inteira dizendo isso em todos os 266 projetos. */}
+        {d.avaliacoesDetalhe.length > 0 && (
+          <Secao
+            titulo="Avaliações"
+            sub="Nota e comentário de cada conselheiro. As notas são infladas no histórico — leia o comentário."
+            largura="cheia"
+          >
             <div className="rolagem">
               <table className="tabela">
                 <thead>
@@ -458,8 +478,8 @@ export default function Detalhe({ d }: { d: ProjetoDetalhe }) {
                 </tbody>
               </table>
             </div>
-          )}
-        </Secao>
+          </Secao>
+        )}
 
         {d.votos.length > 0 && (
           <Secao
@@ -504,6 +524,56 @@ export default function Detalhe({ d }: { d: ProjetoDetalhe }) {
                 </tbody>
               </table>
             </div>
+          </Secao>
+        )}
+      </div>
+
+      {/* A faixa que não decide nada. Estava misturada com o mérito, com o
+          mesmo peso de cartão; agora vem depois e anunciada, para a sala saber
+          que dali para baixo é conferência de cadastro. */}
+      <h2 className="titulo faixa-titulo faixa-registro">Registro e cadastro</h2>
+      <div className="grade">
+        {d.indicadores.length > 0 && (
+          <Secao titulo="Indicadores">
+            <table className="tabela">
+              <thead>
+                <tr>
+                  <th>Indicador</th>
+                  <th>Meta</th>
+                </tr>
+              </thead>
+              <tbody>
+                {d.indicadores.map((i, n) => (
+                  <tr key={n}>
+                    <td>{i.nome ?? "—"}</td>
+                    <td>{i.meta ?? "—"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </Secao>
+        )}
+
+        {d.equipe.length > 0 && (
+          <Secao titulo="Equipe">
+            <table className="tabela">
+              <thead>
+                <tr>
+                  <th>Nome</th>
+                  <th>Função</th>
+                  <th>Contato</th>
+                </tr>
+              </thead>
+              <tbody>
+                {d.equipe.map((m, n) => (
+                  <tr key={n}>
+                    <td>{m.nome ?? "—"}</td>
+                    <td>{m.funcao ?? "—"}</td>
+                    <td>{m.contato ?? "—"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </Secao>
         )}
 

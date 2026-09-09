@@ -16,7 +16,7 @@ import {
   type CicloCarregado,
   type Filtros,
 } from "./contexto";
-import { ROTULO_STATUS, resumoFiltros } from "./formato";
+import { ROTULO_STATUS, resumoFiltros, rotuloCategoria } from "./formato";
 
 /**
  * Moldura de todas as páginas: marca, navegação, toggle de ano e a barra de
@@ -419,7 +419,10 @@ export default function Shell({
 
           <CampoMulti
             rotulo="Categoria"
-            opcoes={opcoes.categorias.map((c) => ({ valor: c, rotulo: c }))}
+            opcoes={opcoes.categorias.map((c) => ({
+              valor: c,
+              rotulo: rotuloCategoria(c),
+            }))}
             selecionados={filtros.categoria}
             aoAlternar={(v) =>
               aplicar({ categoria: alternar(filtros.categoria, v) })

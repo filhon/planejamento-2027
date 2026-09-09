@@ -113,6 +113,29 @@ valor** (2026 tem zero avaliação), **calendário de desembolso** (`mensal` e
 `alocado` 0% preenchidos em 2026 — só existem após a aprovação) e **série temporal
 de submissões** (mostra o corre do prazo, não decide nada).
 
+**Fase 7 (a pasta do projeto em ordem de reunião)** — `/projetos/[id]` foi
+reordenada pela sequência das perguntas da mesa, não pela das tabelas da origem:
+
+- **Barra grudada no topo** (`[id]/barra.tsx`): volta, ‹ › pelos projetos do
+  **recorte** (as mesmas setas que o modo apresentação já tinha, agora visíveis
+  e fora dele), posição "12 de 47", nome e **quanto pede**. A pergunta que voltava
+  a cada minuto ficava três telas acima do parágrafo lido em voz alta.
+- **Ordem:** valores → renovação (o que fez com o dinheiro do ano passado) →
+  parecer da ASEEC → mérito → vídeo → prestação → avaliações → votos → uma faixa
+  final **"Registro e cadastro"** (indicadores, equipe, cadastro, histórico), que
+  não decide nada. Antes a grade abria por **Anexos**; agora os arquivos moram na
+  coluna de consulta do "O projeto", ao lado dos prazos — um cartão a menos.
+- **Ausência não vira cartão.** Medido na origem: o parecer da ASEEC existe em
+  **32 dos 266** projetos de 2026 e **não há uma única avaliação registrada** —
+  os dois blocos eram cartões dizendo "ainda não registrado" em quase todo
+  projeto. Só aparecem com conteúdo; a ausência do parecer virou uma linha na
+  ficha de valores (a da avaliação já estava lá).
+- **A renovação passou a fazer a conta:** "recebeu R$ 60.000 — deste mesmo
+  projeto, pede 63,3% a menos" (`variacaoPedido` em `formato.ts`, testada). E
+  renovação de projeto que recebeu verba e **não prestou contas** ganhou aviso em
+  filete com o valor em aberto — é a pendência 5, que saía em cinza de rodapé
+  justo na tela onde se decide dar mais dinheiro.
+
 **Próximo passo:** nada obrigatório. Em aberto, só se a equipe pedir: exportar PNG
 (hoje é PDF pela impressão) e zoom/pan no mapa.
 

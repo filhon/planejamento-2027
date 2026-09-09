@@ -137,6 +137,7 @@ export function Secao({
   acoes,
   children,
   largura,
+  id,
 }: {
   titulo: string;
   sub?: string;
@@ -145,9 +146,11 @@ export function Secao({
   children: React.ReactNode;
   /** "dupla" = 2 colunas da grade, "cheia" = a fileira inteira. */
   largura?: "cheia" | "dupla";
+  /** Alvo de âncora (ex.: o ▶ Vídeo da barra da pasta). */
+  id?: string;
 }) {
   return (
-    <section className={`bloco cartao${largura ? ` ${largura}` : ""}`}>
+    <section id={id} className={`bloco cartao${largura ? ` ${largura}` : ""}`}>
       <div className="bloco-topo">
         <div>
           <h2 className="titulo">{titulo}</h2>

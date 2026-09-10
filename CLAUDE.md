@@ -164,6 +164,33 @@ lido no cliente por `src/lib/xlsx-ler.ts`. No cabeçalho ficam "Abrir original �
   `dialog[open]`, senão Esc fechava a apresentação e a seta trocava de projeto
   por baixo do documento.
 
+**Fase 9 (a prestação que só existe no Drive)** — na renovação, o painel mostrava
+"sem prestação de contas" mesmo quando a secretaria tinha o relatório: o parceiro
+não conseguiu subir no sistema de submissão e mandou por e-mail/WhatsApp (só 25
+dos 223 projetos aprovados em 2025 prestaram contas pelo sistema — pendência 5).
+
+- **Colar o link do Drive na própria seção da renovação** (`[id]/link-prestacao.tsx`):
+  o link vai para `data/prestacao_links.csv` — **FORA da origem**, pela mesma regra
+  do enriquecimento — e o arquivo passa a abrir no **mesmo visor** dos anexos do
+  projeto. Quem usa é a secretaria/o diretor: o parceiro não abre o painel.
+- **`src/lib/drive.ts`** (~40 linhas, puro) converte o link colado na URL
+  embutível do Google: `/view` → `/preview`, documento do Workspace → `/preview`,
+  e **pasta** → `embeddedfolderview` (a lista dos arquivos dentro do visor, para
+  quem guarda uma pasta por projeto). Quem renderiza é o Drive, então **PDF,
+  planilha, .docx, imagem e pasta inteira** abrem — inclusive o que o visor
+  próprio não lê. Sem API do Google, sem credencial, sem nada saindo daqui: só
+  regex sobre a URL, e o `<iframe>` recebe uma URL **reconstruída** a partir do
+  id, nunca a string colada. Coberto por `npm test`.
+- **A ausência continua dita.** Link colado não vira prestação registrada: o aviso
+  em filete muda de redação ("nada registrado no sistema — o que há é o documento
+  abaixo, recebido por fora") e os links ficam numa lista própria, "Recebido fora
+  do sistema". No papel o link sai por extenso, para ser digitável.
+- **É a única escrita do painel**, e é num CSV local: exige disco gravável (é como
+  o painel roda hoje, `npm start` na máquina da reunião). Corrigir link errado é
+  editar o CSV no Excel — não há botão de remover.
+- ⚠️ O arquivo precisa estar compartilhado como "qualquer pessoa com o link pode
+  ver"; sem isso o quadro mostra a tela de permissão do Google.
+
 **Próximo passo:** nada obrigatório. Em aberto, só se a equipe pedir: exportar PNG
 (hoje é PDF pela impressão), zoom/pan no mapa e ler .docx no visor (o
 descompactador já está lá; falta extrair o texto de `word/document.xml`).
@@ -174,7 +201,7 @@ descompactador já está lá; falta extrair o texto de `word/document.xml`).
 - Plano do dashboard → [`docs/plano-dashboard.md`](docs/plano-dashboard.md)
 - Normalização de país (de-para ISO) → [`docs/normalizacao-paises.md`](docs/normalizacao-paises.md)
 - **Enriquecimento sem tocar na origem** → [`docs/enriquecimento-dados.md`](docs/enriquecimento-dados.md)
-- Dados do enriquecimento (fonte de verdade): [`data/country_map.csv`](data/country_map.csv), [`data/institution_enrichment.csv`](data/institution_enrichment.csv), [`data/projetos_avaliacao.csv`](data/projetos_avaliacao.csv), [`data/avaliadores.csv`](data/avaliadores.csv)
+- Dados do enriquecimento (fonte de verdade): [`data/country_map.csv`](data/country_map.csv), [`data/institution_enrichment.csv`](data/institution_enrichment.csv), [`data/projetos_avaliacao.csv`](data/projetos_avaliacao.csv), [`data/avaliadores.csv`](data/avaliadores.csv), [`data/prestacao_links.csv`](data/prestacao_links.csv)
 - Esquema opcional de banco próprio do dashboard → [`docs/country_map.sql`](docs/country_map.sql) (NUNCA na origem)
 - Script do papel de leitura, **para a equipe rodar** → [`docs/bi_readonly.sql`](docs/bi_readonly.sql)
 - Manual de marca (fornecido pelo cliente) → [`.docs/Identidade Visual da Hebron Aseec.md`](.docs/Identidade%20Visual%20da%20Hebron%20Aseec.md)
@@ -202,7 +229,8 @@ Levantadas na Fase 4:
 
 5. **Prestação de contas em 11,2%:** só 25 dos 223 projetos aprovados em 2025 têm
    relatório — **R$ 10,24 mi aprovados sem prestação**. É subuso do módulo ou cobrança
-   em aberto?
+   em aberto? (A Fase 9 dá a saída de emergência — colar o link do Drive —, mas o
+   sistema de submissão continua sem o relatório: a pendência é com a equipe.)
 6. **2 relatórios com `cycle_id` da remessa errada** (carimbados 2026, projetos de 2025).
    O painel casa pelo projeto e sinaliza; a origem é que precisa do acerto.
 7. **43 das 146 instituições sem nenhum documento enviado** (5 tipos exigidos), e

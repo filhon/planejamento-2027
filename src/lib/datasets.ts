@@ -31,6 +31,7 @@ import {
 import {
   carregarAvaliacaoProjetos,
   carregarCountryMap,
+  carregarLinksPrestacao,
   indexarEnrichment,
 } from "./enrichment";
 import { getStorageBaseUrl } from "./env";
@@ -314,6 +315,7 @@ export async function projetoDetalhe(
       }));
 
   const chaveAnterior = anteriorId ? ctx.chaves.get(anteriorId) : undefined;
+  const links = carregarLinksPrestacao();
 
   return {
     projeto,
@@ -371,6 +373,7 @@ export async function projetoDetalhe(
       por: h.changed_by_name,
     })),
     relatorios: relatoriosDe(id),
+    linksPrestacao: links.get(id) ?? [],
 
     anterior: chaveAnterior
       ? {
@@ -382,6 +385,7 @@ export async function projetoDetalhe(
           aprovado: chaveAnterior.approved_amount,
           liberado: chaveAnterior.liberado,
           relatorios: relatoriosDe(chaveAnterior.id),
+          linksPrestacao: links.get(chaveAnterior.id) ?? [],
         }
       : null,
 

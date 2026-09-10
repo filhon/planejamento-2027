@@ -284,6 +284,8 @@ export interface ProjetoAnterior {
   aprovado: number | null;
   liberado: number | null;
   relatorios: RelatorioDetalhe[];
+  /** Prestação que existe só no Drive (data/prestacao_links.csv). */
+  linksPrestacao: Anexo[];
 }
 
 /** Tudo o que a origem guarda sobre um projeto — a "pasta" da reunião. */
@@ -317,6 +319,8 @@ export interface ProjetoDetalhe {
   historico: MudancaStatus[];
   /** Prestação de contas DESTE projeto (existe quando o ciclo já executou). */
   relatorios: RelatorioDetalhe[];
+  /** Prestação deste projeto que existe só no Drive (data/prestacao_links.csv). */
+  linksPrestacao: Anexo[];
   /** Prestação de contas do projeto anterior — o que a equipe cobra na renovação. */
   anterior: ProjetoAnterior | null;
 

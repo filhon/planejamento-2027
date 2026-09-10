@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { embedDrive } from "@/lib/drive";
 import type { Anexo } from "@/lib/types";
 import type { AbaLida } from "@/lib/xlsx-ler";
 import { tamanhoArquivo } from "../../formato";
@@ -16,6 +17,7 @@ import { tamanhoArquivo } from "../../formato";
  *  - PDF        → o próprio leitor do navegador, num `<iframe>`
  *  - imagem     → `<img>`
  *  - .xlsx      → lida no cliente e desenhada como tabela (`src/lib/xlsx-ler.ts`)
+ *  - Drive      → o `/preview` do Google, que renderiza tudo (src/lib/drive.ts)
  *  - o resto    → a mensagem e o link do original (.docx, .xls, .ods)
  *
  * É um `<dialog>` nativo: modal, Esc fecha, foco preso pelo navegador. Sem
@@ -27,10 +29,12 @@ import { tamanhoArquivo } from "../../formato";
 
 type Formato = "pdf" | "imagem" | "planilha" | "outro";
 
-function formatoDe(nome: string): Formato {
-  const ext = /\.([a-z0-9]+)$/i.exec(nome)?.[1]?.toLowerCase() ?? "";
+/** Link colado não tem nome de arquivo — aí a extensão sai da própria URL. */
+function formatoDe(nome: string, url: string): Formato {
+  const ext = (/\.([a-z0-9]+)$/i.exec(nome) ??
+    /\.([a-z0-9]+)$/i.exec(url.split(/[?#]/)[0] ?? ""))?.[1]?.toLowerCase();
   if (ext === "pdf") return "pdf";
-  if (["png", "jpg", "jpeg", "gif", "webp", "jfif", "bmp"].includes(ext))
+  if (["png", "jpg", "jpeg", "gif", "webp", "jfif", "bmp"].includes(ext ?? ""))
     return "imagem";
   if (ext === "xlsx") return "planilha";
   return "outro";
@@ -149,7 +153,10 @@ function Abas({
 
 function Visor({ anexo, fechar }: { anexo: Anexo; fechar: () => void }) {
   const ref = useRef<HTMLDialogElement>(null);
-  const formato = formatoDe(anexo.nome);
+  // Drive manda no visor quando é Drive: quem renderiza é o Google, e aí PDF,
+  // planilha, .docx e pasta inteira abrem sem o painel saber ler nenhum deles.
+  const drive = embedDrive(anexo.url);
+  const formato = formatoDe(anexo.nome, anexo.url);
 
   useEffect(() => {
     const d = ref.current;
@@ -175,19 +182,28 @@ function Visor({ anexo, fechar }: { anexo: Anexo; fechar: () => void }) {
         <a href={anexo.url} target="_blank" rel="noopener noreferrer">
           Abrir original ↗
         </a>
-        <a href={`${anexo.url}?download=${encodeURIComponent(anexo.nome)}`}>
-          Baixar
-        </a>
+        {/* `?download=` é do Storage do Supabase; no Drive quebraria o link, e
+            o próprio quadro do Google já traz o botão de baixar. */}
+        {!drive && (
+          <a href={`${anexo.url}?download=${encodeURIComponent(anexo.nome)}`}>
+            Baixar
+          </a>
+        )}
         <button type="button" onClick={() => ref.current?.close()}>
           Fechar ✕
         </button>
       </header>
 
       <div className="visor-corpo">
-        {formato === "pdf" && <iframe src={anexo.url} title={anexo.nome} />}
-        {formato === "imagem" && <img src={anexo.url} alt={anexo.nome} />}
-        {formato === "planilha" && <Planilha url={anexo.url} />}
-        {formato === "outro" && (
+        {drive && <iframe src={drive} title={anexo.nome} />}
+        {!drive && formato === "pdf" && (
+          <iframe src={anexo.url} title={anexo.nome} />
+        )}
+        {!drive && formato === "imagem" && (
+          <img src={anexo.url} alt={anexo.nome} />
+        )}
+        {!drive && formato === "planilha" && <Planilha url={anexo.url} />}
+        {!drive && formato === "outro" && (
           <p className="visor-aviso">
             O navegador não abre este formato na página. "Abrir original" manda
             para a guia nova; "Baixar" salva o arquivo.
@@ -225,6 +241,11 @@ export default function ListaAnexos({ anexos }: { anexos: Anexo[] }) {
             <span className="sub">
               {a.tipo}
               {tamanhoArquivo(a.bytes) && ` · ${tamanhoArquivo(a.bytes)}`}
+              {/* No papel o link colado tem que ser digitável: o anexo da
+                  origem tem a pasta impressa para chegar nele, este não. */}
+              {a.id.startsWith("link:") && (
+                <span className="so-impressao-inline"> · {a.url}</span>
+              )}
             </span>
           </li>
         ))}

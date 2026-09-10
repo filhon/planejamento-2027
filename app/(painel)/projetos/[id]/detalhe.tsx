@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { CSSProperties } from "react";
-import type { ProjetoDetalhe, RelatorioDetalhe } from "@/lib/types";
+import type { Anexo, ProjetoDetalhe, RelatorioDetalhe } from "@/lib/types";
 import {
   COR_STATUS,
   ROTULO_STATUS,
@@ -14,6 +14,7 @@ import {
 import { Secao } from "../../ui";
 import { ROTULO_TIPO, Tipo } from "../tipo";
 import Barra from "./barra";
+import LinkPrestacao from "./link-prestacao";
 import ListaAnexos from "./visor";
 
 /**
@@ -52,6 +53,21 @@ function Campo({ rotulo, valor }: { rotulo: string; valor: string | null }) {
     <div className="campo-texto">
       <h3>{rotulo}</h3>
       <p>{valor}</p>
+    </div>
+  );
+}
+
+/**
+ * A prestação que existe só no Drive. Vai numa lista à parte, e não misturada
+ * com os relatórios: uma coisa é o que o parceiro registrou no sistema, outra é
+ * o arquivo que a secretaria recebeu por fora e colou aqui.
+ */
+function LinksDrive({ links }: { links: Anexo[] }) {
+  if (links.length === 0) return null;
+  return (
+    <div className="campo-texto">
+      <h3>Recebido fora do sistema</h3>
+      <ListaAnexos anexos={links} />
     </div>
   );
 }
@@ -267,17 +283,24 @@ export default function Detalhe({ d }: { d: ProjetoDetalhe }) {
               // Só 25 dos 223 projetos aprovados em 2025 prestaram contas
               // (pendência 5 do CLAUDE.md). Em cinza de rodapé isso passava
               // batido justamente na tela onde se decide dar mais dinheiro.
+              // O link do Drive não apaga a pendência — o sistema continua sem
+              // o relatório —, só muda o que a mesa consegue ler agora.
               <p className="aviso">
-                Sem prestação de contas da Remessa {d.anterior.ano}: a renovação
-                chega à mesa sem relatório do que foi feito com{" "}
-                {fmtMoeda.format(
-                  d.anterior.liberado ?? d.anterior.aprovado ?? 0,
-                )}
-                .
+                {d.anterior.linksPrestacao.length > 0
+                  ? `Nada registrado no sistema para a Remessa ${d.anterior.ano} — o que há é o documento abaixo, recebido pela secretaria por fora.`
+                  : `Sem prestação de contas da Remessa ${d.anterior.ano}: a renovação chega à mesa sem relatório do que foi feito com ${fmtMoeda.format(d.anterior.liberado ?? d.anterior.aprovado ?? 0)}.`}
               </p>
             ) : (
               <Relatorios relatorios={d.anterior.relatorios} />
             )}
+            <LinksDrive links={d.anterior.linksPrestacao} />
+            <LinkPrestacao
+              alvo={{
+                id: d.anterior.id,
+                ano: d.anterior.ano,
+                titulo: d.anterior.titulo,
+              }}
+            />
           </Secao>
         )}
 
@@ -405,9 +428,10 @@ export default function Detalhe({ d }: { d: ProjetoDetalhe }) {
           </Secao>
         )}
 
-        {d.relatorios.length > 0 && (
+        {(d.relatorios.length > 0 || d.linksPrestacao.length > 0) && (
           <Secao titulo="Prestação de contas deste projeto" largura="cheia">
             <Relatorios relatorios={d.relatorios} />
+            <LinksDrive links={d.linksPrestacao} />
           </Secao>
         )}
 

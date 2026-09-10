@@ -6,6 +6,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 
 import { assertReadOnly, ReadOnlyViolationError } from "../src/lib/db";
+import { embedDrive, rotuloDrive } from "../src/lib/drive";
 import { plural, variacaoPedido } from "../app/(painel)/formato";
 import { construirIndicePaises, normalizarLocal } from "../src/lib/geo";
 import {
@@ -1169,4 +1170,51 @@ test("ciclo sem nenhuma renovação vinculada não divide por zero", () => {
   const r = montarRenovacoes([projeto({ id: "a", solicitado: 10_000 })]);
   assert.equal(r.projetos.length, 0);
   assert.equal(r.variacao, null);
+});
+
+// -------------------------------------------- link do Drive (prestação, Fase 9)
+
+test("link do Drive vira URL embutível, em todas as formas que a equipe cola", () => {
+  const preview = (u: string) => embedDrive(u);
+
+  // Arquivo solto: o link de "compartilhar" e as duas formas antigas.
+  assert.equal(
+    preview("https://drive.google.com/file/d/1AbC-dEf_9/view?usp=sharing"),
+    "https://drive.google.com/file/d/1AbC-dEf_9/preview",
+  );
+  assert.equal(
+    preview("https://drive.google.com/open?id=1AbC-dEf_9"),
+    "https://drive.google.com/file/d/1AbC-dEf_9/preview",
+  );
+  assert.equal(
+    preview("https://drive.google.com/uc?export=download&id=1AbC-dEf_9"),
+    "https://drive.google.com/file/d/1AbC-dEf_9/preview",
+  );
+
+  // Documento do Workspace: a prestação digitada direto no Google Docs/Sheets.
+  assert.equal(
+    preview("https://docs.google.com/spreadsheets/d/1XyZ/edit#gid=0"),
+    "https://docs.google.com/spreadsheets/d/1XyZ/preview",
+  );
+
+  // Pasta — o caso de "uma pasta por projeto", que vira a lista dos arquivos.
+  assert.equal(
+    preview("https://drive.google.com/drive/u/0/folders/1PaSt4"),
+    "https://drive.google.com/embeddedfolderview?id=1PaSt4#list",
+  );
+  assert.equal(
+    rotuloDrive("https://drive.google.com/drive/folders/1PaSt4"),
+    "Pasta no Drive",
+  );
+});
+
+test("o que não é Drive não é embutido às cegas", () => {
+  assert.equal(embedDrive("https://exemplo.org/relatorio.pdf"), null);
+  // O visor só embute o que embedDrive reconhece — isto vale como guarda de que
+  // um link colado à mão não vira <iframe> de qualquer origem.
+  assert.equal(
+    embedDrive("https://drive.google.com.evil.test/file/d/1A/view"),
+    null,
+  );
+  assert.equal(embedDrive("javascript:alert(1)"), null);
 });

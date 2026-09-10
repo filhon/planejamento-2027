@@ -1575,6 +1575,51 @@ main {
   text-underline-offset: 2px;
 }
 
+/* Colar o link do Drive com a prestação de contas — controle de preparação,
+   não sai no papel nem na TV. */
+.form-link {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px dashed var(--borda);
+}
+
+.form-link input {
+  flex: 1 1 15rem;
+  min-width: 0;
+  padding: 7px 10px;
+  border: 1px solid var(--borda);
+  border-radius: 10px;
+  font: inherit;
+  color: var(--tinta);
+  background: var(--papel);
+}
+
+.form-link input[name="rotulo"] {
+  flex: 0 1 12rem;
+}
+
+.form-link button {
+  border: 0;
+  border-radius: 999px;
+  padding: 8px 16px;
+  background: var(--laranja);
+  color: #fff;
+  font-weight: 600;
+}
+
+.form-link button:disabled {
+  background: var(--neutro);
+  color: var(--tinta-fraca);
+}
+
+.form-link .sub {
+  flex: 1 1 100%;
+}
+
 /* ----------------------------------------------- visor de anexo (<dialog>) */
 
 .visor {
@@ -1898,6 +1943,11 @@ body.apresentacao .identificacao dt {
   font-size: 15px;
 }
 
+/* Colar link é trabalho de preparação; na TV é ruído no meio do slide. */
+body.apresentacao .form-link {
+  display: none;
+}
+
 /* Na TV a barra da pasta é a única coisa sempre visível: o nome e o pedido
    têm que ser legíveis a três metros sem comer meia tela. */
 body.apresentacao .pasta-titulo {
@@ -1962,6 +2012,7 @@ body.apresentacao .rolagem {
   .cabecalho-acoes,
   .filtros,
   .bloco-acoes,
+  .form-link,
   .limpar,
   .voltar,
   .pasta-barra,

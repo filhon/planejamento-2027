@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { CSSProperties } from "react";
+import { ehHtmlRico, sanitizarHtml } from "@/lib/html";
 import type { Anexo, ProjetoDetalhe, RelatorioDetalhe } from "@/lib/types";
 import {
   COR_STATUS,
@@ -12,6 +13,7 @@ import {
   variacaoPedido,
 } from "../../formato";
 import { Secao } from "../../ui";
+import { Analise } from "../analise";
 import { ROTULO_TIPO, Tipo } from "../tipo";
 import Barra from "./barra";
 import LinkPrestacao from "./link-prestacao";
@@ -46,13 +48,30 @@ const fmtData = new Intl.DateTimeFormat("pt-BR", { dateStyle: "short" });
 
 const data = (d: Date | null) => (d ? fmtData.format(new Date(d)) : "—");
 
-/** Campo de texto longo — some quando a origem não tem o dado. */
+/**
+ * Campo de texto longo — some quando a origem não tem o dado.
+ *
+ * Alguns campos vêm como HTML de editor (todo parecer da ASEEC, e a
+ * justificativa de 5 projetos): esses são desenhados de verdade, depois de
+ * passar pela lista de permissão de `sanitizarHtml`. O resto continua no
+ * caminho de texto do React, que escapa sozinho — jogar texto puro no
+ * `innerHTML` faria "R$ 5 < 10" e "M&M" sumirem da tela.
+ */
 function Campo({ rotulo, valor }: { rotulo: string; valor: string | null }) {
   if (!valor?.trim()) return null;
   return (
     <div className="campo-texto">
       <h3>{rotulo}</h3>
-      <p>{valor}</p>
+      {ehHtmlRico(valor) ? (
+        <div
+          className="texto-rico"
+          // O <p> da origem não pode morar dentro de outro <p>: o navegador
+          // quebraria a caixa em pedaços. Daí a div.
+          dangerouslySetInnerHTML={{ __html: sanitizarHtml(valor) }}
+        />
+      ) : (
+        <p>{valor}</p>
+      )}
     </div>
   );
 }
@@ -146,6 +165,9 @@ export default function Detalhe({ d }: { d: ProjetoDetalhe }) {
       <div className="cabecalho-projeto cartao">
         <h1 className="titulo">{p.titulo}</h1>
         <div className="fichas">
+          {/* Onde a análise prévia parou neste projeto — a mesma pastilha da
+              lista. Vale para quem navega de ‹ › em ‹ › preparando a reunião. */}
+          <Analise a={p.analise} />
           <Tipo revisao={p.revisao} detalhado />
           <span
             className="pastilha-tipo"

@@ -31,6 +31,14 @@ export function fetchCiclos(): Promise<CicloRow[]> {
 
 // ---------------------------------------------------------------- projetos
 
+/**
+ * O parecer da ASEEC é HTML de editor: quando a equipe apaga o texto sobra
+ * `<p></p>`, que não é parecer nenhum (5 casos em 2025). Uma regra só, usada
+ * pela lista e pela pasta do projeto — `cp` é o alias de `cycle_projects` nas
+ * duas consultas.
+ */
+const TEM_PARECER = `nullif(btrim(regexp_replace(coalesce(cp.parecer_aseec_texto, ''), '<[^>]*>|&nbsp;', '', 'g')), '') is not null`;
+
 export interface ProjetoRow {
   id: string;
   cycle_id: string;
@@ -64,6 +72,11 @@ export interface ProjetoRow {
   nota_min: number | null;
   nota_max: number | null;
   votos_aprovacao: number | null;
+  // análise prévia da equipe ASEEC (Fase 10)
+  tem_parecer: boolean;
+  parecer_aseec_tags: string[] | null;
+  tem_devolutiva: boolean;
+  updated_at: Date | null;
 }
 
 /** 1 linha por projeto do ciclo, com os satélites já agregados. */
@@ -102,7 +115,11 @@ export function fetchProjetos(ano?: Ano): Promise<ProjetoRow[]> {
       ev.nota_mediana,
       ev.nota_min,
       ev.nota_max,
-      ev.votos_aprovacao
+      ev.votos_aprovacao,
+      ${TEM_PARECER}                      as tem_parecer,
+      cp.parecer_aseec_tags,
+      nullif(btrim(coalesce(cp.reviewer_notes, '')), '') is not null as tem_devolutiva,
+      cp.updated_at
     from cycle_projects cp
     join submission_cycles sc on sc.id = cp.cycle_id
     left join institutions i  on i.id = cp.institution_id

@@ -92,9 +92,8 @@ function CampoMulti({
       )
     : opcoes;
 
-  // Fecha clicando no próprio campo de novo — comportamento nativo do <details>.
-  // Nada de fechar no blur: mexer no `open` durante o focusout é sutil demais
-  // para o que economiza, e a lista aberta ajuda a marcar vários de uma vez.
+  // Abrir/fechar no próprio campo é o <details> nativo; fechar clicando FORA é
+  // o efeito de `fecharForaDoClique`, um listener só para todos os campos.
   return (
     <details className="campo campo-multi">
       <summary aria-label={rotulo}>
@@ -134,6 +133,22 @@ function CampoMulti({
       </div>
     </details>
   );
+}
+
+/**
+ * Fecha todo `<details>` usado como dropdown quando o clique cai fora dele —
+ * o que qualquer menu faz e o `<details>` nativo não faz sozinho. Um listener
+ * no documento serve os filtros e os menus do cabeçalho de uma vez; o `open` é
+ * do DOM (o React não o controla), então basta apagá-lo.
+ *
+ * O clique que ABRE um campo não o fecha: ele cai dentro do próprio `<details>`.
+ */
+function fecharForaDoClique(alvo: Node): void {
+  for (const d of document.querySelectorAll<HTMLDetailsElement>(
+    "details.campo-multi[open], details.menu[open]",
+  )) {
+    if (!d.contains(alvo)) d.open = false;
+  }
 }
 
 /**
@@ -186,6 +201,12 @@ export default function Shell({
     if (ligando) document.documentElement.requestFullscreen?.().catch(() => {});
     else if (document.fullscreenElement) document.exitFullscreen?.();
   };
+
+  useEffect(() => {
+    const aoClicar = (e: MouseEvent) => fecharForaDoClique(e.target as Node);
+    document.addEventListener("click", aoClicar);
+    return () => document.removeEventListener("click", aoClicar);
+  }, []);
 
   const posicao = ciclos.findIndex((c) => c.ano === ano);
   const atual = ciclos[posicao];
@@ -258,6 +279,7 @@ export default function Shell({
           .map((p) => p.revisao.responsavel)
           .filter((r): r is string => r !== null),
       ),
+      tags: ordenados(todos.flatMap((p) => p.analise.tags)),
     }),
     [todos],
   );
@@ -432,21 +454,6 @@ export default function Shell({
             }
           />
 
-          {/* Convênio e Instituição são eixos separados (e se cruzam): o
-              primeiro é o regime, o segundo é a organização. Antes o campo
-              "Instituição" só tinha o regime — e não dava para isolar UMA. */}
-          <CampoMulti
-            rotulo="Convênio"
-            opcoes={[
-              { valor: "true", rotulo: "Conveniadas" },
-              { valor: "false", rotulo: "Não conveniadas" },
-            ]}
-            selecionados={filtros.conveniada}
-            aoAlternar={(v) =>
-              aplicar({ conveniada: alternar(filtros.conveniada, v) })
-            }
-          />
-
           <CampoMulti
             rotulo="Instituição"
             busca
@@ -470,6 +477,35 @@ export default function Shell({
             aoAlternar={(v) => aplicar({ tipo: alternar(filtros.tipo, v) })}
           />
 
+          {/* Análise prévia (Fase 10): o filtro que responde "o que ainda não
+              olhamos?". A equipe analisa um pouco por dia, a várias mãos, e o
+              status do projeto quase nunca muda junto — sem este eixo não há
+              como retomar de onde se parou. */}
+          {/* "Análise prévia" por extenso, e não "Análise": ao lado de Triagem
+              e de Tags, "Análise" sozinho se confunde com a avaliação (as notas
+              dos conselheiros), que é outra coisa e vem depois. */}
+          <CampoMulti
+            rotulo="Análise prévia"
+            opcoes={[
+              { valor: "sim", rotulo: "Analisados" },
+              { valor: "nao", rotulo: "Não analisados" },
+            ]}
+            selecionados={filtros.analise}
+            aoAlternar={(v) =>
+              aplicar({ analise: alternar(filtros.analise, v) })
+            }
+          />
+
+          {opcoes.tags.length > 0 && (
+            <CampoMulti
+              rotulo="Tags"
+              busca
+              opcoes={opcoes.tags.map((t) => ({ valor: t, rotulo: t }))}
+              selecionados={filtros.tag}
+              aoAlternar={(v) => aplicar({ tag: alternar(filtros.tag, v) })}
+            />
+          )}
+
           {opcoes.responsaveis.length > 0 && (
             <CampoMulti
               rotulo="Responsável"
@@ -485,8 +521,13 @@ export default function Shell({
           )}
 
           {filtroAtivo && (
-            <button className="limpar" onClick={() => setFiltros(SEM_FILTRO)}>
-              Limpar filtros
+            <button
+              className="limpar"
+              title="Limpar filtros"
+              aria-label="Limpar filtros"
+              onClick={() => setFiltros(SEM_FILTRO)}
+            >
+              ✕
             </button>
           )}
 

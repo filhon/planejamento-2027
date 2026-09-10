@@ -139,6 +139,37 @@ export const SEM_REVISAO: RevisaoProjeto = {
   observacoes: null,
 };
 
+// ------------------------------------------- análise prévia (Fase 10)
+
+/**
+ * O rastro da **análise prévia** — o trabalho que a equipe ASEEC faz nas semanas
+ * ANTES da reunião, para só levar à mesa o que está alinhado aos objetivos.
+ *
+ * Tudo vem da origem (nada de CSV): a equipe registra no próprio sistema de
+ * submissão. Por que existe como campo próprio: a análise acontece **um pouco
+ * por dia e a várias mãos**, e quase nunca muda o `status` do projeto (232 dos
+ * 267 de 2026 seguem em `em-validacao`) — sem isto não há como saber onde a
+ * equipe parou ontem.
+ *
+ * Não há coluna de autor nem de data da análise na origem: dá para dizer **o
+ * que** já foi registrado, não **quem** registrou.
+ */
+export interface AnalisePrevia {
+  /** Parecer escrito. HTML vazio (`<p></p>`) não conta — ver `TEM_PARECER`. */
+  temParecer: boolean;
+  /** Tags do parecer: é a classificação por objetivo ("Janela 10/40", "Crianças"…). */
+  tags: string[];
+  /** `reviewer_notes` — a devolutiva pedindo ajuste ao proponente. */
+  temDevolutiva: boolean;
+  /** A definição da equipe: já tem parecer **ou** tags. */
+  analisado: boolean;
+  /**
+   * `updated_at` do registro. É "última alteração", NÃO "analisado em": o
+   * proponente também edita o projeto. Serve para retomar de onde se parou.
+   */
+  atualizadoEm: Date | null;
+}
+
 // ------------------------------------------------------------------- ciclos
 
 export interface Ciclo {
@@ -203,6 +234,8 @@ export interface ProjetoCiclo {
   enriquecimento: EnriquecimentoProjeto;
   /** Triagem novo × renovação e dono da pasta (Fase 5). */
   revisao: RevisaoProjeto;
+  /** O que a equipe ASEEC já registrou na análise prévia (Fase 10). */
+  analise: AnalisePrevia;
 }
 
 // ------------------------------------------ detalhe do projeto (Fase 5)

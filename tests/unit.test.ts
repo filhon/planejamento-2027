@@ -22,6 +22,7 @@ import {
   avaliavel,
   casaBusca,
   curvaAcumulada,
+  ehConveniada,
   filtrar,
   montarCobertura,
   montarPastas,
@@ -34,6 +35,7 @@ import {
   type Filtros,
 } from "../src/lib/agregar";
 import { carregarCountryMap } from "../src/lib/enrichment";
+import { ehHtmlRico, sanitizarHtml } from "../src/lib/html";
 import { geometriaMundo } from "../src/lib/mapa";
 import {
   GRUPO_SENSIVEL,
@@ -277,6 +279,13 @@ const projeto = (p: Partial<ProjetoCiclo>): ProjetoCiclo =>
       projetos2026: null,
     },
     revisao: SEM_REVISAO,
+    analise: {
+      temParecer: false,
+      tags: [],
+      temDevolutiva: false,
+      analisado: false,
+      atualizadoEm: null,
+    },
     ...p,
   }) as ProjetoCiclo;
 
@@ -316,15 +325,14 @@ test("agregação por país soma valores e conta instituições distintas", () =
 
 // ------------------------------------------------------- filtros (Fase 3)
 
-test("filtros globais se combinam e null conta como não conveniada", () => {
+test("filtros globais se combinam dentro do eixo e entre eixos", () => {
   const angola = normalizarLocal({ country: "Angola" }, indice);
   const universo = [
-    projeto({ id: "a", conveniada: true, statusGrupo: "aprovado" }),
-    projeto({ id: "b", conveniada: false, statusGrupo: "aprovado" }),
-    projeto({ id: "c", conveniada: null, statusGrupo: "aprovado" }),
+    projeto({ id: "a", statusGrupo: "aprovado" }),
+    projeto({ id: "b", statusGrupo: "aprovado", categoria: "saude" }),
+    projeto({ id: "c", statusGrupo: "encerrado" }),
     projeto({
       id: "d",
-      conveniada: true,
       statusGrupo: "rejeitado",
       categoria: "saude",
       local: angola,
@@ -335,12 +343,9 @@ test("filtros globais se combinam e null conta como não conveniada", () => {
     filtrar(universo, { ...SEM_FILTRO, ...f }).map((p) => p.id);
 
   assert.deepEqual(ids({}), ["a", "b", "c", "d"], "sem filtro não recorta");
-  assert.deepEqual(ids({ conveniada: ["true"] }), ["a", "d"]);
-  // A instituição sem is_conveniada disputa o teto das NÃO conveniadas.
-  assert.deepEqual(ids({ conveniada: ["false"] }), ["b", "c"]);
-  assert.deepEqual(ids({ status: ["aprovado"] }), ["a", "b", "c"]);
+  assert.deepEqual(ids({ status: ["aprovado"] }), ["a", "b"]);
   assert.deepEqual(ids({ iso3: "AGO" }), ["d"]);
-  assert.deepEqual(ids({ conveniada: ["true"], status: ["aprovado"] }), ["a"]);
+  assert.deepEqual(ids({ categoria: ["saude"], status: ["aprovado"] }), ["b"]);
   assert.deepEqual(ids({ continente: ["África"], categoria: ["saude"] }), [
     "d",
   ]);
@@ -348,18 +353,12 @@ test("filtros globais se combinam e null conta como não conveniada", () => {
   // Multi-seleção: dentro do eixo soma (OU), entre eixos cruza (E).
   assert.deepEqual(
     ids({ status: ["aprovado", "rejeitado"] }),
-    ["a", "b", "c", "d"],
+    ["a", "b", "d"],
     "dois status somam",
   );
-  assert.deepEqual(ids({ conveniada: ["true", "false"] }), [
-    "a",
-    "b",
-    "c",
-    "d",
-  ]);
   assert.deepEqual(
-    ids({ status: ["aprovado", "rejeitado"], conveniada: ["true"] }),
-    ["a", "d"],
+    ids({ status: ["aprovado", "rejeitado"], categoria: ["saude"] }),
+    ["b", "d"],
     "os eixos continuam se cruzando",
   );
   assert.deepEqual(ids({ continente: ["África", "Ásia"] }), ["d"]);
@@ -370,16 +369,27 @@ test("filtros globais se combinam e null conta como não conveniada", () => {
 
   assert.equal(temFiltro(SEM_FILTRO), false);
   assert.equal(temFiltro({ ...SEM_FILTRO, iso3: "BRA" }), true);
-  assert.equal(temFiltro({ ...SEM_FILTRO, conveniada: ["false"] }), true);
+  assert.equal(temFiltro({ ...SEM_FILTRO, status: ["aprovado"] }), true);
 });
 
-test("filtro por instituição isola a organização e cruza com o convênio", () => {
+/**
+ * O convênio deixou de ser eixo de filtro (o de Instituição faz melhor), mas a
+ * regra continua valendo no Orçamento: quem não é conveniada disputa o teto das
+ * NÃO conveniadas — e `null` cai desse lado.
+ */
+test("null conta como não conveniada", () => {
+  assert.equal(ehConveniada(projeto({ conveniada: true })), true);
+  assert.equal(ehConveniada(projeto({ conveniada: false })), false);
+  assert.equal(ehConveniada(projeto({ conveniada: null })), false);
+});
+
+test("filtro por instituição isola a organização", () => {
   const universo = [
     projeto({ id: "a", instituicaoNome: "Missão Vida Internacional" }),
     projeto({
       id: "b",
       instituicaoNome: "Missão Vida Internacional",
-      conveniada: true,
+      statusGrupo: "aprovado",
     }),
     projeto({ id: "c", instituicaoNome: "Associação Boa Semente" }),
     projeto({ id: "d", instituicaoNome: null }),
@@ -399,9 +409,12 @@ test("filtro por instituição isola a organização e cruza com o convênio", (
     "duas instituições somam",
   );
   assert.deepEqual(
-    ids({ instituicao: ["Missão Vida Internacional"], conveniada: ["true"] }),
+    ids({
+      instituicao: ["Missão Vida Internacional"],
+      status: ["aprovado"],
+    }),
     ["b"],
-    "convênio é outro eixo, e cruza",
+    "status é outro eixo, e cruza",
   );
   assert.deepEqual(
     ids({ instituicao: ["Associação Boa Semente"] }),
@@ -409,6 +422,58 @@ test("filtro por instituição isola a organização e cruza com o convênio", (
     "projeto sem instituição não entra em recorte de instituição",
   );
   assert.ok(temFiltro({ ...SEM_FILTRO, instituicao: ["x"] }));
+});
+
+// -------------------------------------------------- texto rico da origem
+
+test("o parecer em HTML é desenhado, e só com as tags da lista", () => {
+  // A forma real de um parecer da origem (medida: p, strong, br, span, li, ol).
+  assert.equal(
+    sanitizarHtml(
+      "<p>Projeto bem estruturado.</p><p><br></p><p><strong>Score: 70/100</strong>.</p>",
+    ),
+    "<p>Projeto bem estruturado.</p><p><strong>Score: 70/100</strong>.</p>",
+    "linha em branco do editor não vira vão de três linhas",
+  );
+  assert.equal(
+    sanitizarHtml("<ol><li>Carta de recomendação</li><li>Relatório</li></ol>"),
+    "<ol><li>Carta de recomendação</li><li>Relatório</li></ol>",
+  );
+  // span não formata nada sem atributo: some, o texto fica.
+  assert.equal(sanitizarHtml('<span style="color:red">Texto</span>'), "Texto");
+  assert.equal(
+    sanitizarHtml("Bolsa &amp; auxílio&nbsp;mensal"),
+    "Bolsa &amp; auxílio&nbsp;mensal",
+  );
+
+  // Fronteira de confiança: o parecer é escrito noutro sistema.
+  assert.equal(
+    sanitizarHtml("<script>alert(1)</script>"),
+    "",
+    "corpo do script vai junto",
+  );
+  assert.equal(sanitizarHtml("<style>body{display:none}</style>"), "");
+  assert.equal(sanitizarHtml('<img src=x onerror="alert(1)">'), "");
+  assert.equal(
+    sanitizarHtml('<a href="javascript:alert(1)">clique</a>'),
+    "clique",
+  );
+  assert.equal(
+    sanitizarHtml('<p onclick="alert(1)" style="x">oi</p>'),
+    "<p>oi</p>",
+    "a tag passa, os atributos não",
+  );
+  assert.equal(sanitizarHtml("<iframe src=//mau></iframe>"), "");
+  assert.equal(sanitizarHtml("<!-- comentário -->texto"), "texto");
+  assert.ok(
+    !sanitizarHtml("<scr<script>ipt>alert(1)</script>").includes("ipt>"),
+  );
+
+  // Texto puro continua no caminho do React, que escapa sozinho.
+  assert.equal(ehHtmlRico("Orçamento de R$ 5 < R$ 10 para M&M"), false);
+  assert.equal(ehHtmlRico("Projeto sem formatação nenhuma."), false);
+  assert.equal(ehHtmlRico("<p>Com formatação</p>"), true);
+  assert.equal(ehHtmlRico("linha 1<br>linha 2"), true);
 });
 
 test("busca da lista casa por trecho do nome e por iniciais", () => {
@@ -817,6 +882,52 @@ test("filtros de triagem e de responsável cruzam com os demais", () => {
   assert.deepEqual(f({ tipo: ["novo"], responsavel: ["Ana"] }), ["a"]);
   assert.ok(temFiltro({ ...SEM_FILTRO, tipo: ["novo"] }));
   assert.ok(temFiltro({ ...SEM_FILTRO, responsavel: ["Ana"] }));
+});
+
+test("filtro da análise prévia separa o já olhado, e a tag casa por qualquer uma", () => {
+  const comAnalise = (
+    id: string,
+    a: Partial<ProjetoCiclo["analise"]>,
+  ): ProjetoCiclo =>
+    projeto({
+      id,
+      analise: {
+        temParecer: false,
+        tags: [],
+        temDevolutiva: false,
+        analisado: !!a.temParecer || (a.tags?.length ?? 0) > 0,
+        atualizadoEm: null,
+        ...a,
+      },
+    });
+
+  const projetos = [
+    comAnalise("a", { temParecer: true, tags: ["Crianças", "Educação"] }),
+    comAnalise("b", { tags: ["Janela 10/40"] }),
+    // Devolutiva ao proponente não é análise: a equipe pediu ajuste, não deu parecer.
+    comAnalise("c", { temDevolutiva: true }),
+    comAnalise("d", {}),
+  ];
+
+  const f = (p: Partial<Filtros>): string[] =>
+    filtrar(projetos, { ...SEM_FILTRO, ...p }).map((x) => x.id);
+
+  assert.deepEqual(f({ analise: ["sim"] }), ["a", "b"]);
+  assert.deepEqual(f({ analise: ["nao"] }), ["c", "d"]);
+  assert.deepEqual(f({ analise: ["sim", "nao"] }), ["a", "b", "c", "d"]);
+  assert.deepEqual(f({ tag: ["Educação"] }), ["a"]);
+  assert.deepEqual(
+    f({ tag: ["Educação", "Janela 10/40"] }),
+    ["a", "b"],
+    "duas tags somam, e um projeto casa por qualquer uma",
+  );
+  assert.deepEqual(
+    f({ tag: ["Janela 10/40"], analise: ["nao"] }),
+    [],
+    "os eixos continuam se cruzando",
+  );
+  assert.ok(temFiltro({ ...SEM_FILTRO, analise: ["sim"] }));
+  assert.ok(temFiltro({ ...SEM_FILTRO, tag: ["Crianças"] }));
 });
 
 test("rejeitado, rascunho e cancelado não entram em pasta de diretor", () => {

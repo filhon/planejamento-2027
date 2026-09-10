@@ -54,8 +54,6 @@ export interface Filtros {
   continente: string[];
   status: string[];
   categoria: string[];
-  /** "true" | "false" — vazio = todas. */
-  conveniada: string[];
   /**
    * Nome da instituição (não o uuid): é o que aparece na linha de recorte da
    * impressão e das exportações, sem precisar carregar um de-para até lá.
@@ -67,17 +65,22 @@ export interface Filtros {
   tipo: string[];
   /** Nome do diretor/conselheiro dono da pasta; "__sem" = sem responsável. */
   responsavel: string[];
+  /** "sim" | "nao" — a análise prévia da equipe já passou por aqui? (Fase 10) */
+  analise: string[];
+  /** Tags do parecer da ASEEC. Projeto casa se tiver QUALQUER uma das marcadas. */
+  tag: string[];
 }
 
 export const SEM_FILTRO: Filtros = {
   continente: [],
   status: [],
   categoria: [],
-  conveniada: [],
   instituicao: [],
   iso3: null,
   tipo: [],
   responsavel: [],
+  analise: [],
+  tag: [],
 };
 
 /** Chave de agrupamento por responsável — projeto sem dono tem uma cesta só. */
@@ -140,8 +143,12 @@ export function casaBusca(texto: string, busca: string): boolean {
 /**
  * `institutions.is_conveniada` é `boolean | null`, e projeto sem instituição
  * também chega como null. Para o orçamento, o que não é conveniada disputa o
- * teto das NÃO conveniadas — então null conta como não conveniada, aqui e na
- * página de Orçamento (uma regra só).
+ * teto das NÃO conveniadas — então null conta como não conveniada.
+ *
+ * Não é eixo de filtro: o convênio é um corte de DUAS fatias sobre o ciclo
+ * inteiro, e as páginas que precisam dele (Orçamento, Instituições) já mostram
+ * as duas lado a lado. Como recorte global ele só repetia o que o filtro de
+ * Instituição faz melhor — e ocupava uma vaga na barra.
  */
 export const ehConveniada = (p: ProjetoCiclo): boolean => p.conveniada === true;
 
@@ -152,10 +159,13 @@ export function filtrar(projetos: ProjetoCiclo[], f: Filtros): ProjetoCiclo[] {
       casa(f.continente, p.local.continente) &&
       casa(f.status, p.statusGrupo) &&
       casa(f.categoria, p.categoria) &&
-      casa(f.conveniada, String(ehConveniada(p))) &&
       casa(f.instituicao, p.instituicaoNome ?? "") &&
       casa(f.tipo, p.revisao.tipo) &&
       casa(f.responsavel, p.revisao.responsavel ?? SEM_RESPONSAVEL) &&
+      casa(f.analise, p.analise.analisado ? "sim" : "nao") &&
+      // Único eixo em que o projeto tem VÁRIOS valores (um projeto leva de 3 a
+      // 10 tags): casa se tiver qualquer uma das marcadas.
+      (f.tag.length === 0 || p.analise.tags.some((t) => f.tag.includes(t))) &&
       (f.iso3 === null || p.local.iso3 === f.iso3),
   );
 }
@@ -165,10 +175,11 @@ export function temFiltro(f: Filtros): boolean {
     f.continente.length > 0 ||
     f.status.length > 0 ||
     f.categoria.length > 0 ||
-    f.conveniada.length > 0 ||
     f.instituicao.length > 0 ||
     f.tipo.length > 0 ||
     f.responsavel.length > 0 ||
+    f.analise.length > 0 ||
+    f.tag.length > 0 ||
     f.iso3 !== null
   );
 }

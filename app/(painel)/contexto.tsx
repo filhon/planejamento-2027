@@ -59,6 +59,8 @@ export interface EstadoPainel {
     instituicoes: string[];
     /** Diretores/conselheiros que já têm pasta no ciclo ativo (Fase 5). */
     responsaveis: string[];
+    /** Tags do parecer da ASEEC em uso no ciclo ativo (Fase 10). */
+    tags: string[];
   };
 }
 

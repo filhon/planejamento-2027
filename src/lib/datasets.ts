@@ -38,6 +38,7 @@ import { getStorageBaseUrl } from "./env";
 import { construirIndicePaises, normalizarLocal } from "./geo";
 import { SEM_REVISAO } from "./types";
 import type {
+  AnalisePrevia,
   Anexo,
   Ano,
   AvaliacoesCiclo,
@@ -129,6 +130,21 @@ function montarRevisao(id: string, ctx: ContextoJuncao): RevisaoProjeto {
   };
 }
 
+/**
+ * A análise prévia sai inteira da origem — a equipe registra parecer e tags no
+ * próprio sistema de submissão. Nada a curar em CSV.
+ */
+function montarAnalise(row: ProjetoRow): AnalisePrevia {
+  const tags = (row.parecer_aseec_tags ?? []).filter(Boolean);
+  return {
+    temParecer: row.tem_parecer,
+    tags,
+    temDevolutiva: row.tem_devolutiva,
+    analisado: row.tem_parecer || tags.length > 0,
+    atualizadoEm: row.updated_at,
+  };
+}
+
 function montarProjetoCom(
   row: ProjetoRow,
   anoReferencia: Ano,
@@ -197,6 +213,7 @@ function montarProjetoCom(
     },
 
     revisao: montarRevisao(row.id, ctx),
+    analise: montarAnalise(row),
   };
 }
 
@@ -342,7 +359,11 @@ export async function projetoDetalhe(
       contato: str(m["contato"]),
     })),
 
-    parecerTexto: detalhe.parecer_aseec_texto,
+    // `<p></p>` de editor não é parecer: quem decide isso é a mesma regra da
+    // lista (`analise.temParecer`), senão a pasta abre um cartão "Parecer" vazio.
+    parecerTexto: projeto.analise.temParecer
+      ? detalhe.parecer_aseec_texto
+      : null,
     parecerTags: (detalhe.parecer_aseec_tags ?? []).filter(Boolean),
     notasDoRevisor: detalhe.reviewer_notes,
 

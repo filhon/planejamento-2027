@@ -19,6 +19,7 @@ import {
   ROTULO_STATUS,
 } from "../formato";
 import { Kpi, Secao } from "../ui";
+import { Analise } from "./analise";
 import Exportar from "./exportar";
 import { ROTULO_TIPO, Tipo } from "./tipo";
 
@@ -41,6 +42,11 @@ const colunaOrdem: Record<string, (p: ProjetoCiclo) => number | string> = {
   solicitado: (p) => -p.solicitado,
   recebido: (p) => -(p.revisao.recebidoAnterior ?? -1),
   nota: (p) => -(p.notaMediana ?? -1),
+  // Não analisados primeiro, e dentro de cada grupo o mexido mais recentemente
+  // no topo: é a fila de trabalho da equipe entre uma reunião e outra.
+  analise: (p) =>
+    (p.analise.analisado ? 1e15 : 0) -
+    (p.analise.atualizadoEm ? new Date(p.analise.atualizadoEm).getTime() : 0),
 };
 
 export default function Projetos({
@@ -71,6 +77,12 @@ export default function Projetos({
     (p) => p.revisao.tipo !== "renovacao" && !avaliavel(p.status),
   );
   const foraDaTriagem = todos.filter((p) => !p.revisao.naTriagem);
+
+  // Análise prévia: quanto do recorte a equipe ASEEC já olhou. Só entram os
+  // projetos que ainda podem ir à mesa — cobrar análise de rejeitado/rascunho
+  // faria a fila parecer maior do que é.
+  const naFila = projetos.filter((p) => avaliavel(p.status));
+  const analisados = naFila.filter((p) => p.analise.analisado);
 
   const recebidoTotal = renovacoes.reduce(
     (s, p) => s + (p.revisao.recebidoAnterior ?? 0),
@@ -134,6 +146,12 @@ export default function Projetos({
           rotulo={`Recebido em ${anoAnterior ?? "—"}`}
           valor={fmtMoedaCurta.format(recebidoTotal)}
           nota={`${renovacoes.filter((p) => p.revisao.recebidoAnterior).length} renovações com valor casado`}
+        />
+        <Kpi
+          rotulo="Análise prévia da equipe"
+          valor={`${fmtInt.format(analisados.length)} de ${fmtInt.format(naFila.length)}`}
+          nota={`${fmtInt.format(naFila.length - analisados.length)} sem parecer nem tags`}
+          tom={analisados.length === naFila.length ? "bom" : "atencao"}
         />
         <Kpi
           rotulo="Vínculo a decidir"
@@ -205,6 +223,15 @@ export default function Projetos({
                       </button>
                     </th>
                   ))}
+                  <th>
+                    <button
+                      className="ordenar"
+                      onClick={() => setOrdem("analise")}
+                      title="Ordena pelos não analisados primeiro"
+                    >
+                      Análise prévia{ordem === "analise" ? " ▾" : ""}
+                    </button>
+                  </th>
                   <th>Triagem</th>
                   <th>Responsável</th>
                   <th>Status</th>
@@ -237,6 +264,9 @@ export default function Projetos({
                     </td>
                     <td>{p.instituicaoNome ?? "—"}</td>
                     <td>
+                      <Analise a={p.analise} data />
+                    </td>
+                    <td>
                       <Tipo revisao={p.revisao} />
                     </td>
                     <td>{p.revisao.responsavel ?? "—"}</td>
@@ -253,7 +283,7 @@ export default function Projetos({
                 ))}
                 {lista.length === 0 && (
                   <tr>
-                    <td colSpan={7} className="sub">
+                    <td colSpan={8} className="sub">
                       Nenhum projeto com os filtros atuais.
                       {filtros.responsavel.includes(SEM_RESPONSAVEL) &&
                         " Rode a triagem para distribuir as pastas."}

@@ -237,11 +237,17 @@ main {
   margin-bottom: 16px;
 }
 
+/* Os campos DIVIDEM a linha em vez de cada um exigir 165px: são oito, e o
+   contador ("155 de 267 projetos") caía para uma segunda linha por falta de
+   uns poucos pixels. Encolhem juntos até a base e o rótulo corta com "…". */
 .campo {
   display: flex;
   flex-direction: column;
   gap: 5px;
-  min-width: 165px;
+  flex: 1 1 150px;
+  /* Piso: abaixo disto o campo vira uma tarja com o rótulo cortado, e aí é
+     melhor quebrar a linha mesmo (acontece só abaixo de ~1150px de tela). */
+  min-width: 110px;
 }
 
 .campo label,
@@ -251,6 +257,12 @@ main {
   letter-spacing: 0.07em;
   font-weight: 600;
   color: var(--tinta-fraca);
+}
+
+.campo-rotulo {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .campo select {
@@ -380,13 +392,23 @@ main {
   color: var(--tinta-fraca);
 }
 
+/* Um ✕ redondo, e não um botão com texto: ele não é um campo, não tem rótulo
+   em cima, e alinhado ao rodapé dos campos (a barra é `align-items: flex-end`)
+   ficava visivelmente torto. `align-self: center` o põe no meio da linha. */
 .limpar {
+  align-self: center;
+  flex: none;
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
   border: 1px solid var(--borda);
   background: var(--papel);
   color: var(--tinta-fraca);
-  border-radius: 9px;
-  padding: 9px 14px;
-  font-size: 13.5px;
+  border-radius: 999px;
+  padding: 0;
+  font-size: 13px;
+  line-height: 1;
 }
 
 .limpar:hover {
@@ -399,6 +421,13 @@ main {
   gap: 8px;
   flex-wrap: wrap;
   margin-left: auto;
+}
+
+/* O contador ("155 de 267 projetos") é a resposta do recorte: fica na mesma
+   linha dos campos, sem encolher, e centrado como o ✕. */
+.filtros .fichas {
+  flex: none;
+  align-self: center;
 }
 
 .ficha {
@@ -1822,6 +1851,40 @@ main {
   white-space: pre-wrap;
 }
 
+/* Campo que veio como HTML do editor da origem (ver `sanitizarHtml`). Mesma
+   medida do texto puro, mas o espaçamento é dos <p> de dentro — e sem
+   `pre-wrap`, senão as quebras do HTML e as do código se somariam. */
+.texto-rico {
+  max-width: 74ch;
+}
+
+.texto-rico p {
+  margin: 0 0 10px;
+  max-width: none;
+  white-space: normal;
+}
+
+.texto-rico > :last-child {
+  margin-bottom: 0;
+}
+
+.texto-rico ul,
+.texto-rico ol {
+  margin: 0 0 10px;
+  padding-left: 22px;
+}
+
+.texto-rico li {
+  margin-bottom: 4px;
+}
+
+.texto-rico blockquote {
+  margin: 0 0 10px;
+  padding-left: 12px;
+  border-left: 2px solid var(--borda);
+  color: var(--tinta-fraca);
+}
+
 /* `.fichas` nasceu no cabeçalho, onde o `margin-left: auto` empurra as fichas
    para a direita. Como campo rotulado, elas começam na margem do rótulo. */
 .campo-texto .fichas {
@@ -2096,6 +2159,7 @@ body.apresentacao .rolagem {
   }
 
   .campo-texto p,
+  .texto-rico li,
   .tabela td {
     orphans: 3;
     widows: 3;

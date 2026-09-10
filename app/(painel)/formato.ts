@@ -117,13 +117,14 @@ export function resumoFiltros(
         `Status: ${filtros.status.map((s) => ROTULO_STATUS[s as StatusGrupo]).join(", ")}`,
       filtros.categoria.length > 0 &&
         `Categoria: ${filtros.categoria.map(rotuloCategoria).join(", ")}`,
-      filtros.conveniada.length > 0 &&
-        `Convênio: ${filtros.conveniada.map((c) => (c === "true" ? "conveniadas" : "não conveniadas")).join(", ")}`,
       filtros.instituicao.length > 0 &&
         `Instituição: ${filtros.instituicao.join(", ")}`,
       filtros.tipo.length > 0 && `Triagem: ${filtros.tipo.join(", ")}`,
       filtros.responsavel.length > 0 &&
         `Responsável: ${filtros.responsavel.map(rotuloResponsavel).join(", ")}`,
+      filtros.analise.length > 0 &&
+        `Análise prévia: ${filtros.analise.map((a) => (a === "sim" ? "analisados" : "não analisados")).join(", ")}`,
+      filtros.tag.length > 0 && `Tags: ${filtros.tag.join(", ")}`,
       nomePais && `País: ${nomePais}`,
     ]
       .filter(Boolean)

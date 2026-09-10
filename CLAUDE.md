@@ -77,9 +77,12 @@ Agregações puras **e as regras do recorte** (`filtrar`, `alternar`, `ehConveni
 `src/lib/recorrencia.ts` (também puro). **Não** importar `datasets.ts` num componente
 cliente: arrasta o driver do banco para o bundle.
 
-Os filtros globais são Continente · Status · Categoria · **Convênio**
-(conveniada/não) · **Instituição** (por nome, com busca por nome ou iniciais) ·
-Triagem · Responsável, mais o país clicado no mapa.
+Os filtros globais são Continente · Status · Categoria · **Instituição** (por
+nome, com busca por nome ou iniciais) · Triagem · Responsável · **Análise
+prévia** · **Tags**, mais o país clicado no mapa. Cabem numa linha só — é o
+teto: entrando um nono eixo, algum sai. O **Convênio** saiu por isso (o de
+Instituição faz o mesmo recorte melhor); `ehConveniada` continua valendo no
+Orçamento, que é onde as duas fatias importam.
 
 **Fase 6 (gráficos da Visão Geral)** — a tela de abertura ganhou as leituras que
 nenhum ranking dava:
@@ -190,6 +193,53 @@ dos 223 projetos aprovados em 2025 prestaram contas pelo sistema — pendência 
   editar o CSV no Excel — não há botão de remover.
 - ⚠️ O arquivo precisa estar compartilhado como "qualquer pessoa com o link pode
   ver"; sem isso o quadro mostra a tela de permissão do Google.
+
+**Fase 10 (a análise prévia fica visível)** — a equipe ASEEC analisa os projetos
+nas semanas ANTES da reunião, para só levar à mesa o que está alinhado aos
+objetivos. Esse trabalho é feito **um pouco por dia e a várias mãos** (um põe o
+parecer, outro põe as tags, e só no fim o diretor gestor decide rejeitar ou
+mandar para votação) e **quase nunca mexe no `status`** — 232 dos 267 projetos
+de 2026 seguem em `em-validacao`. Resultado: não havia como saber onde a equipe
+parou.
+
+- **Nada de campo novo: o sinal já estava na origem** — `parecer_aseec_texto` e
+  `parecer_aseec_tags` em `cycle_projects`, que só a página de detalhe lia.
+  `fetchProjetos` passou a trazer os dois (o texto como booleano — 267 blocos de
+  HTML não precisam ir para o cliente), mais `reviewer_notes` e `updated_at`, e
+  `ProjetoCiclo.analise` (`AnalisePrevia`) os carrega para toda a UI.
+- **A definição é a da equipe:** analisado = tem parecer **ou** tags. Hoje em
+  2026: **39 de 242** na fila (rejeitado/rascunho/cancelado fora), 34 com
+  parecer, 36 com tags. Em 2025, ciclo fechado, foram 225 de 233 — é a régua.
+- `reviewer_notes` (44 em 2026) **não** conta como análise: é a devolutiva
+  pedindo ajuste ao proponente ("Favor reduzir os custos"). Vira uma pastilha
+  própria, porque 31 projetos têm só isso — a equipe já olhou, mas não opinou.
+- **Onde aparece:** pastilha na coluna "Análise prévia" de `/projetos` (com a
+  data da última alteração), a mesma pastilha no cabeçalho da pasta do projeto,
+  KPI "39 de 242 · 203 sem parecer nem tags", e **dois filtros globais** —
+  Análise prévia (analisados/não) e **Tags**, que responde a pergunta
+  que motiva a triagem: quais projetos batem com cada objetivo ("Janela 10/40",
+  "Povos Não Alcançados", e o "Projetos Validados" que a equipe usa como visto).
+- **Sobre datas e autoria: a origem não tem.** Não há coluna de quem escreveu o
+  parecer nem de quando. `updated_at` é "última alteração do registro" (o
+  proponente também edita) — serve para ordenar a fila de trabalho, e está
+  escrito "alterado", nunca "analisado em". Ordenar pela coluna põe os **não
+  analisados primeiro**, do mexido mais recentemente para o mais antigo.
+- ⚠️ Junto: parecer com HTML vazio (`<p></p>`, 5 casos em 2025) deixou de contar
+  como parecer — uma regra só (`TEM_PARECER`, em `queries.ts`), que também tirou
+  o cartão "Parecer" em branco da pasta do projeto.
+- **O parecer é HTML de editor, e agora é desenhado como tal** (`src/lib/html.ts`).
+  A mesa lia `<p>Projeto bem estruturado</p><strong>Score: 70/100</strong>` na
+  tela. Não é só o parecer: dos campos longos da origem, **97 pareceres + 5
+  justificativas/resultados** vêm com marcação (o resto é texto puro), então
+  quem decide é o `Campo` da pasta — `ehHtmlRico` manda para o `innerHTML`, o
+  resto continua no caminho de texto do React (jogar texto puro no `innerHTML`
+  comeria "R$ 5 < 10" e "M&M"). `sanitizarHtml` é **lista de permissão** (p, br,
+  strong, b, em, i, u, s, ul, ol, li, blockquote) e **derruba todo atributo** —
+  é o que mata `onerror=`, `style=` e `href="javascript:"`; `<script>`/`<style>`
+  saem com corpo e tudo, e `<p><br></p>` (a linha em branco do editor) colapsa.
+  Sem biblioteca de sanitização: 40 linhas puras, cobertas por `npm test` com os
+  vetores de XSS. **Fronteira de confiança de verdade** — o parecer é escrito
+  num formulário de outro sistema, não aqui.
 
 **Próximo passo:** nada obrigatório. Em aberto, só se a equipe pedir: exportar PNG
 (hoje é PDF pela impressão), zoom/pan no mapa e ler .docx no visor (o

@@ -250,6 +250,9 @@ export default function Shell({
       // Com o visor de anexo aberto, o teclado é dele: Esc fecha o documento
       // (e não a apresentação) e as setas não trocam de projeto por baixo.
       if (document.querySelector("dialog[open]")) return;
+      // Idem com o mapa expandido: o Esc fecha o mapa, não a apresentação.
+      const cheio = document.fullscreenElement;
+      if (cheio && cheio !== document.documentElement) return;
       if (e.key === "ArrowRight" || e.key === "PageDown") ir(1);
       else if (e.key === "ArrowLeft" || e.key === "PageUp") ir(-1);
       else if (e.key === "Escape") setApresentacao(false);

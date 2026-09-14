@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import Link from "next/link";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { agregarPorPais, montarResumo } from "@/lib/agregar";
 import type { PaisGeo } from "@/lib/mapa";
 import type { ProjetoLocal } from "@/lib/types";
@@ -10,9 +11,11 @@ import {
   fmtMoeda,
   fmtMoedaCurta,
   pct,
+  plural,
+  ROTULO_STATUS,
   rotuloCategoria,
 } from "../formato";
-import { Kpi } from "../ui";
+import { Kpi, Secao } from "../ui";
 
 /**
  * Página do Mapa-múndi — o coração do painel (docs/plano-dashboard.md §5).
@@ -44,6 +47,17 @@ export default function Mapa({
     local: ProjetoLocal;
   } | null>(null);
   const areaMapa = useRef<HTMLDivElement>(null);
+  const cartaoMapa = useRef<HTMLElement>(null);
+  const [cheio, setCheio] = useState(false);
+
+  // Tela cheia do mapa é a nativa do navegador no próprio cartão — o estado só
+  // acerta o rótulo do botão quando a saída vem do Esc, e não do clique.
+  useEffect(() => {
+    const aoTrocar = () =>
+      setCheio(document.fullscreenElement === cartaoMapa.current);
+    document.addEventListener("fullscreenchange", aoTrocar);
+    return () => document.removeEventListener("fullscreenchange", aoTrocar);
+  }, []);
 
   const locais = useMemo(() => agregarPorPais(projetos), [projetos]);
   const resumo = useMemo(() => montarResumo(projetos, ano), [projetos, ano]);
@@ -72,6 +86,12 @@ export default function Mapa({
   const sensiveis = locais.filter((l) => l.sensivel);
   const naoMapeados = locais.filter((l) => !l.iso3 && !l.sensivel);
   const semGeometria = locais.filter((l) => l.iso3 && !isoNoMapa.has(l.iso3));
+
+  // Maior pedido primeiro: a lista abre pelo que pesa na decisão.
+  const lista = useMemo(
+    () => [...projetos].sort((a, b) => b.solicitado - a.solicitado),
+    [projetos],
+  );
 
   const cor = (n: number) =>
     `color-mix(in srgb, var(--azul) ${Math.round(12 + 88 * Math.sqrt(n / maxProjetos))}%, #e3e9f8)`;
@@ -141,7 +161,19 @@ export default function Mapa({
       </div>
 
       <div className="corpo">
-        <section className="painel-mapa cartao">
+        <section className="painel-mapa cartao" ref={cartaoMapa}>
+          <button
+            className="expandir"
+            title="Mapa em tela cheia (Esc sai)"
+            onClick={() =>
+              cheio
+                ? document.exitFullscreen?.()
+                : cartaoMapa.current?.requestFullscreen?.().catch(() => {})
+            }
+          >
+            {cheio ? "⤡ Reduzir" : "⤢ Expandir"}
+          </button>
+
           <div className="mapa" ref={areaMapa}>
             <svg
               viewBox={viewBox}
@@ -249,39 +281,93 @@ export default function Mapa({
               ? "Nenhum projeto com os filtros atuais."
               : "Clique para filtrar o painel inteiro."}
           </p>
-          <ol>
-            {locais.map((l) => (
-              <li key={l.iso3 ?? l.nomePt}>
-                <button
-                  className="linha-pais"
-                  aria-pressed={
-                    filtros.iso3 !== null && filtros.iso3 === l.iso3
-                  }
-                  disabled={!l.iso3}
-                  onClick={() => alternarPais(l.iso3)}
-                >
-                  <span className="linha-topo">
-                    <b>{l.nomePt}</b>
-                    <span>
-                      {fmtInt.format(l.projetos)} ·{" "}
-                      {fmtMoedaCurta.format(l.solicitado)}
-                    </span>
-                  </span>
-                  <span
-                    className={`barra${l.sensivel || !l.iso3 ? " barra-sensivel" : ""}`}
+          {/* A lista é absoluta dentro desta caixa de propósito: assim ela não
+              entra na altura intrínseca da grade e quem manda na altura das
+              duas colunas é o mapa. Solta, ela esticava a linha inteira e o
+              cartão do mapa ganhava um vão branco embaixo — na apresentação,
+              com a fonte maior, sempre. */}
+          <div className="ranking-lista">
+            <ol>
+              {locais.map((l) => (
+                <li key={l.iso3 ?? l.nomePt}>
+                  <button
+                    className="linha-pais"
+                    aria-pressed={
+                      filtros.iso3 !== null && filtros.iso3 === l.iso3
+                    }
+                    disabled={!l.iso3}
+                    onClick={() => alternarPais(l.iso3)}
                   >
-                    <i
-                      style={{
-                        width: `${Math.max(3, (l.projetos / maxProjetos) * 100)}%`,
-                      }}
-                    />
-                  </span>
-                </button>
-              </li>
-            ))}
-          </ol>
+                    <span className="linha-topo">
+                      <b>{l.nomePt}</b>
+                      <span>
+                        {fmtInt.format(l.projetos)} ·{" "}
+                        {fmtMoedaCurta.format(l.solicitado)}
+                      </span>
+                    </span>
+                    <span
+                      className={`barra${l.sensivel || !l.iso3 ? " barra-sensivel" : ""}`}
+                    >
+                      <i
+                        style={{
+                          width: `${Math.max(3, (l.projetos / maxProjetos) * 100)}%`,
+                        }}
+                      />
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ol>
+          </div>
         </section>
       </div>
+
+      {/* Os projetos do recorte — inclusive o país clicado no mapa, que já vem
+          aplicado em `projetos`. Fecha o caminho "vi o país, quero os projetos
+          dele" sem sair da página. */}
+      <Secao
+        titulo={`${plural(lista.length, "projeto", "projetos")} no recorte`}
+        sub="Clique no título para abrir a pasta do projeto."
+        largura="cheia"
+      >
+        <div className="rolagem">
+          <table className="tabela">
+            <thead>
+              <tr>
+                <th>Projeto</th>
+                <th>País</th>
+                <th>Instituição</th>
+                <th>Categoria</th>
+                <th>Status</th>
+                <th className="n">Solicitado</th>
+              </tr>
+            </thead>
+            <tbody>
+              {lista.map((p) => (
+                <tr key={p.id}>
+                  <td>
+                    <Link className="link-projeto" href={`/projetos/${p.id}`}>
+                      {p.titulo}
+                    </Link>
+                  </td>
+                  <td>{p.local.nomePt}</td>
+                  <td>{p.instituicaoNome ?? "—"}</td>
+                  <td>{rotuloCategoria(p.categoria)}</td>
+                  <td>{ROTULO_STATUS[p.statusGrupo]}</td>
+                  <td className="n">{fmtMoeda.format(p.solicitado)}</td>
+                </tr>
+              ))}
+              {lista.length === 0 && (
+                <tr>
+                  <td colSpan={6} className="sub">
+                    Nenhum projeto com os filtros atuais.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </Secao>
     </>
   );
 }

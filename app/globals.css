@@ -509,11 +509,13 @@ main {
 
 /* ----------------------------------------------------------------- mapa */
 
+/* `stretch` (o padrão da grade) de propósito: o ranking acompanha a altura do
+   cartão do mapa — na tela e na TV — em vez de um max-height chutado. */
 .corpo {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 360px;
   gap: 16px;
-  align-items: start;
+  margin-bottom: 16px;
 }
 
 @media (max-width: 1100px) {
@@ -531,6 +533,43 @@ main {
   display: block;
   width: 100%;
   height: auto;
+}
+
+.expandir {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  z-index: 4;
+  border: 1px solid var(--borda);
+  background: var(--papel);
+  color: var(--tinta-fraca);
+  border-radius: 8px;
+  padding: 4px 9px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.expandir:hover {
+  color: var(--azul);
+  border-color: var(--azul);
+}
+
+/* Tela cheia é a nativa do navegador no próprio cartão: o mapa toma a altura
+   que sobra e a legenda continua embaixo. */
+.painel-mapa:fullscreen {
+  display: flex;
+  flex-direction: column;
+  background: var(--papel);
+  border-radius: 0;
+}
+
+.painel-mapa:fullscreen .mapa {
+  flex: 1;
+  min-height: 0;
+}
+
+.painel-mapa:fullscreen .mapa svg {
+  height: 100%;
 }
 
 .pais {
@@ -635,6 +674,9 @@ main {
 
 .ranking {
   padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 }
 
 .ranking h2 {
@@ -648,11 +690,23 @@ main {
   color: var(--tinta-fraca);
 }
 
+/* Quem manda na altura da linha é o mapa: a lista fica ABSOLUTA dentro desta
+   caixa, então não entra na altura intrínseca da grade — se entrasse, uma lista
+   longa esticaria a linha e o cartão do mapa (que é uma imagem de altura fixa
+   pela largura) ganharia um vão branco embaixo. O min-height é para quando a
+   coluna cai embaixo do mapa (≤1100px), onde não há mapa para acompanhar. */
+.ranking-lista {
+  position: relative;
+  flex: 1;
+  min-height: 320px;
+}
+
 .ranking ol {
   list-style: none;
   margin: 0;
   padding: 0;
-  max-height: 470px;
+  position: absolute;
+  inset: 0;
   overflow-y: auto;
 }
 
@@ -2035,9 +2089,10 @@ body.apresentacao .observacao {
   font-size: 17px;
 }
 
-/* Um painel por vez: nada de rolar duas listas dentro da mesma tela. */
+/* Um painel por vez: nada de rolar duas listas dentro da mesma tela.
+   O ranking do mapa fica de fora — ele acompanha a altura do mapa (ver .corpo),
+   e soltá-lo aqui esticaria o cartão do mapa junto. */
 body.apresentacao .barras,
-body.apresentacao .ranking ol,
 body.apresentacao .rolagem {
   max-height: none;
 }
@@ -2192,6 +2247,24 @@ body.apresentacao .rolagem {
   .rolagem-x {
     max-height: none;
     overflow: visible;
+  }
+
+  /* Na tela o ranking se estica até a altura do mapa e rola por dentro; no
+     papel ele volta a ser uma lista que corre pelas páginas. */
+  .ranking {
+    display: block;
+  }
+
+  .ranking-lista {
+    min-height: 0;
+  }
+
+  .ranking ol {
+    position: static;
+  }
+
+  .expandir {
+    display: none;
   }
 
   .grade {

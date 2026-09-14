@@ -11,6 +11,7 @@ import {
   projetosCiclo,
 } from "./datasets";
 import { carregarAvaliadores, limparCacheEnriquecimento } from "./enrichment";
+import { carregarParcerias, type DadosParcerias } from "./parcerias-dados";
 import type {
   Ano,
   Avaliador,
@@ -115,4 +116,8 @@ export const dados = {
   /** Só o CSV; entra no cache junto para o "Atualizar" derrubar tudo de uma vez. */
   avaliadores: (): Promise<Avaliador[]> =>
     memo("avaliadores", async () => carregarAvaliadores()),
+
+  /** Missionários das agências + municípios + candidatos marcados (Fase 11). */
+  parcerias: (): Promise<DadosParcerias> =>
+    memo("parcerias", async () => carregarParcerias()),
 };

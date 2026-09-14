@@ -2271,3 +2271,121 @@ body.apresentacao .rolagem {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+
+/* ------------------------------------------------------------ parcerias */
+
+.intro-parcerias {
+  margin: 0 0 12px;
+  font-size: 13.5px;
+  color: var(--tinta-fraca);
+  max-width: 900px;
+}
+
+.intro-parcerias b {
+  color: var(--tinta);
+}
+
+.modo-parcerias {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+
+.modo-parcerias .sub {
+  margin-left: 8px;
+}
+
+.botao-modo {
+  border: 1px solid var(--borda);
+  background: var(--papel);
+  color: var(--tinta-fraca);
+  font-weight: 600;
+  font-size: 13px;
+  padding: 6px 16px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.botao-modo[aria-pressed="true"] {
+  background: var(--azul);
+  color: #fff;
+  border-color: var(--azul);
+}
+
+.ponto {
+  fill: #fff;
+  stroke: var(--azul);
+  stroke-width: 1.4;
+  cursor: pointer;
+  paint-order: stroke;
+}
+
+.ponto:hover {
+  stroke: var(--laranja);
+  stroke-width: 2.2;
+}
+
+.ponto-top {
+  fill: var(--verde);
+  stroke: var(--verde-escuro);
+}
+
+.ponto-legenda {
+  border: 1.5px solid var(--azul);
+  background: #fff;
+}
+
+.ponto-legenda.ponto-top {
+  background: var(--verde);
+  border-color: var(--verde-escuro);
+}
+
+.uf-coberta .linha-pais {
+  opacity: 0.55;
+}
+
+.linha-melhor {
+  display: block;
+  font-size: 11.5px;
+  margin-top: 2px;
+}
+
+.pastilha-candidato {
+  --cor: var(--laranja);
+  margin-left: 6px;
+  font-size: 10.5px;
+  padding: 0 6px;
+}
+
+.estrela {
+  border: 0;
+  background: transparent;
+  color: var(--neutro-forte);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 4px;
+}
+
+.estrela:hover,
+.estrela-on {
+  color: var(--laranja);
+}
+
+.linha-candidata td {
+  background: color-mix(in srgb, var(--laranja) 8%, var(--papel));
+}
+
+.expandir-inline {
+  position: static;
+}
+
+@media print {
+  .estrela,
+  .botao-modo,
+  .modo-parcerias .sub {
+    display: none;
+  }
+}

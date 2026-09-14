@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { atualizar } from "@/lib/cache";
 import { adicionarLinkPrestacao } from "@/lib/enrichment";
+import { alternarCandidato } from "@/lib/parcerias-dados";
 
 /**
  * Botão "Atualizar" da reunião: derruba o cache (inclusive os CSVs de
@@ -66,4 +67,26 @@ export async function salvarLinkPrestacao(
   atualizar();
   revalidatePath("/projetos/[id]", "page");
   return {};
+}
+
+/**
+ * Marca/desmarca um missionário como candidato a parceria proativa (Fase 11).
+ * Escrita em `data/parcerias_candidatos.csv`, fora da origem, como o link do
+ * Drive. A chave vem do servidor (`Missionario.chave`), mas o formulário é
+ * público na rede da reunião — o formato é conferido aqui.
+ */
+export async function marcarCandidato(
+  alvo: { chave: string; rotulo: string },
+  nota: string,
+): Promise<{ marcado: boolean }> {
+  if (!/^(APMT|JMM|JMN-IPB):.{1,200}$/.test(alvo.chave))
+    throw new Error("Missionário inválido.");
+  const marcado = alternarCandidato({
+    chave: alvo.chave,
+    rotulo: alvo.rotulo.slice(0, 200),
+    nota: nota.trim().slice(0, 300),
+  });
+  atualizar();
+  revalidatePath("/parcerias");
+  return { marcado };
 }

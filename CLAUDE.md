@@ -61,6 +61,7 @@ npm run check          # relatório de sanidade contra os dados vivos (só SELEC
 npm test               # regras puras (país, guarda, orçamento, notas, mapa, triagem)
 npm run enrich:regen   # regenera as colunas derivadas do CSV (preserva as curadas)
 npm run avaliacao:regen  # triagem novo×renovação + divisão das pastas (idem)
+npm run municipios:regen # centróides dos municípios (IBGE) — só se a malha mudar
 ```
 
 Datasets prontos para a UI (fachada com cache em `src/lib/cache.ts`):
@@ -188,7 +189,7 @@ dos 223 projetos aprovados em 2025 prestaram contas pelo sistema — pendência 
   em filete muda de redação ("nada registrado no sistema — o que há é o documento
   abaixo, recebido por fora") e os links ficam numa lista própria, "Recebido fora
   do sistema". No papel o link sai por extenso, para ser digitável.
-- **É a única escrita do painel**, e é num CSV local: exige disco gravável (é como
+- **Era a única escrita do painel** (a Fase 11 trouxe a segunda, no mesmo molde), e é num CSV local: exige disco gravável (é como
   o painel roda hoje, `npm start` na máquina da reunião). Corrigir link errado é
   editar o CSV no Excel — não há botão de remover.
 - ⚠️ O arquivo precisa estar compartilhado como "qualquer pessoa com o link pode
@@ -241,6 +242,27 @@ parou.
   vetores de XSS. **Fronteira de confiança de verdade** — o parecer é escrito
   num formulário de outro sistema, não aqui.
 
+**Fase 11 (parcerias proativas)** — `/parcerias`: onde as agências parceiras
+(APMT, JMM, JMN/IPB — relações em `data/db-*.csv`) têm missionário e a Hebron
+ainda não chegou. **Mundo:** país laranja = agência lá e nenhum projeto
+avaliável nesta remessa (45 em 2026), verde = tinha aprovado no ciclo anterior
+e sumiu (14, "retomar"). **Brasil:** UF laranja = zero projetos (7 em 2026,
+todas com missionário JMN); ponto = cidade com missionário, verde se está no
+**top 100 de demanda por produtos Hebron** (`data/ranking-dd.csv`); cada UF
+mostra o melhor candidato (missionário na cidade de maior demanda). Mapa do
+Brasil = GeoJSON oficial IBGE vendorizado (`data/brasil-uf.json`) + centróides
+municipais gerados por `npm run municipios:regen`; zoom/pan é `viewBox` na mão.
+UF selecionada no mapa → "Ver N projetos submetidos em Projetos & Pastas"
+(filtro global `uf`, ficha na barra, como o país clicado; tabela de UF em
+`src/lib/uf.ts`, pura). Aqui só **Status** e **Continente** valem — os outros
+filtros encolheriam os pedidos e pintariam de "sem pedido" país com projeto;
+são ignorados com aviso na tela.
+A ★ na tabela **marca candidato** → `data/parcerias_candidatos.csv` (segunda
+escrita do painel, fora da origem, mesmo padrão do link do Drive). Regras puras
+em `src/lib/parcerias.ts` (testadas); leitura em `parcerias-dados.ts`;
+`npm run check` 4c lista o que não casou. Manual:
+[`docs/fase11-parcerias.md`](docs/fase11-parcerias.md).
+
 **Próximo passo:** nada obrigatório. Em aberto, só se a equipe pedir: exportar PNG
 (hoje é PDF pela impressão), zoom/pan no mapa e ler .docx no visor (o
 descompactador já está lá; falta extrair o texto de `word/document.xml`).
@@ -251,7 +273,7 @@ descompactador já está lá; falta extrair o texto de `word/document.xml`).
 - Plano do dashboard → [`docs/plano-dashboard.md`](docs/plano-dashboard.md)
 - Normalização de país (de-para ISO) → [`docs/normalizacao-paises.md`](docs/normalizacao-paises.md)
 - **Enriquecimento sem tocar na origem** → [`docs/enriquecimento-dados.md`](docs/enriquecimento-dados.md)
-- Dados do enriquecimento (fonte de verdade): [`data/country_map.csv`](data/country_map.csv), [`data/institution_enrichment.csv`](data/institution_enrichment.csv), [`data/projetos_avaliacao.csv`](data/projetos_avaliacao.csv), [`data/avaliadores.csv`](data/avaliadores.csv), [`data/prestacao_links.csv`](data/prestacao_links.csv)
+- Dados do enriquecimento (fonte de verdade): [`data/country_map.csv`](data/country_map.csv), [`data/institution_enrichment.csv`](data/institution_enrichment.csv), [`data/projetos_avaliacao.csv`](data/projetos_avaliacao.csv), [`data/avaliadores.csv`](data/avaliadores.csv), [`data/prestacao_links.csv`](data/prestacao_links.csv), [`data/parcerias_candidatos.csv`](data/parcerias_candidatos.csv)
 - Esquema opcional de banco próprio do dashboard → [`docs/country_map.sql`](docs/country_map.sql) (NUNCA na origem)
 - Script do papel de leitura, **para a equipe rodar** → [`docs/bi_readonly.sql`](docs/bi_readonly.sql)
 - Manual de marca (fornecido pelo cliente) → [`.docs/Identidade Visual da Hebron Aseec.md`](.docs/Identidade%20Visual%20da%20Hebron%20Aseec.md)

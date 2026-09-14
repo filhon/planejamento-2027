@@ -12,6 +12,7 @@
     "check": "tsx scripts/check-fase1.ts",
     "enrich:regen": "tsx scripts/regen-enrichment.ts",
     "avaliacao:regen": "tsx scripts/regen-avaliacao.ts",
+    "municipios:regen": "tsx scripts/gerar-municipios.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

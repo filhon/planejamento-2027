@@ -1,3 +1,4 @@
+import { ufDe } from "./uf";
 import type {
   Ano,
   CoberturaPrestacao,
@@ -61,6 +62,8 @@ export interface Filtros {
    */
   instituicao: string[];
   iso3: string | null;
+  /** UF clicada no mapa do Brasil (Fase 11); casa por `ufDe(p.estado)`. */
+  uf: string | null;
   /** novo · renovacao · revisar (Fase 5). */
   tipo: string[];
   /** Nome do diretor/conselheiro dono da pasta; "__sem" = sem responsável. */
@@ -77,6 +80,7 @@ export const SEM_FILTRO: Filtros = {
   categoria: [],
   instituicao: [],
   iso3: null,
+  uf: null,
   tipo: [],
   responsavel: [],
   analise: [],
@@ -166,7 +170,8 @@ export function filtrar(projetos: ProjetoCiclo[], f: Filtros): ProjetoCiclo[] {
       // Único eixo em que o projeto tem VÁRIOS valores (um projeto leva de 3 a
       // 10 tags): casa se tiver qualquer uma das marcadas.
       (f.tag.length === 0 || p.analise.tags.some((t) => f.tag.includes(t))) &&
-      (f.iso3 === null || p.local.iso3 === f.iso3),
+      (f.iso3 === null || p.local.iso3 === f.iso3) &&
+      (f.uf === null || ufDe(p.estado) === f.uf),
   );
 }
 
@@ -180,7 +185,8 @@ export function temFiltro(f: Filtros): boolean {
     f.responsavel.length > 0 ||
     f.analise.length > 0 ||
     f.tag.length > 0 ||
-    f.iso3 !== null
+    f.iso3 !== null ||
+    f.uf !== null
   );
 }
 

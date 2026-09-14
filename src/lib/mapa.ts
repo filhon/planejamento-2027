@@ -1,9 +1,10 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { geoNaturalEarth1, geoPath } from "d3-geo";
+import { geoMercator, geoNaturalEarth1, geoPath } from "d3-geo";
 import { feature } from "topojson-client";
 import isoCountries from "i18n-iso-countries";
 import { REPO_ROOT } from "./env";
+import { UF_POR_CODIGO } from "./parcerias";
 
 /**
  * Geometria do mapa-múndi, resolvida NO SERVIDOR.
@@ -67,4 +68,67 @@ export function geometriaMundo(): PaisGeo[] {
     .filter((p): p is PaisGeo => p !== null);
 
   return cache;
+}
+
+// ------------------------------------------------------------ brasil
+
+export const LARGURA_BR = 620;
+export const ALTURA_BR = 600;
+export const VIEW_BOX_BR = `0 0 ${LARGURA_BR} ${ALTURA_BR}`;
+
+export interface UfGeo {
+  uf: string;
+  d: string;
+}
+
+export interface GeoBrasil {
+  ufs: UfGeo[];
+  /** [lon, lat] → [x, y] no viewBox de VIEW_BOX_BR. */
+  projetar: (lonLat: [number, number]) => [number, number] | null;
+}
+
+let cacheBr: GeoBrasil | null = null;
+
+/**
+ * As 27 UFs, da malha oficial do IBGE (`data/brasil-uf.json`, qualidade
+ * mínima, 98 kB), projetadas no servidor como o mapa-múndi. A malha vem com os
+ * anéis no sentido oposto ao que o d3-geo espera — sem inverter, cada estado
+ * vira "o planeta inteiro menos o estado".
+ */
+export function geometriaBrasil(): GeoBrasil {
+  if (cacheBr) return cacheBr;
+
+  const colecao = JSON.parse(
+    readFileSync(resolve(REPO_ROOT, "data", "brasil-uf.json"), "utf-8"),
+  ) as {
+    features: {
+      properties: { codarea: string };
+      geometry: { type: string; coordinates: number[][][] | number[][][][] };
+    }[];
+  };
+  for (const f of colecao.features) {
+    const g = f.geometry;
+    if (g.type === "Polygon")
+      for (const anel of g.coordinates as number[][][]) anel.reverse();
+    else
+      for (const poligono of g.coordinates as number[][][][])
+        for (const anel of poligono) anel.reverse();
+  }
+
+  const projecao = geoMercator().fitSize(
+    [LARGURA_BR, ALTURA_BR],
+    colecao as never,
+  );
+  const path = geoPath(projecao).digits(1);
+
+  cacheBr = {
+    ufs: colecao.features
+      .map((f) => ({
+        uf: UF_POR_CODIGO[f.properties.codarea] ?? f.properties.codarea,
+        d: path(f as never) ?? "",
+      }))
+      .filter((u) => u.d),
+    projetar: (lonLat) => projecao(lonLat),
+  };
+  return cacheBr;
 }

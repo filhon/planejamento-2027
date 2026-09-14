@@ -28,6 +28,7 @@ import {
 } from "../src/lib/enrichment";
 import { construirIndicePaises, dobrar, normalizarLocal } from "../src/lib/geo";
 import { GRUPO_SENSIVEL } from "../src/lib/types";
+import { ALTA_DEMANDA, montarBrasil, montarMundo } from "../src/lib/parcerias";
 
 const brl = new Intl.NumberFormat("pt-BR", {
   style: "currency",
@@ -331,6 +332,68 @@ async function checarTriagem(ano: number): Promise<void> {
   }
 }
 
+/** Fase 11: os CSVs das agências casam com o de-para e com os municípios? */
+async function checarParcerias(ano: number): Promise<void> {
+  titulo("4c. Parcerias proativas (data/db-*.csv, ranking-dd.csv)");
+
+  const [dp, projetos, anteriores] = await Promise.all([
+    dados.parcerias(),
+    dados.projetos(ano),
+    dados.projetos(ano - 1).catch(() => []),
+  ]);
+  const porAgencia = (a: string) =>
+    dp.missionarios.filter((m) => m.agencia === a).length;
+  ok(
+    `${dp.missionarios.length} missionários · APMT ${porAgencia("APMT")} · JMM ${porAgencia("JMM")} · JMN-IPB ${porAgencia("JMN-IPB")}`,
+  );
+  const semLocal = dp.missionarios.filter((m) => !m.local.iso3 && !m.regiao);
+  if (semLocal.length)
+    aviso(`${semLocal.length} sem país informado pela agência`);
+  if (dp.pendencias.paisesSemDePara.length)
+    falha(
+      `país sem de-para: ${dp.pendencias.paisesSemDePara.join(", ")} — completar data/country_map.csv`,
+    );
+  else ok("todo país das agências está no de-para");
+  const jmn = dp.missionarios.filter((m) => m.agencia === "JMN-IPB");
+  ok(
+    `${jmn.filter((m) => m.codigoIbge).length} de ${jmn.length} da JMN casados com município do IBGE`,
+  );
+  if (dp.pendencias.municipiosSemCasar.length)
+    aviso(
+      `sem casar (bairro/distrito?): ${dp.pendencias.municipiosSemCasar.join(", ")}`,
+    );
+  const noRanking = dp.municipios.filter((m) => m.demanda !== null).length;
+  ok(
+    `${noRanking} municípios no ranking de demanda · top ${ALTA_DEMANDA} inteiro casado: ${dp.municipios.filter((m) => m.demanda !== null && m.demanda <= ALTA_DEMANDA).length === ALTA_DEMANDA ? "sim" : "NÃO"}`,
+  );
+
+  const mundo = montarMundo(
+    projetos,
+    anteriores,
+    dp.missionarios,
+    dp.candidatos,
+  );
+  ok(
+    `mundo: ${mundo.comAgencia} países com agência · ${mundo.oportunidades} sem pedido em ${ano} · ${mundo.retomar} a retomar · ${mundo.missionariosDisponiveis} missionários disponíveis`,
+  );
+  const br = montarBrasil(
+    projetos,
+    dp.missionarios,
+    dp.municipios,
+    dp.candidatos,
+  );
+  ok(
+    `brasil: ${br.cobertas} UFs com projeto · ${br.descobertas} sem (${br.ufs
+      .filter((u) => !u.coberta)
+      .map((u) => u.uf)
+      .join(
+        ", ",
+      )}) · ${br.descobertasComMissionario} delas com missionário JMN`,
+  );
+  if (br.semUf) aviso(`${br.semUf} projetos do Brasil sem UF reconhecível`);
+  ok(`${dp.candidatos.length} candidatos marcados`);
+}
+
 async function checarCiclo(ano: number): Promise<void> {
   titulo(`5. Ciclo ${ano} — datasets`);
 
@@ -490,6 +553,7 @@ async function main(): Promise<void> {
   // A triagem só faz sentido na remessa aberta — é a que vai à reunião.
   const anoAberto = Math.max(...listaCiclos.map((c) => c.ano));
   if (anos.includes(anoAberto)) await checarTriagem(anoAberto);
+  if (anos.includes(anoAberto)) await checarParcerias(anoAberto);
 
   for (const ano of anos) await checarCiclo(ano);
 

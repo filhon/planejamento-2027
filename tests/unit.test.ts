@@ -328,9 +328,14 @@ test("agregação por país soma valores e conta instituições distintas", () =
 test("filtros globais se combinam dentro do eixo e entre eixos", () => {
   const angola = normalizarLocal({ country: "Angola" }, indice);
   const universo = [
-    projeto({ id: "a", statusGrupo: "aprovado" }),
-    projeto({ id: "b", statusGrupo: "aprovado", categoria: "saude" }),
-    projeto({ id: "c", statusGrupo: "encerrado" }),
+    projeto({ id: "a", statusGrupo: "aprovado", estado: "PE" }),
+    projeto({
+      id: "b",
+      statusGrupo: "aprovado",
+      categoria: "saude",
+      estado: "pe",
+    }),
+    projeto({ id: "c", statusGrupo: "encerrado", estado: "Pernambuco" }),
     projeto({
       id: "d",
       statusGrupo: "rejeitado",
@@ -345,6 +350,9 @@ test("filtros globais se combinam dentro do eixo e entre eixos", () => {
   assert.deepEqual(ids({}), ["a", "b", "c", "d"], "sem filtro não recorta");
   assert.deepEqual(ids({ status: ["aprovado"] }), ["a", "b"]);
   assert.deepEqual(ids({ iso3: "AGO" }), ["d"]);
+  // UF casa por `ufDe`: sigla em qualquer caixa e nome por extenso.
+  assert.deepEqual(ids({ uf: "PE" }), ["a", "b", "c"]);
+  assert.deepEqual(ids({ uf: "PE", status: ["aprovado"] }), ["a", "b"]);
   assert.deepEqual(ids({ categoria: ["saude"], status: ["aprovado"] }), ["b"]);
   assert.deepEqual(ids({ continente: ["África"], categoria: ["saude"] }), [
     "d",
@@ -1328,4 +1336,133 @@ test("o que não é Drive não é embutido às cegas", () => {
     null,
   );
   assert.equal(embedDrive("javascript:alert(1)"), null);
+});
+
+// ------------------------------------------------------------ parcerias
+
+test("parcerias: UF, município e as duas agregações", async () => {
+  const { chaveMunicipio, montarBrasil, montarMundo, ufDe } =
+    await import("../src/lib/parcerias");
+  assert.equal(ufDe("Rio Grande Norte"), "RN");
+  assert.equal(ufDe("Goias"), "GO");
+  assert.equal(ufDe("pe"), "PE");
+  assert.equal(ufDe("-"), null);
+  assert.equal(
+    chaveMunicipio("SAO JOSE DOS CAMPOS", "SP"),
+    chaveMunicipio("São José dos Campos", "SP"),
+  );
+
+  const local = (iso3: string | null, nomePt = iso3 ?? "") => ({
+    iso3,
+    nomePt,
+    continente: "x",
+    sensivel: !iso3,
+    fonte: "country" as const,
+    bruto: nomePt,
+  });
+  const miss = (
+    extra: Partial<import("../src/lib/parcerias").Missionario>,
+  ) => ({
+    agencia: "JMM" as const,
+    nome: "M",
+    local: local("NPL", "Nepal"),
+    regiao: null,
+    publico: null,
+    tipo: null,
+    municipio: null,
+    uf: null,
+    codigoIbge: null,
+    recebido2026: null,
+    chave: "JMM:m",
+    ...extra,
+  });
+  const proj = (
+    iso3: string,
+    status = "em-validacao",
+    estado: string | null = null,
+  ) =>
+    ({
+      local: local(iso3),
+      status,
+      statusGrupo: status === "aprovado" ? "aprovado" : "em-avaliacao",
+      estado,
+    }) as never;
+
+  const mundo = montarMundo(
+    [proj("MOZ"), proj("PER", "rejeitado")],
+    [proj("PER", "aprovado")],
+    [
+      miss({ chave: "a" }),
+      miss({ chave: "b", agencia: "APMT", recebido2026: 1000 }),
+      miss({ chave: "c", local: local("MOZ") }),
+      miss({ chave: "d", local: local("PER") }),
+      miss({ chave: "e", local: local(null), regiao: "Área 14 - Sahel" }),
+      miss({ chave: "f", agencia: "JMN-IPB", local: local("BRA"), uf: "SE" }),
+    ],
+    [{ chave: "a", rotulo: "", nota: "", marcadoEm: "" }],
+  );
+  const por = Object.fromEntries(mundo.paises.map((p) => [p.chave, p]));
+  assert.equal(por["NPL"]!.situacao, "oportunidade");
+  assert.equal(por["NPL"]!.parceiros2026, 1);
+  assert.equal(por["NPL"]!.candidatos, 1);
+  assert.equal(por["MOZ"]!.situacao, "atendido");
+  // Pedido rejeitado não "atinge" o país; aprovado no anterior → retomar.
+  assert.equal(por["PER"]!.situacao, "retomar");
+  assert.equal(por["Área 14 - Sahel"]!.sensivel, true);
+  assert.equal(mundo.comAgencia, 3);
+  assert.equal(mundo.paises[0]!.chave, "PER"); // retomar vem primeiro
+  assert.equal(mundo.missionariosDisponiveis, 4);
+
+  const cidade = {
+    codigo: "2800308",
+    nome: "Aracaju",
+    uf: "SE",
+    lat: 0,
+    lon: 0,
+    demanda: 12,
+  };
+  const br = montarBrasil(
+    [proj("BRA", "em-validacao", "PE"), proj("BRA", "rascunho", "SE")],
+    [
+      miss({
+        chave: "f",
+        agencia: "JMN-IPB",
+        local: local("BRA"),
+        uf: "SE",
+        codigoIbge: "2800308",
+      }),
+      miss({
+        chave: "g",
+        agencia: "JMN-IPB",
+        local: local("BRA"),
+        uf: "SE",
+        municipio: "Colônia 13",
+      }),
+    ],
+    [cidade],
+    [],
+  );
+  assert.equal(br.cobertas, 1);
+  assert.equal(br.descobertas, 26);
+  assert.equal(br.descobertasComMissionario, 1);
+  assert.equal(br.ufs[0]!.uf, "SE"); // descoberta com gente em alta demanda primeiro
+  assert.equal(br.ufs[0]!.melhor?.municipio.nome, "Aracaju");
+  assert.equal(br.ufs[0]!.emAltaDemanda, 1);
+  assert.equal(br.cidadesAltaDemanda, 1);
+  assert.equal(br.pontos[0]!.missionarios.length, 1);
+});
+
+test("geometria do Brasil: 27 UFs com path e projeção dentro do viewBox", async () => {
+  const { geometriaBrasil, LARGURA_BR, ALTURA_BR } =
+    await import("../src/lib/mapa");
+  const g = geometriaBrasil();
+  assert.equal(g.ufs.length, 27);
+  assert.ok(g.ufs.every((u) => u.d.length > 50));
+  const recife = g.projetar([-34.9333, -8.0403])!;
+  assert.ok(
+    recife[0] > 0 &&
+      recife[0] < LARGURA_BR &&
+      recife[1] > 0 &&
+      recife[1] < ALTURA_BR,
+  );
 });

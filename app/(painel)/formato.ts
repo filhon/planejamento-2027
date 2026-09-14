@@ -1,4 +1,5 @@
 import { SEM_RESPONSAVEL, type Filtros } from "@/lib/agregar";
+import { NOME_UF } from "@/lib/uf";
 import type { StatusGrupo } from "@/lib/types";
 
 /** Formatação e vocabulário visual compartilhados pelas páginas do painel. */
@@ -126,6 +127,7 @@ export function resumoFiltros(
         `Análise prévia: ${filtros.analise.map((a) => (a === "sim" ? "analisados" : "não analisados")).join(", ")}`,
       filtros.tag.length > 0 && `Tags: ${filtros.tag.join(", ")}`,
       nomePais && `País: ${nomePais}`,
+      filtros.uf && `UF: ${NOME_UF[filtros.uf] ?? filtros.uf}`,
     ]
       .filter(Boolean)
       .join(" · ") || "Sem filtros — ciclo inteiro"

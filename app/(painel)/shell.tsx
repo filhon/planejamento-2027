@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { NOME_UF } from "@/lib/uf";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState, useTransition } from "react";
 import type { StatusGrupo } from "@/lib/types";
@@ -34,6 +35,7 @@ const PAGINAS: { href: string; rotulo: string; menu?: string }[] = [
   { href: "/mapa", rotulo: "Mapa-múndi" },
   { href: "/projetos", rotulo: "Projetos & Pastas" },
   { href: "/pipeline", rotulo: "Pipeline & Avaliação" },
+  { href: "/parcerias", rotulo: "Parcerias" },
   { href: "/orcamento", rotulo: "Orçamento", menu: "Mais" },
   { href: "/instituicoes", rotulo: "Instituições", menu: "Mais" },
   { href: "/prestacao", rotulo: "Prestação de contas", menu: "Mais" },
@@ -538,6 +540,11 @@ export default function Shell({
             {nomePais && (
               <button className="ficha" onClick={() => alternarPais(null)}>
                 <b>{nomePais}</b> ✕
+              </button>
+            )}
+            {filtros.uf && (
+              <button className="ficha" onClick={() => aplicar({ uf: null })}>
+                <b>{NOME_UF[filtros.uf] ?? filtros.uf}</b> ✕
               </button>
             )}
             <span className="ficha ficha-clara">

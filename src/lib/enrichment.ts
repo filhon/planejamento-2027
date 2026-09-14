@@ -32,7 +32,7 @@ export const PROJETOS_AVALIACAO_CSV = resolve(
 export const AVALIADORES_CSV = resolve(DATA_DIR, "avaliadores.csv");
 export const PRESTACAO_LINKS_CSV = resolve(DATA_DIR, "prestacao_links.csv");
 
-function lerCsv(caminho: string): Record<string, string>[] {
+export function lerCsv(caminho: string): Record<string, string>[] {
   if (!existsSync(caminho)) {
     throw new Error(`Arquivo de enriquecimento não encontrado: ${caminho}`);
   }
@@ -47,7 +47,7 @@ function lerCsv(caminho: string): Record<string, string>[] {
 }
 
 /** Igual, mas devolve vazio quando o arquivo ainda não foi gerado. */
-function lerCsvOpcional(caminho: string): Record<string, string>[] {
+export function lerCsvOpcional(caminho: string): Record<string, string>[] {
   return existsSync(caminho) ? lerCsv(caminho) : [];
 }
 

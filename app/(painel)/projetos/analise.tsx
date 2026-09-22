@@ -1,5 +1,6 @@
 import type { CSSProperties } from "react";
 import type { AnalisePrevia } from "@/lib/types";
+import { plural } from "../formato";
 
 /**
  * Pastilha da **análise prévia** (Fase 10) — o trabalho da equipe ASEEC antes
@@ -13,7 +14,7 @@ import type { AnalisePrevia } from "@/lib/types";
 export function rotuloAnalise(a: AnalisePrevia): string {
   if (a.temParecer && a.tags.length > 0) return "Parecer + tags";
   if (a.temParecer) return "Parecer";
-  if (a.tags.length > 0) return `${a.tags.length} tags`;
+  if (a.tags.length > 0) return plural(a.tags.length, "tag", "tags");
   return a.temDevolutiva ? "Devolutiva" : "Não analisado";
 }
 

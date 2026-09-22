@@ -37,6 +37,34 @@
    * continua em px de propósito: são medidas de densidade tipográfica, não de
    * ritmo, e arredondá-las para a escala só mexeria na altura das linhas.
    */
+  /*
+   * Escala tipográfica. Eram 22 tamanhos soltos entre 10px e 46px, com degraus
+   * de meio pixel (12 · 12,5 · 13 · 13,5 · 14) que não separavam papel nenhum:
+   * o rodapé lia igual à pastilha, que lia igual à célula da tabela. São nove
+   * degraus de ~1,15 entre si, e cada um tem um papel:
+   *
+   *   micro   rótulo em caixa alta, cabeçalho de coluna, eixo do gráfico
+   *   nota    o que apoia o número: .sub, .rodape, delta, ficha, pastilha
+   *   ui      o que se opera e o que se tabula: tabela, botão, aba, campo
+   *   corpo   texto corrido (o parecer, o mérito, a observação)
+   *   titulo  título de bloco e a frase que abre a reunião
+   *   destaque · pagina · numero · numero-grande  os números e os títulos
+   *
+   * Em `rem`, e não em px, para acompanhar quem aumenta a fonte do navegador —
+   * o painel é lido por conselheiros, e a mesa não tem idade média de 25 anos.
+   * O corpo subiu de 15px para 16px (o piso de leitura) e a tabela de 13 para
+   * 14: quem prepara a reunião lê 250 linhas seguidas.
+   */
+  --texto-micro: 0.6875rem; /* 11px */
+  --texto-nota: 0.78125rem; /* 12,5px */
+  --texto-ui: 0.875rem; /* 14px */
+  --texto-corpo: 1rem; /* 16px */
+  --texto-titulo: 1.1875rem; /* 19px */
+  --texto-destaque: 1.375rem; /* 22px */
+  --texto-pagina: 1.625rem; /* 26px */
+  --texto-numero: 1.875rem; /* 30px */
+  --texto-numero-grande: 2.375rem; /* 38px */
+
   --espaco-xs: 4px;
   --espaco-sm: 8px;
   --espaco-md: 12px;
@@ -70,7 +98,7 @@ body {
   background: var(--fundo);
   color: var(--tinta);
   font-family: var(--fonte-corpo), system-ui, sans-serif;
-  font-size: 15px;
+  font-size: var(--texto-corpo);
   line-height: 1.45;
   -webkit-font-smoothing: antialiased;
 }
@@ -164,13 +192,13 @@ button {
 /* <p class="titulo">, não <h1>: o <h1> da página é o nome do registro aberto,
    e a moldura não pode disputar o topo do sumário de títulos com ele. */
 .cabecalho .titulo {
-  font-size: 19px;
+  font-size: var(--texto-titulo);
   line-height: 1.1;
 }
 
 .cabecalho p {
   margin: 2px 0 0;
-  font-size: 12.5px;
+  font-size: var(--texto-nota);
   color: rgb(255 255 255 / 72%);
 }
 
@@ -198,7 +226,7 @@ button {
   padding: 7px 16px;
   border-radius: 999px;
   font-weight: 600;
-  font-size: 13.5px;
+  font-size: var(--texto-ui);
   transition: background 0.15s;
 }
 
@@ -212,7 +240,7 @@ button {
   background: var(--laranja);
   color: #fff;
   font-weight: 600;
-  font-size: 13.5px;
+  font-size: var(--texto-ui);
   padding: 9px 18px;
   border-radius: 999px;
 }
@@ -265,7 +293,7 @@ main {
 
 .campo label,
 .campo-rotulo {
-  font-size: 11px;
+  font-size: var(--texto-micro);
   text-transform: uppercase;
   letter-spacing: 0.07em;
   font-weight: 600;
@@ -280,7 +308,7 @@ main {
 
 .campo select {
   font: inherit;
-  font-size: 14px;
+  font-size: var(--texto-ui);
   padding: 8px 10px;
   border: 1px solid var(--borda);
   border-radius: 9px;
@@ -315,7 +343,7 @@ main {
   right: 10px;
   bottom: 8px;
   color: var(--tinta-fraca);
-  font-size: 11px;
+  font-size: var(--texto-micro);
 }
 
 .campo-multi[open] > summary,
@@ -324,7 +352,7 @@ main {
 }
 
 .campo-resumo {
-  font-size: 14px;
+  font-size: var(--texto-ui);
   color: var(--tinta);
   white-space: nowrap;
   overflow: hidden;
@@ -355,7 +383,7 @@ main {
   gap: 8px;
   padding: 7px 9px;
   border-radius: 7px;
-  font-size: 14px;
+  font-size: var(--texto-ui);
   text-transform: none;
   letter-spacing: 0;
   font-weight: 400;
@@ -386,7 +414,7 @@ main {
   box-sizing: border-box;
   margin: -6px -6px 4px;
   font: inherit;
-  font-size: 14px;
+  font-size: var(--texto-ui);
   padding: 12px 15px 8px;
   border: 0 solid var(--borda);
   border-bottom-width: 1px;
@@ -401,7 +429,7 @@ main {
 
 .opcoes-vazio {
   padding: 7px 9px;
-  font-size: 13.5px;
+  font-size: var(--texto-ui);
   color: var(--tinta-fraca);
 }
 
@@ -420,7 +448,7 @@ main {
   color: var(--tinta-fraca);
   border-radius: 999px;
   padding: 0;
-  font-size: 13px;
+  font-size: var(--texto-ui);
   line-height: 1;
 }
 
@@ -452,7 +480,7 @@ main {
   border: 0;
   border-radius: 999px;
   padding: 6px 12px;
-  font-size: 12.5px;
+  font-size: var(--texto-nota);
   font-weight: 600;
 }
 
@@ -482,7 +510,7 @@ button.ficha:hover {
 }
 
 .kpi-rotulo {
-  font-size: 11px;
+  font-size: var(--texto-micro);
   text-transform: uppercase;
   letter-spacing: 0.07em;
   font-weight: 600;
@@ -491,7 +519,7 @@ button.ficha:hover {
 
 .kpi-valor {
   font-family: var(--fonte-titulo), system-ui, sans-serif;
-  font-size: 30px;
+  font-size: var(--texto-numero);
   font-weight: 600;
   line-height: 1.15;
   margin-top: 4px;
@@ -500,10 +528,17 @@ button.ficha:hover {
 }
 
 .kpi-delta {
-  font-size: 12.5px;
+  font-size: var(--texto-nota);
   margin-top: 3px;
   color: var(--tinta-fraca);
   font-variant-numeric: tabular-nums;
+}
+
+/* Do que o número é feito, embaixo do quanto ele mudou — as duas leituras que
+   a tabela comparadora de cada página dava num bloco à parte. */
+.kpi-nota {
+  display: block;
+  margin-top: 1px;
 }
 
 .subiu {
@@ -566,7 +601,7 @@ button.ficha:hover {
   color: var(--tinta-fraca);
   border-radius: 8px;
   padding: 4px 9px;
-  font-size: 12px;
+  font-size: var(--texto-nota);
   cursor: pointer;
 }
 
@@ -625,7 +660,7 @@ button.ficha:hover {
   color: #fff;
   border-radius: 10px;
   padding: 10px 12px;
-  font-size: 12.5px;
+  font-size: var(--texto-nota);
   line-height: 1.35;
   box-shadow: var(--sombra-flutuante);
   z-index: var(--z-flutuante);
@@ -635,7 +670,7 @@ button.ficha:hover {
 
 .dica b {
   font-family: var(--fonte-titulo), system-ui, sans-serif;
-  font-size: 14px;
+  font-size: var(--texto-ui);
   display: block;
   margin-bottom: 4px;
 }
@@ -652,7 +687,7 @@ button.ficha:hover {
   padding-top: 6px;
   border-top: 1px solid rgb(255 255 255 / 20%);
   color: rgb(255 255 255 / 72%);
-  font-size: 11.5px;
+  font-size: var(--texto-nota);
 }
 
 .legenda {
@@ -661,7 +696,7 @@ button.ficha:hover {
   gap: 16px;
   flex-wrap: wrap;
   padding: 10px 6px 0;
-  font-size: 12px;
+  font-size: var(--texto-nota);
   color: var(--tinta-fraca);
 }
 
@@ -704,13 +739,13 @@ button.ficha:hover {
 }
 
 .ranking h2 {
-  font-size: 18px;
+  font-size: var(--texto-titulo);
   margin-bottom: 2px;
 }
 
 .ranking p.sub {
   margin: 0 0 10px;
-  font-size: 12px;
+  font-size: var(--texto-nota);
   color: var(--tinta-fraca);
 }
 
@@ -756,7 +791,7 @@ button.ficha:hover {
   display: flex;
   justify-content: space-between;
   gap: 10px;
-  font-size: 13.5px;
+  font-size: var(--texto-ui);
 }
 
 .linha-topo b {
@@ -809,7 +844,7 @@ button.ficha:hover {
 .abas a {
   color: rgb(255 255 255 / 78%);
   text-decoration: none;
-  font-size: 13.5px;
+  font-size: var(--texto-ui);
   font-weight: 600;
   padding: 8px 14px;
   border-radius: 999px;
@@ -847,7 +882,7 @@ button.ficha:hover {
   padding: 8px 14px;
   border-radius: 999px;
   color: rgb(255 255 255 / 78%);
-  font-size: 13.5px;
+  font-size: var(--texto-ui);
   font-weight: 600;
   white-space: nowrap;
   cursor: pointer;
@@ -860,7 +895,7 @@ button.ficha:hover {
 
 .menu > summary::after {
   content: "▾";
-  font-size: 11px;
+  font-size: var(--texto-micro);
 }
 
 .menu > summary:hover,
@@ -903,7 +938,7 @@ button.ficha:hover {
   color: var(--tinta);
   text-align: left;
   text-decoration: none;
-  font-size: 14px;
+  font-size: var(--texto-ui);
   font-weight: 600;
   padding: 9px 11px;
   border-radius: 7px;
@@ -972,7 +1007,7 @@ button.ficha:hover {
  * tipográfica daqui: o degrau que faltava era este.
  */
 .bloco h2 {
-  font-size: 18px;
+  font-size: var(--texto-titulo);
 }
 
 /* Título à esquerda, ações (exportar) à direita — ver Secao em ui.tsx. */
@@ -996,7 +1031,7 @@ button.ficha:hover {
   border: 1px solid var(--borda);
   background: var(--papel);
   color: var(--azul);
-  font-size: 12.5px;
+  font-size: var(--texto-nota);
   font-weight: 600;
   padding: 7px 13px;
   border-radius: 999px;
@@ -1010,13 +1045,19 @@ button.ficha:hover {
 
 .sub {
   margin: 2px 0 10px;
-  font-size: 12px;
+  max-width: 95ch;
+  font-size: var(--texto-nota);
   color: var(--tinta-fraca);
 }
 
+/* O rodapé de um bloco explica de onde veio o número, e às vezes leva quatro
+   linhas. Sem teto de medida ele atravessava os 1560px do painel: a 12,5px são
+   quase 200 caracteres por linha, e o olho perde a volta. */
 .rodape {
   margin: 10px 0 0;
-  font-size: 12px;
+  max-width: 95ch;
+  font-size: var(--texto-nota);
+  line-height: 1.55;
   color: var(--tinta-fraca);
 }
 
@@ -1112,7 +1153,7 @@ button.ficha:hover {
 
 .eixo {
   fill: var(--tinta-fraca);
-  font-size: 11px;
+  font-size: var(--texto-micro);
   font-variant-numeric: tabular-nums;
 }
 
@@ -1136,7 +1177,7 @@ button.ficha:hover {
 
 .marca-rotulo {
   fill: var(--azul);
-  font-size: 11.5px;
+  font-size: var(--texto-nota);
   font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
@@ -1146,7 +1187,7 @@ button.ficha:hover {
   gap: 18px;
   flex-wrap: wrap;
   margin-top: 8px;
-  font-size: 12px;
+  font-size: var(--texto-nota);
   color: var(--tinta-fraca);
 }
 
@@ -1164,7 +1205,7 @@ button.ficha:hover {
 .n-inline {
   font-variant-numeric: tabular-nums;
   color: var(--tinta-fraca);
-  font-size: 12.5px;
+  font-size: var(--texto-nota);
 }
 
 /* -------------------------------------------------------------- tabelas */
@@ -1172,7 +1213,7 @@ button.ficha:hover {
 .tabela {
   width: 100%;
   border-collapse: collapse;
-  font-size: 13px;
+  font-size: var(--texto-ui);
 }
 
 .tabela th,
@@ -1184,7 +1225,7 @@ button.ficha:hover {
 }
 
 .tabela th {
-  font-size: 11px;
+  font-size: var(--texto-micro);
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--tinta-fraca);
@@ -1237,7 +1278,7 @@ button.ficha:hover {
     color-mix(in srgb, var(--cor, var(--neutro-forte)) 70%, var(--papel));
   border-radius: 999px;
   padding: 2px 9px;
-  font-size: 11.5px;
+  font-size: var(--texto-nota);
   font-weight: 600;
   white-space: nowrap;
 }
@@ -1255,14 +1296,14 @@ button.ficha:hover {
 }
 
 .alerta-caixa h2 {
-  font-size: 14px;
+  font-size: var(--texto-ui);
   font-weight: 500;
 }
 
 .alertas {
   margin: 8px 0 0;
   padding-left: 18px;
-  font-size: 12.5px;
+  font-size: var(--texto-nota);
   color: var(--laranja-escuro);
 }
 
@@ -1294,7 +1335,7 @@ button.ficha:hover {
 .erro code {
   display: block;
   margin-top: 12px;
-  font-size: 12.5px;
+  font-size: var(--texto-nota);
   color: var(--vermelho);
   word-break: break-word;
 }
@@ -1364,7 +1405,7 @@ button.ficha:hover {
 
 .pasta .pasta-n {
   font-family: var(--fonte-titulo), system-ui, sans-serif;
-  font-size: 22px;
+  font-size: var(--texto-destaque);
   line-height: 1;
   grid-row: span 2;
   align-self: center;
@@ -1372,7 +1413,7 @@ button.ficha:hover {
 
 .pasta .sub {
   grid-column: 1;
-  font-size: 12px;
+  font-size: var(--texto-nota);
 }
 
 /* A fila sem dono não é uma pasta de apresentação — é trabalho pendente. */
@@ -1432,7 +1473,7 @@ button.ficha:hover {
   display: flex;
   align-items: baseline;
   gap: 8px;
-  font-size: 13px;
+  font-size: var(--texto-ui);
   color: var(--tinta-fraca);
   font-variant-numeric: tabular-nums;
 }
@@ -1443,7 +1484,7 @@ button.ficha:hover {
   border-radius: 8px;
   background: var(--papel);
   color: var(--azul);
-  font-size: 16px;
+  font-size: var(--texto-corpo);
   line-height: 1.6;
   text-decoration: none;
 }
@@ -1458,7 +1499,7 @@ button.ficha:hover {
   flex: 1 1 12ch;
   min-width: 0;
   font-family: var(--fonte-titulo), system-ui, sans-serif;
-  font-size: 15px;
+  font-size: var(--texto-corpo);
   color: var(--azul);
   white-space: nowrap;
   overflow: hidden;
@@ -1467,7 +1508,7 @@ button.ficha:hover {
 
 .pasta-ancora {
   color: var(--laranja-escuro);
-  font-size: 13px;
+  font-size: var(--texto-ui);
   font-weight: 600;
   text-decoration: none;
   white-space: nowrap;
@@ -1475,14 +1516,14 @@ button.ficha:hover {
 
 .pasta-pedido {
   font-family: var(--fonte-titulo), system-ui, sans-serif;
-  font-size: 17px;
+  font-size: var(--texto-titulo);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
 
 .pasta-pedido span {
   font-family: var(--fonte-corpo), system-ui, sans-serif;
-  font-size: 11px;
+  font-size: var(--texto-micro);
   text-transform: uppercase;
   letter-spacing: 0.07em;
   color: var(--tinta-fraca);
@@ -1490,7 +1531,7 @@ button.ficha:hover {
 
 /* Título de faixa: divide a página em camadas de decisão sem virar cartão. */
 .faixa-titulo {
-  font-size: 13px;
+  font-size: var(--texto-ui);
   text-transform: uppercase;
   letter-spacing: 0.07em;
   color: var(--tinta-fraca);
@@ -1525,7 +1566,7 @@ button.ficha:hover {
 
 .cabecalho-projeto h1 {
   margin: 0 0 12px;
-  font-size: 26px;
+  font-size: var(--texto-pagina);
   max-width: 60ch;
 }
 
@@ -1570,7 +1611,7 @@ button.ficha:hover {
 }
 
 .valor-principal .kpi-valor {
-  font-size: 38px;
+  font-size: var(--texto-numero-grande);
   margin-top: 0;
 }
 
@@ -1604,7 +1645,7 @@ button.ficha:hover {
 }
 
 .identificacao dt {
-  font-size: 11px;
+  font-size: var(--texto-micro);
   text-transform: uppercase;
   letter-spacing: 0.07em;
   font-weight: 600;
@@ -1624,7 +1665,7 @@ button.ficha:hover {
 
 .voltar {
   color: var(--tinta-fraca);
-  font-size: 13px;
+  font-size: var(--texto-ui);
   text-decoration: none;
 }
 
@@ -1646,7 +1687,7 @@ button.ficha:hover {
   border: 1px solid var(--azul-claro);
   border-radius: 10px;
   background: var(--fundo);
-  font-size: 14px;
+  font-size: var(--texto-ui);
 }
 
 .videos {
@@ -1860,7 +1901,7 @@ button.ficha:hover {
 
 .visor-tabela table {
   border-collapse: collapse;
-  font-size: 13px;
+  font-size: var(--texto-ui);
 }
 
 .visor-tabela td {
@@ -1939,7 +1980,7 @@ button.ficha:hover {
 .campo-texto h3 {
   margin: 0 0 6px;
   font-family: var(--fonte-titulo), system-ui, sans-serif;
-  font-size: 12px;
+  font-size: var(--texto-nota);
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: var(--azul);
@@ -1950,6 +1991,9 @@ button.ficha:hover {
 .campo-texto p {
   margin: 0;
   max-width: 74ch;
+  /* Texto de leitura longa (o mérito, a justificativa, o parecer): entrelinha
+     mais solta que a do painel, que é feita para linha curta de tabela. */
+  line-height: 1.6;
   white-space: pre-wrap;
 }
 
@@ -2008,7 +2052,7 @@ button.ficha:hover {
 .relatorio h3 {
   margin: 0 0 10px;
   font-family: var(--fonte-titulo), system-ui, sans-serif;
-  font-size: 16px;
+  font-size: var(--texto-corpo);
   display: flex;
   gap: 10px;
   align-items: baseline;
@@ -2039,8 +2083,22 @@ button.ficha:hover {
  * em pixels a partir de getBoundingClientRect() e um fator de escala no
  * ancestral desalinharia o tooltip do país.
  */
+/*
+ * A TV não tem escala própria: é a MESMA escala, um degrau acima. Eram treze
+ * regras repetindo `font-size` elemento a elemento, e todo elemento novo
+ * nascia fora delas (a tabela ficou em 13px na TV até hoje). Redefinindo os
+ * nove tokens, o que entrar no painel já entra legível a três metros.
+ */
 body.apresentacao {
-  font-size: 18px;
+  --texto-micro: 0.8125rem; /* 13px */
+  --texto-nota: 0.9375rem; /* 15px */
+  --texto-ui: 1rem; /* 16px */
+  --texto-corpo: 1.125rem; /* 18px */
+  --texto-titulo: 1.375rem; /* 22px */
+  --texto-destaque: 1.625rem; /* 26px */
+  --texto-pagina: 2.125rem; /* 34px */
+  --texto-numero: 2.625rem; /* 42px */
+  --texto-numero-grande: 3rem; /* 48px */
 }
 
 body.apresentacao main {
@@ -2048,65 +2106,23 @@ body.apresentacao main {
   padding: var(--espaco-xl) var(--espaco-2xl) var(--espaco-3xl);
 }
 
-body.apresentacao .kpi-valor {
-  font-size: 42px;
-}
-
-body.apresentacao .kpi-rotulo,
-body.apresentacao .campo label,
-body.apresentacao .campo-rotulo {
-  font-size: 13px;
-}
-
-body.apresentacao .kpi-delta,
-body.apresentacao .sub,
-body.apresentacao .rodape,
-body.apresentacao .legenda-grafico {
-  font-size: 15px;
-}
-
 /* O texto DENTRO do SVG já cresce com o viewBox — só a legenda é HTML. */
 
-/* Mesma razão da tela (1,2 sobre o corpo), com o corpo em 18px. */
-body.apresentacao .bloco h2,
-body.apresentacao .ranking h2 {
-  font-size: 22px;
-}
-
-body.apresentacao .linha-topo,
-body.apresentacao .tabela,
-body.apresentacao .ficha,
-body.apresentacao .abas a,
-body.apresentacao .menu > summary,
-body.apresentacao .menu-itens a,
-body.apresentacao .menu-itens button,
-body.apresentacao .anos button {
-  font-size: 16px;
-}
-
-body.apresentacao .tabela th {
-  font-size: 13px;
-}
-
-body.apresentacao .cabecalho .titulo {
-  font-size: 24px;
-}
-
-/* Na TV o nome do projeto é o slide. Antes ficava em 26px enquanto o valor ia
-   a 42px — e a triagem, que é o que a sala está decidindo, ficava em 11,5px. */
+/* Na TV o nome do projeto é o slide, e vai além do degrau de página: ele é a
+   única coisa que a sala lê enquanto alguém apresenta. */
 body.apresentacao .cabecalho-projeto h1 {
-  font-size: 46px;
+  font-size: 2.875rem; /* 46px */
 }
 
 body.apresentacao .pastilha,
 body.apresentacao .pastilha-tipo {
-  font-size: 15px;
   padding: 4px 12px;
 }
 
-body.apresentacao .campo-texto h3,
+/* O rótulo da ficha de valores é o que a mesa lê junto com o número; na TV
+   ele fica no degrau da nota, e não no de rótulo miúdo. */
 body.apresentacao .identificacao dt {
-  font-size: 15px;
+  font-size: var(--texto-nota);
 }
 
 /* Colar link é trabalho de preparação; na TV é ruído no meio do slide. */
@@ -2114,28 +2130,14 @@ body.apresentacao .form-link {
   display: none;
 }
 
-/* Na TV a barra da pasta é a única coisa sempre visível: o nome e o pedido
-   têm que ser legíveis a três metros sem comer meia tela. */
+/* Na TV a barra da pasta é a única coisa sempre visível: o nome tem que ser
+   legível a três metros sem comer meia tela (o pedido já sobe com o token). */
 body.apresentacao .pasta-titulo {
-  font-size: 20px;
-}
-
-body.apresentacao .pasta-pedido {
-  font-size: 24px;
-}
-
-body.apresentacao .pasta-passo,
-body.apresentacao .pasta-ancora,
-body.apresentacao .faixa-titulo {
-  font-size: 16px;
+  font-size: 1.25rem; /* 20px */
 }
 
 body.apresentacao .bloco {
   scroll-margin-top: 76px;
-}
-
-body.apresentacao .observacao {
-  font-size: 17px;
 }
 
 /* Um painel por vez: nada de rolar duas listas dentro da mesma tela.
@@ -2167,8 +2169,28 @@ body.apresentacao .rolagem {
     size: A4 landscape;
   }
 
-  body {
+  /*
+   * No papel a escala é a mesma, um degrau abaixo e em PONTOS — a unidade de
+   * quem imprime. Antes o documento saía com as medidas de tela (corpo 16px,
+   * tabela 14px), que numa A4 deitada é tamanho de cartilha e come linha por
+   * página. 9pt na relação e 10pt no texto é a medida de documento de conselho,
+   * e continua legível em fotocópia preto e branco.
+   */
+  /* `body.apresentacao` junto porque imprimir NO MEIO da apresentação é o caso
+     normal (o botão Exportar PDF fica no mesmo menu do Apresentar): sem isto a
+     especificidade do modo TV vencia, e a ata saía em corpo 18px. */
+  body,
+  body.apresentacao {
     background: #fff;
+    --texto-micro: 7pt;
+    --texto-nota: 8pt;
+    --texto-ui: 9pt;
+    --texto-corpo: 10pt;
+    --texto-titulo: 12pt;
+    --texto-destaque: 14pt;
+    --texto-pagina: 16pt;
+    --texto-numero: 18pt;
+    --texto-numero-grande: 22pt;
   }
 
   /* Controles não vão para a ata; o recorte vai, na linha .so-impressao.
@@ -2219,13 +2241,13 @@ body.apresentacao .rolagem {
     padding: 8px 0 12px;
     border-bottom: 2px solid var(--azul);
     margin-bottom: 12px;
-    font-size: 12px;
+    font-size: var(--texto-nota);
     color: var(--tinta-fraca);
   }
 
   .so-impressao b {
     font-family: var(--fonte-titulo), system-ui, sans-serif;
-    font-size: 15px;
+    font-size: var(--texto-titulo);
     color: var(--azul);
   }
 
@@ -2284,7 +2306,7 @@ body.apresentacao .rolagem {
   .link-projeto[href]::after {
     content: " <" attr(href) ">";
     font-weight: 400;
-    font-size: 10px;
+    font-size: var(--texto-micro);
     color: var(--tinta-fraca);
     word-break: break-all;
   }
@@ -2340,7 +2362,7 @@ body.apresentacao .rolagem {
 
 .intro-parcerias {
   margin: 0 0 var(--espaco-md);
-  font-size: 13.5px;
+  font-size: var(--texto-ui);
   color: var(--tinta-fraca);
   max-width: 900px;
 }
@@ -2367,7 +2389,7 @@ body.apresentacao .rolagem {
   background: var(--papel);
   color: var(--tinta-fraca);
   font-weight: 600;
-  font-size: 13px;
+  font-size: var(--texto-ui);
   padding: 6px 16px;
   border-radius: 999px;
   cursor: pointer;
@@ -2413,14 +2435,14 @@ body.apresentacao .rolagem {
 
 .linha-melhor {
   display: block;
-  font-size: 11.5px;
+  font-size: var(--texto-nota);
   margin-top: 2px;
 }
 
 .pastilha-candidato {
   --cor: var(--laranja);
   margin-left: 6px;
-  font-size: 10.5px;
+  font-size: var(--texto-micro);
   padding: 0 6px;
 }
 
@@ -2428,7 +2450,7 @@ body.apresentacao .rolagem {
   border: 0;
   background: transparent;
   color: var(--neutro-forte);
-  font-size: 18px;
+  font-size: var(--texto-titulo);
   line-height: 1;
   cursor: pointer;
   padding: 0 4px;
@@ -2462,7 +2484,7 @@ body.apresentacao .rolagem {
   margin: 0 0 var(--espaco-xl);
   padding: 0 0 var(--espaco-lg) 0;
   border-bottom: 2px solid var(--azul);
-  font-size: 17px;
+  font-size: var(--texto-titulo);
   line-height: 1.5;
   max-width: 105ch;
 }
@@ -2472,16 +2494,12 @@ body.apresentacao .rolagem {
   font-weight: 700;
 }
 
-body.apresentacao .veredito {
-  font-size: 22px;
-}
-
 /* Segunda linha dentro de uma célula: de onde vem o número da célula (as
    categorias da rúbrica, o desvio em pontos, a divisão novo × renovação). */
 .celula-sub {
   display: block;
   margin-top: 2px;
-  font-size: 11.5px;
+  font-size: var(--texto-nota);
   font-weight: 400;
   color: var(--tinta-fraca);
   white-space: normal;

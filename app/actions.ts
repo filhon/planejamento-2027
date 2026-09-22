@@ -37,19 +37,28 @@ export async function salvarLinkPrestacao(
   _estado: EstadoLink,
   form: FormData,
 ): Promise<EstadoLink> {
-  if (!UUID.test(alvo.id)) return { erro: "Projeto inválido." };
+  if (!UUID.test(alvo.id))
+    return { erro: "Projeto não reconhecido. Recarregue a página." };
 
   const bruto = String(form.get("link") ?? "").trim();
   if (!bruto) return { erro: "Cole o link do arquivo ou da pasta no Drive." };
-  if (bruto.length > 2000) return { erro: "Link longo demais." };
+  if (bruto.length > 2000)
+    return {
+      erro: "Link comprido demais — copie o endereço da barra do navegador, sem o texto em volta.",
+    };
 
   let url: URL;
   try {
     url = new URL(bruto);
   } catch {
-    return { erro: "Isso não é um endereço válido." };
+    return {
+      erro: "Não reconheci esse endereço. Cole o link inteiro, começando com https://",
+    };
   }
-  if (url.protocol !== "https:") return { erro: "Só link https." };
+  if (url.protocol !== "https:")
+    return {
+      erro: "O link precisa começar com https:// — use o botão Compartilhar do Drive.",
+    };
 
   adicionarLinkPrestacao({
     projectId: alvo.id,

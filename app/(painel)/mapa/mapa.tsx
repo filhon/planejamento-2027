@@ -14,6 +14,7 @@ import {
   plural,
   ROTULO_STATUS,
   rotuloCategoria,
+  SEM_RESULTADO,
 } from "../formato";
 import { Kpi, Secao } from "../ui";
 
@@ -137,7 +138,10 @@ export default function Mapa({
 
       <div className="fichas fichas-mapa">
         {sensiveis.length > 0 && (
-          <span className="ficha" title="Contam nos KPIs; não pintam o mapa">
+          <span
+            className="ficha"
+            title="Projetos sem país declarado ou em mais de um país. Contam nos números acima; não pintam o mapa."
+          >
             Multi-país / sensível:{" "}
             <b>{sensiveis.reduce((s, l) => s + l.projetos, 0)}</b>
           </span>
@@ -145,17 +149,19 @@ export default function Mapa({
         {naoMapeados.length > 0 && (
           <span
             className="ficha"
-            title="País fora de data/country_map.csv — completar o de-para"
+            title="Nome de país que o painel ainda não sabe traduzir para o mapa — a equipe completa a lista em data/country_map.csv"
           >
-            Sem de-para: <b>{naoMapeados.map((l) => l.nomePt).join(", ")}</b>
+            País não reconhecido:{" "}
+            <b>{naoMapeados.map((l) => l.nomePt).join(", ")}</b>
           </span>
         )}
         {semGeometria.length > 0 && (
           <span
             className="ficha"
-            title="País pequeno demais para a geometria 110m — ver o ranking ao lado"
+            title="País pequeno demais para aparecer nesta escala do mapa — os projetos dele estão no ranking ao lado"
           >
-            Fora do mapa: <b>{semGeometria.map((l) => l.nomePt).join(", ")}</b>
+            Pequeno demais para o mapa:{" "}
+            <b>{semGeometria.map((l) => l.nomePt).join(", ")}</b>
           </span>
         )}
       </div>
@@ -278,7 +284,7 @@ export default function Mapa({
           <h2 className="titulo">Top países</h2>
           <p className="sub">
             {locais.length === 0
-              ? "Nenhum projeto com os filtros atuais."
+              ? SEM_RESULTADO
               : "Clique para filtrar o painel inteiro."}
           </p>
           {/* A lista é absoluta dentro desta caixa de propósito: assim ela não
@@ -360,7 +366,7 @@ export default function Mapa({
               {lista.length === 0 && (
                 <tr>
                   <td colSpan={6} className="sub">
-                    Nenhum projeto com os filtros atuais.
+                    {SEM_RESULTADO}
                   </td>
                 </tr>
               )}

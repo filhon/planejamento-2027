@@ -83,42 +83,6 @@ export default function Prestacao({
           },
         ];
 
-  const comparacao = antes
-    ? [
-        {
-          metrica: "Projetos financiados",
-          a: c.financiados,
-          b: antes.financiados,
-          fmt: (v: number) => fmtInt.format(v),
-        },
-        {
-          metrica: "Com prestação entregue",
-          a: c.comRelatorio,
-          b: antes.comRelatorio,
-          fmt: (v: number) => fmtInt.format(v),
-        },
-        {
-          metrica: "Cobertura",
-          a: c.cobertura * 100,
-          b: antes.cobertura * 100,
-          fmt: (v: number) =>
-            `${v.toLocaleString("pt-BR", { maximumFractionDigits: 1 })} p.p.`,
-        },
-        {
-          metrica: "Relatórios",
-          a: c.relatorios,
-          b: antes.relatorios,
-          fmt: (v: number) => fmtInt.format(v),
-        },
-        {
-          metrica: "Aprovado sem prestação",
-          a: c.aprovadoDescoberto,
-          b: antes.aprovadoDescoberto,
-          fmt: (v: number) => fmtMoeda.format(v),
-        },
-      ]
-    : [];
-
   return (
     <>
       {c.financiados === 0 && (
@@ -141,16 +105,17 @@ export default function Prestacao({
             {c.relatoriosForaDoEsperado > 0 && (
               <li>
                 {plural(c.relatoriosForaDoEsperado, "relatório", "relatórios")}{" "}
-                entregues contra projeto fora do grupo aprovado/encerrado —
-                contam como relatório, não como cobertura.
+                entregues por projeto que não está aprovado nem encerrado.
+                Entram na contagem de relatórios, mas não na cobertura: cobrança
+                de prestação só vale para quem recebeu verba.
               </li>
             )}
             {c.relatoriosDeOutroCiclo > 0 && (
               <li>
                 {plural(c.relatoriosDeOutroCiclo, "relatório", "relatórios")}{" "}
-                com <code>cycle_id</code> de outra remessa na origem. Contam
-                aqui porque a remessa vem do projeto — conferir o carimbo com a
-                equipe.
+                carimbados no sistema com a remessa errada. Contam aqui porque o
+                painel segue a remessa do projeto, e não o carimbo; a correção é
+                no sistema de submissão.
               </li>
             )}
           </ul>
@@ -169,6 +134,12 @@ export default function Prestacao({
         <Kpi
           rotulo="Cobertura"
           valor={c.financiados ? pct(c.cobertura) : "—"}
+          atual={c.financiados ? c.cobertura * 100 : undefined}
+          anterior={antes && antes.financiados ? antes.cobertura * 100 : null}
+          anoAnterior={anoAnterior}
+          formatar={(v) =>
+            `${v.toLocaleString("pt-BR", { maximumFractionDigits: 1 })} p.p.`
+          }
           nota={`${c.comRelatorio} de ${c.financiados} projetos`}
           tom={
             !c.financiados
@@ -183,6 +154,10 @@ export default function Prestacao({
         <Kpi
           rotulo="Relatórios"
           valor={fmtInt.format(c.relatorios)}
+          atual={c.relatorios}
+          anterior={antes?.relatorios}
+          anoAnterior={anoAnterior}
+          formatar={(v) => fmtInt.format(v)}
           nota={`${c.enviados} enviados · ${c.rascunhos} em rascunho`}
         />
         <Kpi
@@ -193,6 +168,12 @@ export default function Prestacao({
         <Kpi
           rotulo="Aprovado sem prestação"
           valor={fmtMoedaCurta.format(c.aprovadoDescoberto)}
+          atual={c.aprovadoDescoberto}
+          anterior={antes?.aprovadoDescoberto}
+          anoAnterior={anoAnterior}
+          formatar={(v) => fmtMoedaCurta.format(v)}
+          /* Subir aqui é dinheiro aprovado sem relatório: sobe em laranja. */
+          inverso
           nota={`de ${fmtMoedaCurta.format(c.aprovadoTotal)} aprovados`}
           tom={
             !c.aprovadoTotal
@@ -242,49 +223,6 @@ export default function Prestacao({
             vazio="Nenhum projeto financiado no recorte atual."
             itens={execucao}
           />
-        </Secao>
-
-        <Secao
-          titulo={`Comparador ${ano} × ${anoAnterior ?? "—"}`}
-          sub={
-            filtroAtivo
-              ? "Os dois ciclos usam os mesmos filtros."
-              : "Ciclo inteiro, sem filtros."
-          }
-        >
-          {comparacao.length === 0 ? (
-            <p className="sub">Sem ciclo anterior para comparar.</p>
-          ) : (
-            <table className="tabela">
-              <thead>
-                <tr>
-                  <th>Métrica</th>
-                  <th className="n">{ano}</th>
-                  <th className="n">{anoAnterior}</th>
-                  <th className="n">Δ</th>
-                </tr>
-              </thead>
-              <tbody>
-                {comparacao.map((l) => {
-                  const d = l.a - l.b;
-                  return (
-                    <tr key={l.metrica}>
-                      <td>{l.metrica}</td>
-                      <td className="n">{l.fmt(l.a)}</td>
-                      <td className="n">{l.fmt(l.b)}</td>
-                      <td
-                        className={`n ${d === 0 ? "" : d > 0 ? "subiu" : "desceu"}`}
-                      >
-                        {d === 0
-                          ? "="
-                          : `${d > 0 ? "+" : "−"}${l.fmt(Math.abs(d))}`}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          )}
         </Secao>
 
         <Secao

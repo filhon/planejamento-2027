@@ -4,7 +4,15 @@ import { useMemo } from "react";
 import { agregarPorInstituicao } from "@/lib/agregar";
 import type { Conformidade, InstituicaoResumo } from "@/lib/types";
 import { usePainel } from "../contexto";
-import { fmtInt, fmtMoeda, fmtMoedaCurta, num, pct, plural } from "../formato";
+import {
+  fmtInt,
+  fmtMoeda,
+  fmtMoedaCurta,
+  num,
+  pct,
+  plural,
+  SEM_RESULTADO,
+} from "../formato";
 import { Barras, Kpi, Secao } from "../ui";
 
 /**
@@ -43,8 +51,7 @@ export default function Instituicoes({
 }: {
   conformidade: Conformidade;
 }) {
-  const { ano, anoAnterior, projetos, projetosAnteriores, filtroAtivo } =
-    usePainel();
+  const { anoAnterior, projetos, projetosAnteriores } = usePainel();
 
   const lista = useMemo(
     () => agregarPorInstituicao(projetos, conformidade.porInstituicao),
@@ -76,45 +83,6 @@ export default function Instituicoes({
     }
     return [...contagem.entries()].sort((a, b) => b[1] - a[1]);
   }, [lista]);
-
-  const comparacao = anoAnterior
-    ? [
-        {
-          metrica: "Instituições",
-          a: lista.length,
-          b: antes.length,
-          fmt: (v: number) => fmtInt.format(v),
-        },
-        {
-          metrica: "Conveniadas",
-          a: conveniadas.length,
-          b: antes.filter((i) => i.conveniada).length,
-          fmt: (v: number) => fmtInt.format(v),
-        },
-        {
-          metrica: "Projetos por instituição",
-          a: lista.length ? projetos.length / lista.length : 0,
-          b: antes.length ? projetosAnteriores.length / antes.length : 0,
-          fmt: (v: number) => num(v, 2),
-        },
-        {
-          metrica: "Solicitado por instituição",
-          a: lista.length
-            ? somar(lista, (i) => i.solicitado) / lista.length
-            : 0,
-          b: antes.length
-            ? somar(antes, (i) => i.solicitado) / antes.length
-            : 0,
-          fmt: (v: number) => fmtMoeda.format(v),
-        },
-        {
-          metrica: "Concentração dos 5 maiores",
-          a: topo5,
-          b: concentracao(antes),
-          fmt: (v: number) => pct(v),
-        },
-      ]
-    : [];
 
   return (
     <>
@@ -157,6 +125,12 @@ export default function Instituicoes({
         <Kpi
           rotulo="Concentração (5 maiores)"
           valor={topo5 === null ? "—" : pct(topo5)}
+          atual={topo5 === null ? undefined : topo5 * 100}
+          anterior={(concentracao(antes) ?? 0) * 100 || null}
+          anoAnterior={anoAnterior}
+          formatar={(v) =>
+            `${v.toLocaleString("pt-BR", { maximumFractionDigits: 1 })} p.p.`
+          }
           nota="fatia do solicitado no recorte"
           tom={topo5 === null ? undefined : topo5 > 0.5 ? "atencao" : undefined}
         />
@@ -260,51 +234,6 @@ export default function Instituicoes({
         </Secao>
 
         <Secao
-          titulo={`Comparador ${ano} × ${anoAnterior ?? "—"}`}
-          sub={
-            filtroAtivo
-              ? "Os dois ciclos usam os mesmos filtros."
-              : "Ciclo inteiro, sem filtros."
-          }
-        >
-          {comparacao.length === 0 ? (
-            <p className="sub">Sem ciclo anterior para comparar.</p>
-          ) : (
-            <table className="tabela">
-              <thead>
-                <tr>
-                  <th>Métrica</th>
-                  <th className="n">{ano}</th>
-                  <th className="n">{anoAnterior}</th>
-                  <th className="n">Δ</th>
-                </tr>
-              </thead>
-              <tbody>
-                {comparacao.map((l) => {
-                  const d = l.a === null || l.b === null ? null : l.a - l.b;
-                  return (
-                    <tr key={l.metrica}>
-                      <td>{l.metrica}</td>
-                      <td className="n">{l.a === null ? "—" : l.fmt(l.a)}</td>
-                      <td className="n">{l.b === null ? "—" : l.fmt(l.b)}</td>
-                      <td
-                        className={`n ${d === null || d === 0 ? "" : d > 0 ? "subiu" : "desceu"}`}
-                      >
-                        {d === null
-                          ? "—"
-                          : d === 0
-                            ? "="
-                            : `${d > 0 ? "+" : "−"}${l.fmt(Math.abs(d))}`}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          )}
-        </Secao>
-
-        <Secao
           titulo="Todas as instituições do recorte"
           sub="Ordenadas por verba aprovada e, sem aprovação no ciclo, por solicitada."
           largura="cheia"
@@ -376,7 +305,7 @@ export default function Instituicoes({
                 {lista.length === 0 && (
                   <tr>
                     <td colSpan={11} className="sub">
-                      Nenhuma instituição com os filtros atuais.
+                      {SEM_RESULTADO}
                     </td>
                   </tr>
                 )}
@@ -384,9 +313,10 @@ export default function Instituicoes({
             </table>
           </div>
           <p className="rodape">
-            &quot;Parceria&quot; e as observações de avaliação são colunas
-            <b> curadas</b> em <code>data/institution_enrichment.csv</code> —
-            seguem vazias até a equipe preencher.
+            A coluna <b>Parceria</b> (anos) e as observações de avaliação não
+            existem no sistema de submissão: são preenchidas à mão pela equipe,
+            na planilha <code>data/institution_enrichment.csv</code>, e ficam
+            vazias até lá.
           </p>
         </Secao>
       </div>

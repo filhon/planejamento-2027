@@ -17,6 +17,7 @@ import {
   fmtMoedaCurta,
   plural,
   ROTULO_STATUS,
+  SEM_RESULTADO,
 } from "../formato";
 import { Kpi, Secao } from "../ui";
 import { Analise } from "./analise";
@@ -294,9 +295,9 @@ export default function Projetos({
                 {lista.length === 0 && (
                   <tr>
                     <td colSpan={8} className="sub">
-                      Nenhum projeto com os filtros atuais.
-                      {filtros.responsavel.includes(SEM_RESPONSAVEL) &&
-                        " Rode a triagem para distribuir as pastas."}
+                      {filtros.responsavel.includes(SEM_RESPONSAVEL)
+                        ? "Nenhum projeto sem responsável neste recorte."
+                        : SEM_RESULTADO}
                     </td>
                   </tr>
                 )}
@@ -307,9 +308,12 @@ export default function Projetos({
       </div>
 
       <p className="rodape">
-        Triagem por projeto: {ROTULO_TIPO.renovacao} · {ROTULO_TIPO.novo} ·{" "}
-        {ROTULO_TIPO.revisar}. Vem de <code>data/projetos_avaliacao.csv</code>,
-        fora da origem — a equipe confirma na planilha e o painel obedece.
+        A triagem é por projeto — {ROTULO_TIPO.renovacao} quando o painel achou
+        o mesmo projeto na remessa anterior, {ROTULO_TIPO.novo} quando não achou
+        e &quot;{ROTULO_TIPO.revisar}&quot; quando o casamento é plausível mas
+        não conclusivo. O sistema de submissão não liga uma remessa à outra: a
+        decisão final é da equipe, na planilha{" "}
+        <code>data/projetos_avaliacao.csv</code>, e o painel obedece a ela.
       </p>
     </>
   );

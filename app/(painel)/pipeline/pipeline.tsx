@@ -15,6 +15,8 @@ import {
   pct,
   plural,
   rotuloCategoria,
+  rotuloStatus,
+  SEM_RESULTADO,
 } from "../formato";
 import { Barras, Kpi, Secao } from "../ui";
 
@@ -170,7 +172,7 @@ export default function Pipeline({
           <Barras
             itens={funilDetalhado.map((f) => ({
               chave: f.status,
-              rotulo: f.status,
+              rotulo: rotuloStatus(f.status),
               valor: f.projetos,
               texto: `${fmtInt.format(f.projetos)} · ${fmtMoedaCurta.format(f.solicitado)}`,
               cor: COR_STATUS[f.grupo],
@@ -180,8 +182,10 @@ export default function Pipeline({
             }))}
           />
           <p className="rodape">
-            O clique filtra pelo <b>grupo</b> da paleta (Em avaliação, Aprovado
-            …), não pelo status individual.
+            Clicar numa linha filtra o painel pelo <b>grupo</b> a que ela
+            pertence (Em avaliação, Aprovado …), e não por aquele status
+            sozinho: &quot;Em validação&quot; traz junto todos os outros que
+            também estão em avaliação.
           </p>
         </Secao>
 
@@ -241,7 +245,7 @@ export default function Pipeline({
               {porCategoria.length === 0 && (
                 <tr>
                   <td colSpan={7} className="sub">
-                    Nenhum projeto com os filtros atuais.
+                    {SEM_RESULTADO}
                   </td>
                 </tr>
               )}

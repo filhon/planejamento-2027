@@ -1,5 +1,7 @@
 "use client";
 
+import { SEM_RESULTADO } from "./formato";
+
 /** Peças visuais reusadas pelas páginas (KPI com delta e barras ordenadas). */
 
 export function Kpi({
@@ -19,7 +21,7 @@ export function Kpi({
   anterior?: number | null;
   anoAnterior?: number | undefined;
   formatar?: (v: number) => string;
-  /** Linha de apoio quando não há delta a mostrar. */
+  /** Linha de apoio. Com delta, desce para baixo dele em vez de sumir. */
   nota?: string;
   tom?: "bom" | "atencao" | "ruim";
   /** true quando subir é ruim (ex.: pressão da demanda). */
@@ -47,6 +49,10 @@ export function Kpi({
               {formatar(Math.abs(delta))}
             </span>{" "}
             vs {anoAnterior}
+            {/* A nota não some quando há delta: são as duas leituras do mesmo
+                número (o quanto mudou e do que ele é feito), e era ela que
+                justificava a tabela comparadora repetida embaixo dos KPIs. */}
+            {nota && <span className="kpi-nota">{nota}</span>}
           </>
         )}
       </div>
@@ -73,7 +79,7 @@ export interface ItemBarra {
 /** Ranking em barras — categorias, continentes, funil, conselheiros. */
 export function Barras({
   itens,
-  vazio = "Nada com os filtros atuais.",
+  vazio = SEM_RESULTADO,
 }: {
   itens: ItemBarra[];
   vazio?: string;

@@ -1,6 +1,7 @@
 import { SEM_RESPONSAVEL, type Filtros } from "@/lib/agregar";
 import { NOME_UF } from "@/lib/uf";
-import type { StatusGrupo } from "@/lib/types";
+import type { StatusGrupo, TipoRevisao } from "@/lib/types";
+import { ROTULO_TIPO } from "./projetos/tipo";
 
 /** Formatação e vocabulário visual compartilhados pelas páginas do painel. */
 
@@ -79,6 +80,34 @@ export const ROTULO_STATUS: Record<StatusGrupo, string> = {
   neutro: "Rascunho / outros",
 };
 
+/**
+ * O status COMO ESTÁ na origem (`em-validacao`, `devolvido-para-correcao`).
+ * `ROTULO_STATUS` rotula o grupo da paleta; este rotula o status individual,
+ * que aparece no funil detalhado do Pipeline e no histórico da pasta — onde
+ * saía o slug do banco, lido em voz alta na reunião. Status novo cai no
+ * mesmo recuo de `rotuloCategoria` (hífen vira espaço, primeira maiúscula).
+ */
+const ROTULO_STATUS_BRUTO: Record<string, string> = {
+  aprovado: "Aprovado",
+  "em-andamento": "Em andamento",
+  concluido: "Concluído",
+  submetido: "Submetido",
+  "em-analise": "Em análise",
+  "em-validacao": "Em validação",
+  "para-votacao": "Para votação",
+  "em-votacao": "Em votação",
+  classificado: "Classificado",
+  rejeitado: "Rejeitado",
+  reprovado: "Reprovado",
+  rascunho: "Rascunho",
+  "devolvido-para-correcao": "Devolvido para correção",
+  cancelado: "Cancelado",
+};
+
+export const rotuloStatus = (s: string) =>
+  ROTULO_STATUS_BRUTO[s] ??
+  s.replace(/-/g, " ").replace(/^./, (l) => l.toUpperCase());
+
 /** Paleta semântica de status (docs/plano-dashboard.md §7). */
 export const COR_STATUS: Record<StatusGrupo, string> = {
   aprovado: "var(--verde)",
@@ -132,7 +161,13 @@ export function resumoFiltros(
         `Categoria: ${filtros.categoria.map(rotuloCategoria).join(", ")}`,
       filtros.instituicao.length > 0 &&
         `Instituição: ${filtros.instituicao.join(", ")}`,
-      filtros.tipo.length > 0 && `Triagem: ${filtros.tipo.join(", ")}`,
+      // Os rótulos da triagem, não os valores do filtro: esta linha sai no
+      // rodapé impresso e no cabeçalho da pasta do diretor, onde "revisar"
+      // cru não diz nada a quem lê a ata.
+      filtros.tipo.length > 0 &&
+        `Triagem: ${filtros.tipo
+          .map((t) => ROTULO_TIPO[t as TipoRevisao] ?? t)
+          .join(", ")}`,
       filtros.responsavel.length > 0 &&
         `Responsável: ${filtros.responsavel.map(rotuloResponsavel).join(", ")}`,
       filtros.analise.length > 0 &&
@@ -145,6 +180,15 @@ export function resumoFiltros(
       .join(" · ") || "Sem filtros — ciclo inteiro"
   );
 }
+
+/**
+ * O vazio de todas as tabelas e rankings do painel. Diz a saída, e não só o
+ * fato: quem cruza quatro filtros na reunião cai numa tela vazia sem lembrar
+ * qual deles apertou demais, e o ✕ é o desfazer de todos de uma vez.
+ * Um texto só porque o mesmo vazio aparece em sete telas.
+ */
+export const SEM_RESULTADO =
+  "Nada neste recorte. Limpe os filtros no ✕ da barra acima.";
 
 /** Ordem do funil: da entrada à decisão. */
 export const ORDEM_STATUS: StatusGrupo[] = [

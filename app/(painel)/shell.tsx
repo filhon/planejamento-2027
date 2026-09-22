@@ -407,6 +407,7 @@ export default function Shell({
           </Menu>
           <button
             className="botao-atualizar"
+            title="Relê os projetos no banco de submissões. O painel guarda os dados por 15 minutos; use isto se alguém mexeu num projeto durante a reunião."
             disabled={atualizando}
             onClick={() => iniciarAtualizacao(() => atualizarDados())}
           >

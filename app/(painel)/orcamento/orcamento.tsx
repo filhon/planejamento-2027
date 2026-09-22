@@ -101,46 +101,20 @@ export default function Orcamento({
       ]
     : [];
 
-  const comparacao = anterior
-    ? [
-        {
-          metrica: "Teto total",
-          a: teto,
-          b: anterior.tetoTotal,
-        },
-        {
-          metrica: "Solicitado",
-          a: solicitado,
-          b: somar(projetosAnteriores, (p) => p.solicitado),
-        },
-        {
-          metrica: "Aprovado",
-          a: aprovado,
-          b: somar(projetosAnteriores, (p) => p.aprovado),
-        },
-        {
-          metrica: "Reservado",
-          a: reservado,
-          b: somar(projetosAnteriores, (p) => p.reservado),
-        },
-        {
-          metrica: "Saldo (teto − aprovado)",
-          a: saldo,
-          b:
-            anterior.tetoTotal === null
-              ? null
-              : anterior.tetoTotal -
-                somar(projetosAnteriores, (p) => p.aprovado),
-        },
-      ]
-    : [];
+  /** Saldo do ciclo anterior, para o delta do KPI: teto de lá − aprovado de lá. */
+  const saldoAnterior =
+    anterior?.tetoTotal == null
+      ? null
+      : anterior.tetoTotal - somar(projetosAnteriores, (p) => p.aprovado);
 
   if (!o) {
     return (
       <div className="bloco cartao">
         <h2 className="titulo">Sem orçamento para a Remessa {ano}</h2>
         <p className="sub">
-          Nenhuma linha em <code>resource_allocations</code> para o ciclo.
+          O sistema não tem nenhuma linha de orçamento para esta remessa, então
+          o painel não sabe o teto: nenhuma tela compara pedido com teto até que
+          a equipe cadastre uma (tabela <code>resource_allocations</code>).
         </p>
       </div>
     );
@@ -150,7 +124,8 @@ export default function Orcamento({
     <>
       <div className="alerta-caixa cartao">
         <h2 className="titulo">
-          Linha usada: <b>{o.fonteOrcamento.status ?? "sem status"}</b> —{" "}
+          Teto vindo da linha de orçamento marcada como{" "}
+          <b>{o.fonteOrcamento.status ?? "sem status"}</b> —{" "}
           {o.fonteOrcamento.criterio}
         </h2>
         {o.fonteOrcamento.alertas.length === 0 ? (
@@ -193,6 +168,10 @@ export default function Orcamento({
         <Kpi
           rotulo="Saldo do teto"
           valor={saldo === null ? "—" : fmtMoedaCurta.format(saldo)}
+          atual={saldo ?? undefined}
+          anterior={saldoAnterior}
+          anoAnterior={anoAnterior}
+          formatar={(v) => fmtMoedaCurta.format(v)}
           nota={saldo === null ? "sem teto confiável" : "teto − aprovado"}
           tom={
             saldo === null || teto === null
@@ -221,6 +200,10 @@ export default function Orcamento({
         <Kpi
           rotulo="Reservado"
           valor={fmtMoedaCurta.format(reservado)}
+          atual={reservado}
+          anterior={somar(projetosAnteriores, (p) => p.reservado) || null}
+          anoAnterior={anoAnterior}
+          formatar={(v) => fmtMoedaCurta.format(v)}
           nota={`${fmtMoedaCurta.format(liberado)} já liberado`}
         />
       </div>
@@ -304,8 +287,8 @@ export default function Orcamento({
                         <span
                           className="marca-alerta"
                           role="img"
-                          aria-label="Teto zerado ou vazio na origem"
-                          title="Teto zerado ou vazio na origem"
+                          aria-label="Sem teto definido para este grupo na linha de orçamento"
+                          title="Sem teto definido para este grupo na linha de orçamento"
                         >
                           {" "}
                           ⚠
@@ -346,56 +329,6 @@ export default function Orcamento({
               ))}
             </tbody>
           </table>
-        </Secao>
-
-        <Secao
-          titulo={`Comparador ${ano} × ${anoAnterior ?? "—"}`}
-          sub={
-            filtroAtivo
-              ? "Os dois ciclos usam os mesmos filtros (menos o teto)."
-              : "Ciclo inteiro."
-          }
-          largura="dupla"
-        >
-          {comparacao.length === 0 ? (
-            <p className="sub">Sem ciclo anterior para comparar.</p>
-          ) : (
-            <table className="tabela">
-              <thead>
-                <tr>
-                  <th>Métrica</th>
-                  <th className="n">{ano}</th>
-                  <th className="n">{anoAnterior}</th>
-                  <th className="n">Δ</th>
-                </tr>
-              </thead>
-              <tbody>
-                {comparacao.map((l) => {
-                  const d = l.a === null || l.b === null ? null : l.a - l.b;
-                  return (
-                    <tr key={l.metrica}>
-                      <td>{l.metrica}</td>
-                      <td className="n">
-                        {l.a === null ? "—" : fmtMoeda.format(l.a)}
-                      </td>
-                      <td className="n">
-                        {l.b === null ? "—" : fmtMoeda.format(l.b)}
-                      </td>
-                      <td
-                        className={`n ${d === null || d === 0 ? "" : d > 0 ? "subiu" : "desceu"}`}
-                      >
-                        {d === null
-                          ? "—"
-                          : d === 0
-                            ? "="
-                            : `${d > 0 ? "+" : "−"}${fmtMoeda.format(Math.abs(d))}`}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          )}
         </Secao>
       </div>
     </>

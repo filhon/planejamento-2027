@@ -9,6 +9,7 @@ import {
   num,
   plural,
   rotuloCategoria,
+  rotuloStatus,
   tamanhoArquivo,
   variacaoPedido,
 } from "../../formato";
@@ -291,7 +292,7 @@ export default function Detalhe({ d }: { d: ProjetoDetalhe }) {
                 {d.anterior.titulo}
               </Link>{" "}
               <span className="sub">
-                · {d.anterior.status} · solicitou{" "}
+                · {rotuloStatus(d.anterior.status)} · solicitou{" "}
                 {fmtMoeda.format(d.anterior.solicitado)} · aprovado{" "}
                 {d.anterior.aprovado === null
                   ? "—"
@@ -638,9 +639,9 @@ export default function Detalhe({ d }: { d: ProjetoDetalhe }) {
             <ul className="historico">
               {d.historico.map((h, n) => (
                 <li key={n}>
-                  <b>{h.para}</b>
+                  <b>{rotuloStatus(h.para)}</b>
                   <span className="sub">
-                    {h.de ? `de ${h.de} · ` : ""}
+                    {h.de ? `de ${rotuloStatus(h.de)} · ` : ""}
                     {data(h.em)}
                     {h.por ? ` · ${h.por}` : ""}
                   </span>

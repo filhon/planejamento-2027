@@ -15,10 +15,11 @@ export default function Erro({
   return (
     <main>
       <div className="erro cartao">
-        <h1 className="titulo">Não foi possível carregar os dados</h1>
+        <h1 className="titulo">O painel não conseguiu ler os dados</h1>
         <p>
-          A consulta à base (somente leitura) falhou. Confira a conexão e o{" "}
-          <code>.env.local</code>, e tente de novo.
+          A leitura do banco de submissões falhou — nada foi alterado lá. Tente
+          de novo; se insistir, chame quem cuida do sistema e mostre a linha
+          abaixo (costuma ser a internet ou a senha em <code>.env.local</code>).
         </p>
         <code>{error.message}</code>
         <p style={{ marginTop: 20 }}>

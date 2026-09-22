@@ -371,7 +371,7 @@ export default function Resumo({
             da Remessa {ano} — rejeitado, rascunho e cancelado ficam fora porque
             não disputam o teto.{" "}
             {teto !== null &&
-              `Teto da linha "${orcamento?.fonteOrcamento.status ?? "sem status"}" de resource_allocations — ${orcamento?.fonteOrcamento.criterio}.`}{" "}
+              `O teto vem da linha de orçamento marcada como "${orcamento?.fonteOrcamento.status ?? "sem status"}" — ${orcamento?.fonteOrcamento.criterio}.`}{" "}
             A divisão por rúbrica é a diretriz; o de-para rúbrica → categoria é
             leitura nossa das categorias da origem, que não tem o conceito de
             rúbrica.

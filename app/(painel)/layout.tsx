@@ -34,10 +34,12 @@ export default async function LayoutPainel({
     return (
       <main>
         <div className="erro cartao">
-          <h1 className="titulo">Não foi possível carregar os dados</h1>
+          <h1 className="titulo">O painel não conseguiu ler os dados</h1>
           <p>
-            A consulta à base (somente leitura) falhou. Confira a conexão e o{" "}
-            <code>.env.local</code>, e recarregue a página.
+            A leitura do banco de submissões falhou — nada foi alterado lá.
+            Recarregue a página; se insistir, chame quem cuida do sistema e
+            mostre a linha abaixo (costuma ser a internet ou a senha em{" "}
+            <code>.env.local</code>).
           </p>
           <code>{erro instanceof Error ? erro.message : String(erro)}</code>
         </div>

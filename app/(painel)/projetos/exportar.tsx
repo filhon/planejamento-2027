@@ -4,11 +4,13 @@ import { planilha, TIPO_XLSX } from "@/lib/xlsx";
 import type { ProjetoCiclo } from "@/lib/types";
 import { usePainel } from "../contexto";
 import {
+  deltaPedido,
   fmtInt,
   fmtMoeda,
   plural,
   resumoFiltros,
   rotuloResponsavel,
+  setaVariacao,
 } from "../formato";
 
 /**
@@ -98,18 +100,25 @@ export default function Exportar({ lista }: { lista: ProjetoCiclo[] }) {
         "Instituição",
         "Valor solicitado (R$)",
         `${rotuloRecebido} (R$)`,
+        // Número cru e com sinal (18,6 = pede 18,6% a mais): o sinal é a seta,
+        // e a coluna continua ordenável na planilha.
+        "Variação do pedido (%)",
       ],
-      ...lista.map((p) => [
-        p.titulo,
-        p.instituicaoNome ?? "—",
-        p.solicitado,
-        p.revisao.recebidoAnterior,
-      ]),
+      ...lista.map((p) => {
+        const d = deltaPedido(p.solicitado, p.revisao.recebidoAnterior);
+        return [
+          p.titulo,
+          p.instituicaoNome ?? "—",
+          p.solicitado,
+          p.revisao.recebidoAnterior,
+          d === null ? null : Math.round(d * 1000) / 10,
+        ];
+      }),
     ];
     baixar(
       `${arquivo}.xlsx`,
       planilha(`Projetos ${ano}`, linhas, {
-        larguras: [56, 38, 20, 26],
+        larguras: [56, 38, 20, 26, 22],
         // Tudo acima do cabeçalho fica preso: rolar 200 projetos sem ver de
         // quem é a lista é como o material volta errado da reunião.
         congelar: linhas.length - lista.length,
@@ -140,6 +149,9 @@ export default function Exportar({ lista }: { lista: ProjetoCiclo[] }) {
     <span class="instituicao">${escHtml(p.instituicaoNome ?? "instituição não informada")}</span></td>
   <td class="valor">${fmtInt.format(p.solicitado)}</td>
   <td class="valor historico">${recebido === null ? '<span class="sem">—</span>' : fmtInt.format(recebido)}</td>
+  <td class="valor variacao ${(deltaPedido(p.solicitado, recebido) ?? 0) > 0 ? "sobe" : "desce"}">${
+    setaVariacao(p.solicitado, recebido) || '<span class="sem">—</span>'
+  }</td>
 </tr>`;
       })
       .join("\n");
@@ -167,6 +179,7 @@ export default function Exportar({ lista }: { lista: ProjetoCiclo[] }) {
     --tinta: oklch(26% 0.06 268);        /* #16203f, o texto */
     --tinta-fraca: oklch(52% 0.045 268); /* rótulos e apoio */
     --azul: oklch(33% 0.16 272);         /* #202c85, a marca */
+    --laranja: oklch(58% 0.19 45);       /* #ea5a06, a ação */
     --filete: oklch(88% 0.012 268);
     --filete-forte: oklch(72% 0.02 268);
     --nota: oklch(96.5% 0.008 268);
@@ -310,6 +323,12 @@ export default function Exportar({ lista }: { lista: ProjetoCiclo[] }) {
   /* O solicitado é o número da decisão; o recebido é histórico. Mesmo tamanho,
      peso menor: a coluna da esquerda é a que o olho procura primeiro. */
   .relacao td.historico { font-weight: 400; }
+
+  /* A seta carrega o sinal sozinha: em preto e branco a direção continua lá, a
+     cor só reforça na tela e na impressora colorida. */
+  .relacao td.variacao { width: 22mm; font-size: 9.5pt; font-weight: 600; }
+  .relacao td.variacao.sobe { color: var(--laranja); }
+  .relacao td.variacao.desce { color: var(--tinta-fraca); }
   .relacao .sem { color: var(--tinta-fraca); font-weight: 400; }
 
   .projeto { display: block; font-weight: 600; font-size: 10pt; overflow-wrap: anywhere; }
@@ -385,6 +404,7 @@ export default function Exportar({ lista }: { lista: ProjetoCiclo[] }) {
         <th>Projeto e instituição</th>
         <th class="valor">Solicitado (R$)</th>
         <th class="valor">Recebido em ${ano} (R$)</th>
+        <th class="valor">Variação</th>
       </tr>
     </thead>
     <tbody>
@@ -394,6 +414,9 @@ ${linhas}
         <td class="contagem">Total &middot; ${plural(lista.length, "projeto", "projetos")}</td>
         <td class="valor">${fmtInt.format(totalSolicitado)}</td>
         <td class="valor">${fmtInt.format(totalRecebido)}</td>
+        <!-- Sem variação no total: a soma do recebido não tem como base os
+             mesmos projetos do solicitado (os sem vínculo entram com zero). -->
+        <td></td>
       </tr>
     </tbody>
   </table>`
@@ -403,6 +426,8 @@ ${linhas}
     <p><b>Recebido em ${ano}</b> é o valor aprovado do projeto correspondente na remessa
       de ${anoAnterior ?? "—"}, pago no ciclo de ${ano}. O travessão indica projeto sem
       vínculo com a remessa anterior, ou sem valor recebido.</p>
+    <p><b>Variação</b> é quanto o pedido desta remessa sobe (&uarr;) ou desce (&darr;)
+      sobre o valor recebido pelo mesmo projeto — só existe onde há esse vínculo.</p>
     <p class="assinatura">Hebron ASEEC &middot; Instrumentos de Deus na transformação de vidas.</p>
   </footer>
 

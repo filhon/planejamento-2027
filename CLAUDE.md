@@ -243,9 +243,9 @@ parou.
   num formulário de outro sistema, não aqui.
 
 **Fase 11 (parcerias proativas)** — `/parcerias`: onde as agências parceiras
-(APMT, JMM, JMN/IPB — relações em `data/db-*.csv`) têm missionário e a Hebron
-ainda não chegou. **Mundo:** país laranja = agência lá e nenhum projeto
-avaliável nesta remessa (45 em 2026), verde = tinha aprovado no ciclo anterior
+(APMT, JMM, Pioneiros, JMN/IPB — relações em `data/db-*.csv`) têm missionário e
+a Hebron ainda não chegou. **Mundo:** país laranja = agência lá e nenhum projeto
+avaliável nesta remessa (49 em 2026), verde = tinha aprovado no ciclo anterior
 e sumiu (14, "retomar"). **Brasil:** UF laranja = zero projetos (7 em 2026,
 todas com missionário JMN); ponto = cidade com missionário, verde se está no
 **top 100 de demanda por produtos Hebron** (`data/ranking-dd.csv`); cada UF

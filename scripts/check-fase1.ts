@@ -344,7 +344,7 @@ async function checarParcerias(ano: number): Promise<void> {
   const porAgencia = (a: string) =>
     dp.missionarios.filter((m) => m.agencia === a).length;
   ok(
-    `${dp.missionarios.length} missionários · APMT ${porAgencia("APMT")} · JMM ${porAgencia("JMM")} · JMN-IPB ${porAgencia("JMN-IPB")}`,
+    `${dp.missionarios.length} missionários · APMT ${porAgencia("APMT")} · JMM ${porAgencia("JMM")} · JMN-IPB ${porAgencia("JMN-IPB")} · Pioneiros ${porAgencia("Pioneiros")}`,
   );
   const semLocal = dp.missionarios.filter((m) => !m.local.iso3 && !m.regiao);
   if (semLocal.length)

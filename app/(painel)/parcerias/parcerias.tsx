@@ -234,9 +234,9 @@ export default function Parcerias({
       <p className="intro-parcerias">
         Quem aparece aqui <b>não enviou projeto</b> nesta remessa: são
         missionários, pastores e evangelistas da{" "}
-        <b>base das agências parceiras</b> (APMT, JMM e JMN/IPB), cedida para a
-        Hebron tomar a iniciativa e propor a parceria — em países e UFs onde
-        nenhum pedido chegou.
+        <b>base das agências parceiras</b> (APMT, JMM, Pioneiros e JMN/IPB),
+        cedida para a Hebron tomar a iniciativa e propor a parceria — em países
+        e UFs onde nenhum pedido chegou.
         {filtrosIgnorados.length > 0 && (
           <span className="marca-alerta">
             {" "}
@@ -259,7 +259,7 @@ export default function Parcerias({
         ))}
         <span className="sub">
           {modo === "mundo"
-            ? `Onde APMT e JMM têm missionário e não chegou pedido na Remessa ${ano}.`
+            ? `Onde APMT, JMM e Pioneiros têm missionário e não chegou pedido na Remessa ${ano}.`
             : `UFs sem projeto na Remessa ${ano} e quem da JMN/IPB está lá — de preferência numa cidade que compra da Hebron.`}
         </span>
       </div>
@@ -269,7 +269,7 @@ export default function Parcerias({
           <Kpi
             rotulo="Países com missionário de agência"
             valor={fmtInt.format(mundo.comAgencia)}
-            nota="APMT + JMM, fora regiões sensíveis"
+            nota="APMT + JMM + Pioneiros, fora regiões sensíveis"
           />
           <Kpi
             rotulo={`Sem pedido em ${ano}`}

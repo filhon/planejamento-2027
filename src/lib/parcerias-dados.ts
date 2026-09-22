@@ -22,8 +22,9 @@ import type { LocalNormalizado } from "./types";
 
 /**
  * Leitura dos dados de parceria (Fase 11) — tudo em data/*.csv, FORA da origem:
- *  - db-apmt.csv, db-jmm.csv, db-jmn-ipb.csv: relação de missionários que as
- *    agências mandaram (formatos diferentes, um leitor por arquivo);
+ *  - db-apmt.csv, db-jmm.csv, db-jmn-ipb.csv, db-pioneiros.csv: relação de
+ *    missionários que as agências mandaram (formatos diferentes, um leitor por
+ *    arquivo);
  *  - ranking-dd.csv: cidades por demanda de produtos Hebron (1 = mais compra);
  *  - municipios-br.csv: centróide de cada município (gerado por
  *    `npm run municipios:regen` a partir do IBGE);
@@ -33,6 +34,7 @@ import type { LocalNormalizado } from "./types";
 const APMT_CSV = resolve(DATA_DIR, "db-apmt.csv");
 const JMM_CSV = resolve(DATA_DIR, "db-jmm.csv");
 const JMN_CSV = resolve(DATA_DIR, "db-jmn-ipb.csv");
+const PIONEIROS_CSV = resolve(DATA_DIR, "db-pioneiros.csv");
 const RANKING_CSV = resolve(DATA_DIR, "ranking-dd.csv");
 const MUNICIPIOS_CSV = resolve(DATA_DIR, "municipios-br.csv");
 export const CANDIDATOS_CSV = resolve(DATA_DIR, "parcerias_candidatos.csv");
@@ -46,6 +48,15 @@ export interface DadosParcerias {
   candidatos: Candidato[];
   /** Para o `npm run check`: o que não casou. */
   pendencias: { paisesSemDePara: string[]; municipiosSemCasar: string[] };
+}
+
+/** "GUIMARÃES;FÁBIO" vem em caixa alta; o resto do painel mostra nome normal. */
+function capitalizar(nome: string): string {
+  return nome
+    .toLocaleLowerCase("pt-BR")
+    .replace(/\p{L}+/gu, (p) => p[0]!.toLocaleUpperCase("pt-BR") + p.slice(1))
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 function chave(agencia: Agencia, nome: string): string {
@@ -228,6 +239,25 @@ export function carregarParcerias(): DadosParcerias {
       municipio,
       uf,
       codigoIbge: casado?.codigo ?? null,
+    });
+  }
+
+  // Pioneiros: uma linha por pessoa da família — só os adultos são missionários
+  // (as outras são filhos). Nome vem em CAIXA ALTA, sobrenome primeiro.
+  for (const r of parse(readFileSync(PIONEIROS_CSV, "utf-8"), {
+    columns: true,
+    bom: true,
+    delimiter: ";",
+    skip_empty_lines: true,
+    trim: true,
+    relax_column_count: true,
+  }) as Record<string, string>[]) {
+    if (!/^x$/i.test(r["Adult"] ?? "")) continue;
+    const nome = capitalizar(`${r["First names"] ?? ""} ${r["Surname"] ?? ""}`);
+    if (!nome) continue;
+    missionarios.push({
+      ...base("Pioneiros", nome),
+      ...local(r["Serving in"] ?? ""),
     });
   }
 

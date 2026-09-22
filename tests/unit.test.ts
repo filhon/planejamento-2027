@@ -7,7 +7,12 @@ import assert from "node:assert/strict";
 
 import { assertReadOnly, ReadOnlyViolationError } from "../src/lib/db";
 import { embedDrive, rotuloDrive } from "../src/lib/drive";
-import { plural, variacaoPedido } from "../app/(painel)/formato";
+import {
+  deltaPedido,
+  plural,
+  setaVariacao,
+  variacaoPedido,
+} from "../app/(painel)/formato";
 import { construirIndicePaises, normalizarLocal } from "../src/lib/geo";
 import {
   escolherLinhaOrcamento,
@@ -1230,6 +1235,15 @@ test("variacaoPedido diz o salto da renovação, e cala sem base", () => {
   assert.equal(variacaoPedido(100, 100), "pede o mesmo valor");
   assert.equal(variacaoPedido(100_000, null), "");
   assert.equal(variacaoPedido(100_000, 0), "");
+});
+
+test("setaVariacao carrega a direção no sinal, para o PDF e a planilha", () => {
+  assert.equal(setaVariacao(150, 100), "↑ 50%");
+  assert.equal(setaVariacao(80, 100), "↓ 20%");
+  assert.equal(setaVariacao(100, 100), "= 0%");
+  assert.equal(setaVariacao(100_000, null), "");
+  assert.equal(deltaPedido(150, 100), 0.5);
+  assert.equal(deltaPedido(150, null), null);
 });
 
 /* ------------------------------------- concentração e renovações (Fase 6) */

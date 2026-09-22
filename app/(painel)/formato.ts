@@ -52,10 +52,22 @@ export function variacaoPedido(
   solicitado: number,
   recebido: number | null,
 ): string {
-  if (!recebido || recebido <= 0) return "";
-  const d = solicitado / recebido - 1;
+  const d = deltaPedido(solicitado, recebido);
+  if (d === null) return "";
   if (Math.abs(d) < 0.005) return "pede o mesmo valor";
   return `pede ${pct(Math.abs(d))} ${d > 0 ? "a mais" : "a menos"}`;
+}
+
+/** A mesma conta em número (0,186 = pede 18,6% a mais); `null` sem base. */
+export const deltaPedido = (solicitado: number, recebido: number | null) =>
+  !recebido || recebido <= 0 ? null : solicitado / recebido - 1;
+
+/** "↑ 18,6%" — o mesmo salto, do tamanho de uma célula de tabela. */
+export function setaVariacao(solicitado: number, recebido: number | null) {
+  const d = deltaPedido(solicitado, recebido);
+  if (d === null) return "";
+  if (Math.abs(d) < 0.005) return "= 0%";
+  return `${d > 0 ? "↑" : "↓"} ${pct(Math.abs(d))}`;
 }
 
 export const ROTULO_STATUS: Record<StatusGrupo, string> = {

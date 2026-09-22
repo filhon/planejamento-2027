@@ -10,13 +10,13 @@ export { NOME_UF, UF_POR_CODIGO, UFS, ufDe } from "./uf";
  * reagrega com os filtros globais, como o resto do painel.
  *
  * Duas perguntas do diretor:
- *  - MUNDO: onde as agências parceiras (APMT, JMM) têm missionário e NÃO chegou
+ *  - MUNDO: onde as agências parceiras (APMT, JMM, Pioneiros) têm missionário e NÃO chegou
  *    pedido nesta remessa? É lá que a Hebron pode tomar a iniciativa.
  *  - BRASIL: qual UF ficou sem projeto, e quem da JMN/IPB está lá — de
  *    preferência na cidade que mais compra produtos da Hebron (retribuição).
  */
 
-export type Agencia = "APMT" | "JMM" | "JMN-IPB";
+export type Agencia = "APMT" | "JMM" | "JMN-IPB" | "Pioneiros";
 
 export interface Missionario {
   agencia: Agencia;

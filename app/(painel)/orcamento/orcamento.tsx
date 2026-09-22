@@ -303,6 +303,8 @@ export default function Orcamento({
                       {!g.teto && (
                         <span
                           className="marca-alerta"
+                          role="img"
+                          aria-label="Teto zerado ou vazio na origem"
                           title="Teto zerado ou vazio na origem"
                         >
                           {" "}

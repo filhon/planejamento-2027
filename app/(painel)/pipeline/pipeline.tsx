@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, type CSSProperties } from "react";
 import { agrupar, estatisticaNota, grupoDeStatus } from "@/lib/agregar";
 import type { AvaliacoesCiclo, ProjetoCiclo } from "@/lib/types";
@@ -326,7 +327,11 @@ export default function Pipeline({
               <tbody>
                 {semAvaliacao.slice(0, 15).map((p) => (
                   <tr key={p.id}>
-                    <td>{p.titulo}</td>
+                    <td>
+                      <Link className="link-projeto" href={`/projetos/${p.id}`}>
+                        {p.titulo}
+                      </Link>
+                    </td>
                     <td>{p.instituicaoNome ?? "—"}</td>
                     <td>{p.local.nomePt}</td>
                     <td>

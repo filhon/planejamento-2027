@@ -354,7 +354,17 @@ export default function Instituicoes({
                       {i.documentos.pendentes > 0 && (
                         <span
                           className="marca-alerta"
-                          title={`${plural(i.documentos.pendentes, "documento pendente", "documentos pendentes")}`}
+                          role="img"
+                          aria-label={plural(
+                            i.documentos.pendentes,
+                            "documento pendente",
+                            "documentos pendentes",
+                          )}
+                          title={plural(
+                            i.documentos.pendentes,
+                            "documento pendente",
+                            "documentos pendentes",
+                          )}
                         >
                           {" "}
                           ⚠

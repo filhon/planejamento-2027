@@ -17,7 +17,7 @@ export default function Erro({
       <div className="erro cartao">
         <h1 className="titulo">Não foi possível carregar os dados</h1>
         <p>
-          A consulta à base (somente leitura) falhou. Confira a conexão e o
+          A consulta à base (somente leitura) falhou. Confira a conexão e o{" "}
           <code>.env.local</code>, e tente de novo.
         </p>
         <code>{error.message}</code>

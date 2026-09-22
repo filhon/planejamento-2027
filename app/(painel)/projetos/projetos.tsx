@@ -49,6 +49,10 @@ const colunaOrdem: Record<string, (p: ProjetoCiclo) => number | string> = {
     (p.analise.atualizadoEm ? new Date(p.analise.atualizadoEm).getTime() : 0),
 };
 
+/** Cada coluna tem uma ordem só, a útil: nome de A a Z, dinheiro do maior ao
+ *  menor. O ▾ diz isso a quem vê; `aria-sort`, a quem ouve. */
+const CRESCENTE = new Set(["titulo", "instituicao"]);
+
 export default function Projetos({
   avaliadores,
 }: {
@@ -56,6 +60,12 @@ export default function Projetos({
 }) {
   const { ano, anoAnterior, projetos, todos, filtros, aplicar } = usePainel();
   const [ordem, setOrdem] = useState<keyof typeof colunaOrdem>("titulo");
+  const ordenacao = (chave: string) =>
+    ordem !== chave
+      ? undefined
+      : CRESCENTE.has(chave)
+        ? ("ascending" as const)
+        : ("descending" as const);
 
   const ativos = useMemo(
     () => avaliadores.filter((a) => a.ativo).map((a) => a.nome),
@@ -213,7 +223,7 @@ export default function Projetos({
                       ["instituicao", "Instituição"],
                     ] as const
                   ).map(([chave, rotulo]) => (
-                    <th key={chave}>
+                    <th key={chave} aria-sort={ordenacao(chave)}>
                       <button
                         className="ordenar"
                         onClick={() => setOrdem(chave)}
@@ -223,7 +233,7 @@ export default function Projetos({
                       </button>
                     </th>
                   ))}
-                  <th>
+                  <th aria-sort={ordenacao("analise")}>
                     <button
                       className="ordenar"
                       onClick={() => setOrdem("analise")}
@@ -235,7 +245,7 @@ export default function Projetos({
                   <th>Triagem</th>
                   <th>Responsável</th>
                   <th>Status</th>
-                  <th className="n">
+                  <th className="n" aria-sort={ordenacao("solicitado")}>
                     <button
                       className="ordenar"
                       onClick={() => setOrdem("solicitado")}
@@ -243,7 +253,7 @@ export default function Projetos({
                       Solicitado{ordem === "solicitado" ? " ▾" : ""}
                     </button>
                   </th>
-                  <th className="n">
+                  <th className="n" aria-sort={ordenacao("recebido")}>
                     <button
                       className="ordenar"
                       onClick={() => setOrdem("recebido")}

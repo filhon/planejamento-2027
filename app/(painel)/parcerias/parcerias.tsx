@@ -347,6 +347,11 @@ export default function Parcerias({
             <Zoom
               viewBox={modo === "mundo" ? viewBoxMundo : viewBoxBr}
               chave={modo}
+              rotulo={
+                modo === "mundo"
+                  ? `Mapa-múndi das parcerias na Remessa ${ano}: ${mundo.oportunidades} países com missionário de agência e nenhum pedido, ${mundo.retomar} a retomar.`
+                  : `Mapa do Brasil na Remessa ${ano}: ${brasil.descobertas} de 27 UFs sem projeto, ${brasil.descobertasComMissionario} delas com missionário da JMN.`
+              }
             >
               {modo === "mundo"
                 ? geoMundo.map((g, i) => {
@@ -526,34 +531,34 @@ export default function Parcerias({
           <div className="legenda">
             {modo === "mundo" ? (
               <>
-                <span className="aviso">
+                <span className="legenda-item">
                   <i style={{ background: "var(--laranja)" }} /> Agência lá, sem
                   pedido em {ano}
                 </span>
-                <span className="aviso">
+                <span className="legenda-item">
                   <i style={{ background: "var(--verde-escuro)" }} /> Retomar
                   (aprovado em {anoAnterior}, nada em {ano})
                 </span>
-                <span className="aviso">
+                <span className="legenda-item">
                   <i style={{ background: "var(--azul)" }} /> Atendido
                 </span>
-                <span className="aviso">
+                <span className="legenda-item">
                   <i style={{ background: "var(--neutro)" }} /> Sem agência nem
                   pedido
                 </span>
               </>
             ) : (
               <>
-                <span className="aviso">
+                <span className="legenda-item">
                   <i style={{ background: "var(--laranja)" }} /> UF sem projeto
                 </span>
-                <span className="aviso">
+                <span className="legenda-item">
                   <i style={{ background: "var(--azul)" }} /> UF com projeto
                 </span>
-                <span className="aviso">
+                <span className="legenda-item">
                   <i className="ponto-legenda" /> Cidade com missionário JMN
                 </span>
-                <span className="aviso">
+                <span className="legenda-item">
                   <i className="ponto-legenda ponto-top" /> No top{" "}
                   {ALTA_DEMANDA} de demanda
                 </span>
@@ -669,7 +674,7 @@ export default function Parcerias({
             <>
               {modo === "brasil" && submetidosNaUf > 0 && (
                 <Link
-                  className="expandir expandir-inline"
+                  className="botao-claro"
                   href="/projetos"
                   onClick={() => aplicar({ uf: sel, iso3: null })}
                 >
@@ -682,10 +687,7 @@ export default function Parcerias({
                   em Projetos & Pastas →
                 </Link>
               )}
-              <button
-                className="expandir expandir-inline"
-                onClick={() => setSel(null)}
-              >
+              <button className="botao-claro" onClick={() => setSel(null)}>
                 Limpar seleção
               </button>
             </>
@@ -697,7 +699,9 @@ export default function Parcerias({
             <thead>
               {modo === "mundo" ? (
                 <tr>
-                  <th></th>
+                  {/* A coluna da ★ precisa de nome: vazia, a tabela tem uma
+                      coluna que o leitor de tela não sabe anunciar. */}
+                  <th>Candidato</th>
                   <th>Missionário</th>
                   <th>Agência</th>
                   <th>País / região</th>
@@ -706,7 +710,7 @@ export default function Parcerias({
                 </tr>
               ) : (
                 <tr>
-                  <th></th>
+                  <th>Candidato</th>
                   <th>Missionário</th>
                   <th>Tipo</th>
                   <th>Município</th>
@@ -820,7 +824,7 @@ export default function Parcerias({
               })}
               {linhas.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="sub">
+                  <td colSpan={modo === "mundo" ? 6 : 7} className="sub">
                     Nenhum missionário neste recorte.
                   </td>
                 </tr>
@@ -840,10 +844,13 @@ export default function Parcerias({
 function Zoom({
   viewBox,
   chave,
+  rotulo,
   children,
 }: {
   viewBox: string;
   chave: string;
+  /** `role="img"` sem nome acessível é uma imagem muda — ver o mapa-múndi. */
+  rotulo: string;
   children: ReactNode;
 }) {
   const base = useMemo(
@@ -884,6 +891,7 @@ function Zoom({
       ref={svg}
       viewBox={vb.join(" ")}
       role="img"
+      aria-label={rotulo}
       style={{ touchAction: "none" }}
       onPointerDown={(e) => {
         arrasto.current = { x: e.clientX, y: e.clientY, vb };

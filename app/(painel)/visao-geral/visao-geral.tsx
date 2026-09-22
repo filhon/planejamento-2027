@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, type CSSProperties } from "react";
 import {
   agrupar,
@@ -684,7 +685,7 @@ export default function VisaoGeral({
 
         <Secao
           titulo="Maiores pedidos"
-          sub="Os oito maiores valores solicitados no recorte atual."
+          sub="Os oito maiores valores solicitados no recorte atual. Clique no título para abrir a pasta do projeto."
           largura="cheia"
         >
           <table className="tabela">
@@ -702,7 +703,11 @@ export default function VisaoGeral({
             <tbody>
               {maiores.map((p) => (
                 <tr key={p.id}>
-                  <td>{p.titulo}</td>
+                  <td>
+                    <Link className="link-projeto" href={`/projetos/${p.id}`}>
+                      {p.titulo}
+                    </Link>
+                  </td>
                   <td>{p.instituicaoNome ?? "—"}</td>
                   <td>{p.local.nomePt}</td>
                   <td>

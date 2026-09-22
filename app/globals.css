@@ -22,6 +22,38 @@
 
   --raio: 14px;
   --sombra: 0 1px 2px rgb(32 44 133 / 6%), 0 8px 24px rgb(32 44 133 / 6%);
+  /* O que flutua sobre a página (balão de filtro, menu do topo, dica do mapa)
+     tinha três sombras parecidas e diferentes. É uma só. */
+  --sombra-flutuante: 0 10px 28px rgb(32 44 133 / 20%);
+
+  /*
+   * Escala de espaço. Ela governa o RITMO da página — a distância entre
+   * regiões, o vão da grade e o forro dos cartões —, que é onde o painel
+   * inteiro estava batendo no mesmo 16px: a fronteira entre a faixa de KPIs e
+   * os blocos de análise lia igual à fronteira entre dois blocos vizinhos.
+   * Regra: `lg` dentro de uma região, `xl` entre regiões.
+   *
+   * O espaçamento interno de componente (célula de tabela, pastilha, ficha)
+   * continua em px de propósito: são medidas de densidade tipográfica, não de
+   * ritmo, e arredondá-las para a escala só mexeria na altura das linhas.
+   */
+  --espaco-xs: 4px;
+  --espaco-sm: 8px;
+  --espaco-md: 12px;
+  --espaco-lg: 16px;
+  --espaco-xl: 24px;
+  --espaco-2xl: 32px;
+  --espaco-3xl: 48px;
+
+  /*
+   * Camadas, de baixo para cima. Eram sete números soltos (1, 2, 4, 5, 10, 20,
+   * 30) e o oitavo ia colidir com algum. O <dialog> do visor não entra: ele
+   * sobe na top layer do navegador, acima de tudo isto.
+   */
+  --z-conteudo: 1; /* thead grudado; filhos do cabeçalho, sobre os círculos */
+  --z-flutuante: 5; /* dica do mapa, botão de expandir */
+  --z-barra: 10; /* a barra grudada da pasta do projeto */
+  --z-dropdown: 30; /* balão de filtro e menus do cabeçalho */
 }
 
 * {
@@ -83,7 +115,7 @@ button {
 .cabecalho {
   background: var(--azul);
   color: #fff;
-  padding: 18px 24px;
+  padding: var(--espaco-lg) var(--espaco-xl);
   display: flex;
   align-items: center;
   gap: 20px;
@@ -120,8 +152,8 @@ button {
 .marca {
   display: flex;
   align-items: center;
-  gap: 12px;
-  z-index: 1;
+  gap: var(--espaco-md);
+  z-index: var(--z-conteudo);
 }
 
 .marca-simbolo {
@@ -147,7 +179,7 @@ button {
   display: flex;
   align-items: center;
   gap: 10px;
-  z-index: 1;
+  z-index: var(--z-conteudo);
 }
 
 /* --------------------------------------------------------------- botões */
@@ -190,31 +222,10 @@ button {
   cursor: progress;
 }
 
-.botao-claro {
-  border: 1px solid rgb(255 255 255 / 35%);
-  background: transparent;
-  color: rgb(255 255 255 / 85%);
-  font-weight: 600;
-  font-size: 13.5px;
-  padding: 8px 16px;
-  border-radius: 999px;
-}
-
-.botao-claro:hover {
-  background: rgb(255 255 255 / 12%);
-  color: #fff;
-}
-
-.botao-claro[aria-pressed="true"] {
-  background: #fff;
-  color: var(--azul);
-  border-color: #fff;
-}
-
 /* --------------------------------------------------------------- layout */
 
 main {
-  padding: 20px 24px 40px;
+  padding: var(--espaco-xl) var(--espaco-xl) var(--espaco-3xl);
   max-width: 1560px;
   margin: 0 auto;
 }
@@ -233,8 +244,10 @@ main {
   gap: 14px;
   align-items: flex-end;
   flex-wrap: wrap;
-  padding: 14px 16px;
-  margin-bottom: 16px;
+  padding: var(--espaco-md) var(--espaco-lg);
+  /* Fim de região: a barra de recorte não é vizinha dos KPIs, é a moldura
+     deles. O vão maior é o que separa as duas leituras. */
+  margin-bottom: var(--espaco-xl);
 }
 
 /* Os campos DIVIDEM a linha em vez de cada um exigir 165px: são oito, e o
@@ -321,7 +334,7 @@ main {
 
 .campo-multi .opcoes {
   position: absolute;
-  z-index: 20;
+  z-index: var(--z-dropdown);
   top: calc(100% + 5px);
   left: 0;
   min-width: 100%;
@@ -333,7 +346,7 @@ main {
   background: var(--papel);
   border: 1px solid var(--borda);
   border-radius: 9px;
-  box-shadow: 0 10px 26px rgb(32 44 133 / 0.16);
+  box-shadow: var(--sombra-flutuante);
 }
 
 .campo-multi .opcoes label {
@@ -447,17 +460,25 @@ main {
   font-weight: 700;
 }
 
+/* Ficha que é botão (o país e a UF do recorte, com o ✕): tinha o mesmo repouso
+   da ficha estática e nenhum retorno ao passar o mouse. */
+button.ficha:hover {
+  color: var(--laranja-escuro);
+  box-shadow: inset 0 0 0 1px var(--laranja-escuro);
+}
+
 /* ----------------------------------------------------------------- KPIs */
 
 .kpis {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
-  gap: 14px;
-  margin-bottom: 16px;
+  /* Dentro da faixa, vão de região interna; depois dela, o vão maior. */
+  gap: var(--espaco-lg);
+  margin-bottom: var(--espaco-xl);
 }
 
 .kpi {
-  padding: 14px 16px;
+  padding: var(--espaco-lg);
 }
 
 .kpi-rotulo {
@@ -514,8 +535,8 @@ main {
 .corpo {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 360px;
-  gap: 16px;
-  margin-bottom: 16px;
+  gap: var(--espaco-lg);
+  margin-bottom: var(--espaco-xl);
 }
 
 @media (max-width: 1100px) {
@@ -525,7 +546,7 @@ main {
 }
 
 .painel-mapa {
-  padding: 12px 12px 14px;
+  padding: var(--espaco-md);
   position: relative;
 }
 
@@ -538,8 +559,8 @@ main {
 .expandir {
   position: absolute;
   top: 10px;
-  right: 12px;
-  z-index: 4;
+  right: var(--espaco-md);
+  z-index: var(--z-flutuante);
   border: 1px solid var(--borda);
   background: var(--papel);
   color: var(--tinta-fraca);
@@ -606,8 +627,8 @@ main {
   padding: 10px 12px;
   font-size: 12.5px;
   line-height: 1.35;
-  box-shadow: 0 6px 20px rgb(22 32 63 / 28%);
-  z-index: 5;
+  box-shadow: var(--sombra-flutuante);
+  z-index: var(--z-flutuante);
   max-width: 250px;
   transform: translate(-50%, calc(-100% - 12px));
 }
@@ -657,13 +678,16 @@ main {
   border: 1px solid rgb(32 44 133 / 12%);
 }
 
-.aviso {
+/* Item de legenda do mapa: bolinha + o que a cor quer dizer. Nome próprio, e
+   não `.aviso`: as duas classes coexistiam e a legenda herdava a moldura do
+   alerta em filete (borda laranja e tudo) em cima de cada bolinha. */
+.legenda-item {
   display: inline-flex;
   align-items: center;
   gap: 6px;
 }
 
-.aviso i {
+.legenda-item i {
   width: 12px;
   height: 12px;
   border-radius: 50%;
@@ -673,14 +697,14 @@ main {
 /* -------------------------------------------------------------- ranking */
 
 .ranking {
-  padding: 14px 16px;
+  padding: var(--espaco-lg);
   display: flex;
   flex-direction: column;
   min-height: 0;
 }
 
 .ranking h2 {
-  font-size: 15px;
+  font-size: 18px;
   margin-bottom: 2px;
 }
 
@@ -777,8 +801,8 @@ main {
 
 .abas {
   display: flex;
-  gap: 4px;
-  z-index: 1;
+  gap: var(--espaco-xs);
+  z-index: var(--z-conteudo);
   flex-wrap: wrap;
 }
 
@@ -809,9 +833,11 @@ main {
  * Vem DEPOIS de .abas de propósito: os links do painel têm a mesma
  * especificidade das abas e precisam ganhar no desempate por ordem.
  */
+/* +1 sobre o conteúdo do cabeçalho: o gatilho precisa ficar acima das abas
+   vizinhas, senão a aba seguinte cobre a borda do balão aberto. */
 .menu {
   position: relative;
-  z-index: 2;
+  z-index: calc(var(--z-conteudo) + 1);
 }
 
 .menu > summary {
@@ -851,7 +877,7 @@ main {
 
 .menu-itens {
   position: absolute;
-  z-index: 30;
+  z-index: var(--z-dropdown);
   top: calc(100% + 6px);
   left: 0;
   min-width: 100%;
@@ -859,7 +885,7 @@ main {
   background: var(--papel);
   border: 1px solid var(--borda);
   border-radius: 11px;
-  box-shadow: 0 12px 30px rgb(32 44 133 / 22%);
+  box-shadow: var(--sombra-flutuante);
 }
 
 /* Ancorado à direita nas ações, que ficam na borda da tela. */
@@ -902,7 +928,7 @@ main {
 .grade {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 16px;
+  gap: var(--espaco-lg);
 }
 
 @media (max-width: 1280px) {
@@ -923,7 +949,7 @@ main {
 }
 
 .bloco {
-  padding: 14px 16px;
+  padding: var(--espaco-lg);
   min-width: 0;
   /* A barra da pasta é grudada: sem isto o ▶ Vídeo levava o título do bloco
      para debaixo dela. */
@@ -938,8 +964,15 @@ main {
   grid-column: span 2;
 }
 
+/*
+ * 18px sobre um corpo de 15px. Era 15 também: o título de bloco e o texto do
+ * bloco tinham exatamente o mesmo tamanho, e a diferença ficava só na fonte e
+ * no peso — de perto passa, mas no teste de vista embaçada uma página de oito
+ * cartões não tinha primeiro nem segundo plano. É a única mudança de escala
+ * tipográfica daqui: o degrau que faltava era este.
+ */
 .bloco h2 {
-  font-size: 15px;
+  font-size: 18px;
 }
 
 /* Título à esquerda, ações (exportar) à direita — ver Secao em ui.tsx. */
@@ -947,7 +980,7 @@ main {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 12px;
+  gap: var(--espaco-md);
 }
 
 .bloco-acoes {
@@ -956,7 +989,9 @@ main {
   flex-shrink: 0;
 }
 
-/* Botão de ação sobre cartão branco (o do cabeçalho é claro sobre azul). */
+/* Botão de ação sobre cartão branco: o canto do bloco (exportar, "abrir em
+   Projetos & Pastas", limpar seleção). É o único controle secundário do painel
+   — no cabeçalho azul quem manda são as abas, o menu e o botão Atualizar. */
 .botao-claro {
   border: 1px solid var(--borda);
   background: var(--papel);
@@ -1214,8 +1249,8 @@ main {
 /* -------------------------------------------------------------- alertas */
 
 .alerta-caixa {
-  padding: 14px 16px;
-  margin-bottom: 16px;
+  padding: var(--espaco-lg);
+  margin-bottom: var(--espaco-xl);
   border-color: var(--laranja-escuro);
 }
 
@@ -1241,9 +1276,10 @@ main {
   box-shadow: inset 0 0 0 1px var(--borda);
 }
 
+/* As fichas do mapa começam na margem (o `.fichas` base empurra para a
+   direita, porque nasceu no canto do cabeçalho). */
 .fichas-mapa {
-  margin: 0 0 14px;
-  margin-left: 0;
+  margin: 0 0 var(--espaco-lg);
 }
 
 /* --------------------------------------------------------------- estado */
@@ -1282,7 +1318,7 @@ main {
   position: sticky;
   top: 0;
   background: var(--papel);
-  z-index: 1;
+  z-index: var(--z-conteudo);
 }
 
 /* --------------------------------------- projetos & pastas (Fase 5) */
@@ -1290,7 +1326,7 @@ main {
 .pastas {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 10px;
+  gap: var(--espaco-md);
 }
 
 .pasta {
@@ -1381,13 +1417,13 @@ main {
 .pasta-barra {
   position: sticky;
   top: 0;
-  z-index: 10;
+  z-index: var(--z-barra);
   display: flex;
   align-items: baseline;
   gap: 14px;
   flex-wrap: wrap;
   padding: 10px 2px;
-  margin-bottom: 6px;
+  margin-bottom: var(--espaco-md);
   background: var(--fundo);
   border-bottom: 1px solid var(--borda);
 }
@@ -1461,9 +1497,11 @@ main {
   margin: 0 0 8px;
 }
 
+/* A maior separação da pasta do projeto: daqui para baixo não se decide nada.
+   O filete sozinho dizia isso; o vão é que faltava. */
 .faixa-registro {
-  margin-top: 22px;
-  padding-top: 14px;
+  margin-top: var(--espaco-2xl);
+  padding-top: var(--espaco-lg);
   border-top: 1px solid var(--borda);
 }
 
@@ -1481,8 +1519,8 @@ main {
 /* `.cartao` só pinta fundo e borda — quem tem padding é `.bloco`, `.kpi` e
    companhia. Este cartão não herdava de nenhum e o texto encostava na borda. */
 .cabecalho-projeto {
-  padding: 16px 20px 18px;
-  margin-bottom: 14px;
+  padding: var(--espaco-lg) var(--espaco-xl);
+  margin-bottom: var(--espaco-xl);
 }
 
 .cabecalho-projeto h1 {
@@ -1505,8 +1543,8 @@ main {
 .valores {
   display: grid;
   grid-template-columns: minmax(240px, 1fr) minmax(320px, 2fr);
-  gap: 14px;
-  margin-bottom: 16px;
+  gap: var(--espaco-lg);
+  margin-bottom: var(--espaco-xl);
   align-items: stretch;
 }
 
@@ -1524,7 +1562,7 @@ main {
 /* O cartão estica até a altura da ficha ao lado. Sem isto o conteúdo ficava
    empilhado no canto superior esquerdo, com um vão morto embaixo. */
 .valor-principal {
-  padding: 18px 20px;
+  padding: var(--espaco-lg) var(--espaco-xl);
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -1549,7 +1587,7 @@ main {
 }
 
 .valores .identificacao {
-  padding: 6px 18px;
+  padding: var(--espaco-sm) var(--espaco-xl);
 }
 
 .identificacao > div {
@@ -1614,7 +1652,7 @@ main {
 .videos {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-  gap: 14px;
+  gap: var(--espaco-lg);
 }
 
 .videos figure {
@@ -1850,14 +1888,14 @@ main {
 .projeto-corpo {
   display: grid;
   grid-template-columns: minmax(0, 74ch) minmax(220px, 1fr);
-  gap: 32px;
+  gap: var(--espaco-2xl);
   align-items: start;
 }
 
 @media (max-width: 1000px) {
   .projeto-corpo {
     grid-template-columns: minmax(0, 1fr);
-    gap: 20px;
+    gap: var(--espaco-xl);
   }
 }
 
@@ -1957,11 +1995,11 @@ main {
 
 .relatorios {
   display: grid;
-  gap: 12px;
+  gap: var(--espaco-md);
 }
 
 .relatorio {
-  padding: 12px;
+  padding: var(--espaco-md);
   border: 1px solid var(--borda);
   border-radius: var(--raio);
   background: var(--fundo);
@@ -2007,7 +2045,7 @@ body.apresentacao {
 
 body.apresentacao main {
   max-width: none;
-  padding: 24px 40px 56px;
+  padding: var(--espaco-xl) var(--espaco-2xl) var(--espaco-3xl);
 }
 
 body.apresentacao .kpi-valor {
@@ -2029,9 +2067,10 @@ body.apresentacao .legenda-grafico {
 
 /* O texto DENTRO do SVG já cresce com o viewBox — só a legenda é HTML. */
 
+/* Mesma razão da tela (1,2 sobre o corpo), com o corpo em 18px. */
 body.apresentacao .bloco h2,
 body.apresentacao .ranking h2 {
-  font-size: 21px;
+  font-size: 22px;
 }
 
 body.apresentacao .linha-topo,
@@ -2300,7 +2339,7 @@ body.apresentacao .rolagem {
 /* ------------------------------------------------------------ parcerias */
 
 .intro-parcerias {
-  margin: 0 0 12px;
+  margin: 0 0 var(--espaco-md);
   font-size: 13.5px;
   color: var(--tinta-fraca);
   max-width: 900px;
@@ -2313,8 +2352,9 @@ body.apresentacao .rolagem {
 .modo-parcerias {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 14px;
+  gap: var(--espaco-sm);
+  /* Mundo × Brasil governa tudo o que vem abaixo: o vão é o de região. */
+  margin-bottom: var(--espaco-xl);
   flex-wrap: wrap;
 }
 
@@ -2403,10 +2443,6 @@ body.apresentacao .rolagem {
   background: color-mix(in srgb, var(--laranja) 8%, var(--papel));
 }
 
-.expandir-inline {
-  position: static;
-}
-
 @media print {
   .estrela,
   .botao-modo,
@@ -2423,8 +2459,8 @@ body.apresentacao .rolagem {
  * bloco entre blocos —, com o filete azul da marca fazendo a divisão.
  */
 .veredito {
-  margin: 0 0 16px;
-  padding: 0 0 14px 0;
+  margin: 0 0 var(--espaco-xl);
+  padding: 0 0 var(--espaco-lg) 0;
   border-bottom: 2px solid var(--azul);
   font-size: 17px;
   line-height: 1.5;

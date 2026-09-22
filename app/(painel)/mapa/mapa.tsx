@@ -258,10 +258,10 @@ export default function Mapa({
               ))}
               <span>{fmtInt.format(maxProjetos)}</span>
             </div>
-            <span className="aviso">
+            <span className="legenda-item">
               <i style={{ background: "var(--neutro)" }} /> Sem projetos
             </span>
-            <span className="aviso">
+            <span className="legenda-item">
               <i
                 style={{
                   background:

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo } from "react";
 import { ehFinanciado, montarCobertura } from "@/lib/agregar";
 import type { ProjetoCiclo, RelatorioPrestacao } from "@/lib/types";
@@ -305,7 +306,11 @@ export default function Prestacao({
               <tbody>
                 {c.pendentes.map((p) => (
                   <tr key={p.id}>
-                    <td>{p.titulo}</td>
+                    <td>
+                      <Link className="link-projeto" href={`/projetos/${p.id}`}>
+                        {p.titulo}
+                      </Link>
+                    </td>
                     <td>{p.instituicaoNome ?? "—"}</td>
                     <td>{p.local.nomePt}</td>
                     <td className="n">

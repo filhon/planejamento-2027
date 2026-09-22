@@ -10,7 +10,7 @@ import {
   projetosAte,
 } from "@/lib/agregar";
 import type { OrcamentoCiclo, ProjetoCiclo, StatusGrupo } from "@/lib/types";
-import { alternar, usePainel } from "./contexto";
+import { alternar, usePainel } from "../contexto";
 import {
   COR_STATUS,
   ORDEM_STATUS,
@@ -22,8 +22,8 @@ import {
   pct,
   plural,
   rotuloCategoria,
-} from "./formato";
-import { Barras, Kpi, Secao } from "./ui";
+} from "../formato";
+import { Barras, Kpi, Secao } from "../ui";
 
 /**
  * Visão Geral — como está o ciclo: KPIs com delta, concentração do pedido,

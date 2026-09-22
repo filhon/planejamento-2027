@@ -51,6 +51,11 @@ import {
   similaridadeTitulo,
   sugerirVinculo,
 } from "../src/lib/recorrencia";
+import {
+  FORA_DA_DIRETRIZ,
+  montarDiretriz,
+  rotuloRubrica,
+} from "../src/lib/rubricas";
 import { crc32, planilha } from "../src/lib/xlsx";
 import { lerXlsx } from "../src/lib/xlsx-ler";
 import { deflateRawSync } from "node:zlib";
@@ -1465,4 +1470,93 @@ test("geometria do Brasil: 27 UFs com path e projeção dentro do viewBox", asyn
       recife[1] > 0 &&
       recife[1] < ALTURA_BR,
   );
+});
+
+// ------------------------------ diretriz orçamentária por rúbrica (Fase 12)
+
+const pedido = (
+  id: string,
+  categoria: string,
+  solicitado: number,
+  tipo: "novo" | "renovacao" = "novo",
+) => triado(id, { tipo }, { categoria, solicitado });
+
+test("rúbricas: envelope vem do teto, desvio sai em reais e em pontos", () => {
+  const d = montarDiretriz(
+    [
+      pedido("a", "missoes-transculturais", 400, "renovacao"),
+      pedido("b", "missoes-nacionais", 100),
+      pedido("c", "construcao-reforma", 300),
+      pedido("d", "educacao", 50),
+      pedido("e", "projetos-sociais-cristaos", 150),
+    ],
+    1000,
+  );
+
+  assert.equal(d.pedido, 1000);
+  assert.equal(d.projetos, 5);
+
+  const por = new Map(d.linhas.map((l) => [l.chave, l]));
+
+  // Missões bate a diretriz na mosca: 50% do pedido para um alvo de 50%.
+  const missoes = por.get("missoes")!;
+  assert.equal(missoes.pedido, 500);
+  assert.equal(missoes.envelope, 500);
+  assert.equal(missoes.desvio, 0);
+  assert.equal(missoes.desvioPp, 0);
+  assert.equal(missoes.projetos, 2);
+  assert.equal(missoes.renovacoes, 1);
+  assert.equal(missoes.novos, 1);
+  assert.equal(missoes.pedidoRenovacoes, 400);
+  assert.equal(missoes.pedidoNovos, 100);
+
+  // Social pede o triplo do que a diretriz reserva.
+  const social = por.get("social")!;
+  assert.equal(social.envelope, 50);
+  assert.equal(social.desvio, 100);
+  assert.ok(Math.abs(social.desvioPp - 0.1) < 1e-9);
+
+  // Outros fica abaixo — o desvio negativo não entra no remanejamento.
+  assert.equal(por.get("outros")!.desvio, -150);
+  assert.equal(d.remanejar, 150); // 100 do social + 50 da construção
+
+  assert.equal(d.acima?.chave, "social");
+  assert.equal(d.abaixo?.chave, "outros");
+
+  // Sem "fora das rúbricas" quando toda categoria está mapeada.
+  assert.equal(d.linhas.length, 4);
+});
+
+test("categoria que a diretriz não nomeia soma numa linha própria", () => {
+  const d = montarDiretriz(
+    [pedido("a", "missoes-nacionais", 500), pedido("b", "capelania", 500)],
+    1000,
+  );
+  const fora = d.linhas.find((l) => l.chave === FORA_DA_DIRETRIZ)!;
+  assert.equal(fora.pedido, 500);
+  assert.equal(fora.alvo, 0);
+  assert.deepEqual(fora.categorias, ["capelania"]);
+  // A diretriz não reserva nada para ela: o pedido inteiro é excesso.
+  assert.equal(fora.desvio, 500);
+  assert.equal(d.acima?.chave, FORA_DA_DIRETRIZ);
+});
+
+test("recorte vazio e ciclo sem teto não inventam desvio", () => {
+  const vazio = montarDiretriz([], 1000);
+  assert.equal(vazio.pedido, 0);
+  assert.ok(vazio.linhas.every((l) => l.desvioPp === 0));
+  assert.equal(vazio.acima, null);
+  assert.equal(vazio.abaixo, null);
+
+  const semTeto = montarDiretriz(
+    [pedido("a", "projetos-sociais-cristaos", 100)],
+    null,
+  );
+  assert.equal(semTeto.remanejar, null);
+  assert.ok(semTeto.linhas.every((l) => l.envelope === null));
+  assert.ok(semTeto.linhas.every((l) => l.desvio === null));
+  // A aderência em pontos não depende do teto — é o que sobra quando ele falta.
+  assert.equal(semTeto.acima?.chave, "social");
+  assert.equal(rotuloRubrica("projetos-sociais-cristaos"), "Social");
+  assert.equal(rotuloRubrica("capelania"), "Fora das rúbricas");
 });

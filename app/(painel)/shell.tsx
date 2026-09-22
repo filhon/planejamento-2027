@@ -30,12 +30,22 @@ import { ROTULO_STATUS, resumoFiltros, rotuloCategoria } from "./formato";
  * da fileira de abas e a joga no dropdown de mesmo nome — é assim que o topo
  * ganha espaço quando entram páginas novas: uma linha, sem mexer no layout.
  */
-const PAGINAS: { href: string; rotulo: string; menu?: string }[] = [
-  { href: "/", rotulo: "Visão Geral" },
+const PAGINAS: {
+  href: string;
+  rotulo: string;
+  menu?: string;
+  /** Nome por extenso para o papel, quando a aba precisa ser curta. */
+  titulo?: string;
+}[] = [
+  { href: "/", rotulo: "Resumo", titulo: "Resumo Executivo" },
+  { href: "/visao-geral", rotulo: "Visão Geral" },
   { href: "/mapa", rotulo: "Mapa-múndi" },
   { href: "/projetos", rotulo: "Projetos & Pastas" },
-  { href: "/pipeline", rotulo: "Pipeline & Avaliação" },
   { href: "/parcerias", rotulo: "Parcerias" },
+  // Pipeline desceu para o menu quando o Resumo entrou na fileira: a linha do
+  // topo é o mesmo teto dos filtros (entra um, sai um), e nesta remessa é a
+  // página com menos a dizer — 2026 não tem uma única avaliação registrada.
+  { href: "/pipeline", rotulo: "Pipeline & Avaliação", menu: "Mais" },
   { href: "/orcamento", rotulo: "Orçamento", menu: "Mais" },
   { href: "/instituicoes", rotulo: "Instituições", menu: "Mais" },
   { href: "/prestacao", rotulo: "Prestação de contas", menu: "Mais" },
@@ -417,8 +427,11 @@ export default function Shell({
         {!emDetalhe && (
           <div className="so-impressao">
             <b>
-              {PAGINAS.find((p) => p.href === caminho)?.rotulo ?? "Painel"} ·
-              Remessa {ano}
+              {(() => {
+                const p = PAGINAS.find((x) => x.href === caminho);
+                return p?.titulo ?? p?.rotulo ?? "Painel";
+              })()}{" "}
+              · Remessa {ano}
             </b>
             <span>{resumoFiltros(filtros, nomePais)}</span>
             <span>

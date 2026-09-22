@@ -1172,6 +1172,16 @@ main {
   border-bottom: 0;
 }
 
+/* Totais no rodapé, com filete duplo acima — estrutura de documento de
+   conselho, não de tabela de tela (ver PRODUCT.md, anti-referências). */
+.tabela tfoot td {
+  border-top: 2px solid var(--azul);
+  border-bottom: 0;
+  font-weight: 700;
+  color: var(--azul);
+  white-space: nowrap;
+}
+
 /*
  * Pastilha de classificação (status e triagem). A cor entra por `--cor`, não
  * por `background` inline: cheia, ela reprovava AA em 4 dos 6 status (verde
@@ -2240,6 +2250,21 @@ body.apresentacao .rolagem {
     word-break: break-all;
   }
 
+  /* Mas numa RELAÇÃO o endereço ao lado de cada título viraria parede de uuid:
+     são 140 linhas em Renovações, 250 em Projetos & Pastas. O link só vale
+     como endereço fora de tabela, onde ele é o próprio destino (o anexo, o
+     projeto do ciclo anterior). */
+  .tabela .link-projeto[href]::after {
+    content: none;
+  }
+
+  /* `tfoot` é `table-footer-group`, que o navegador REPETE em cada página —
+     e o total final repetido no meio da relação mente sobre o que veio acima.
+     No papel ele volta a ser a última linha da tabela. */
+  .tabela tfoot {
+    display: table-row-group;
+  }
+
   /* Listas roladas na tela precisam sair inteiras no papel. */
   .barras,
   .ranking ol,
@@ -2388,4 +2413,92 @@ body.apresentacao .rolagem {
   .modo-parcerias .sub {
     display: none;
   }
+}
+
+/* ------------------------------------------- resumo executivo (Fase 12) */
+
+/*
+ * O veredito: a frase que abre a reunião, montada dos mesmos números da tabela
+ * de rúbricas. Fica FORA de cartão de propósito — é a leitura da página, não um
+ * bloco entre blocos —, com o filete azul da marca fazendo a divisão.
+ */
+.veredito {
+  margin: 0 0 16px;
+  padding: 0 0 14px 0;
+  border-bottom: 2px solid var(--azul);
+  font-size: 17px;
+  line-height: 1.5;
+  max-width: 105ch;
+}
+
+.veredito b {
+  color: var(--azul);
+  font-weight: 700;
+}
+
+body.apresentacao .veredito {
+  font-size: 22px;
+}
+
+/* Segunda linha dentro de uma célula: de onde vem o número da célula (as
+   categorias da rúbrica, o desvio em pontos, a divisão novo × renovação). */
+.celula-sub {
+  display: block;
+  margin-top: 2px;
+  font-size: 11.5px;
+  font-weight: 400;
+  color: var(--tinta-fraca);
+  white-space: normal;
+}
+
+/* Célula que guarda um rótulo curto, não uma frase: a rúbrica e a variação da
+   renovação quebradas em duas linhas dobravam a altura de metade da relação. */
+.tabela td.rotulo {
+  white-space: nowrap;
+}
+
+/*
+ * Régua de desvio: barra divergente com o zero no meio. À direita (laranja) a
+ * rúbrica pede ACIMA do envelope da diretriz; à esquerda (azul), abaixo.
+ *
+ * O mesmo dado sai codificado três vezes — lado, cor e a palavra na célula
+ * vizinha ("4,4% p.p. acima") — porque esta página é lida a três metros na TV e
+ * sai em fotocópia preto e branco. Azul e laranja também diferem em
+ * luminosidade, então sobrevivem à escala de cinza sem depender do matiz.
+ */
+.regua {
+  position: relative;
+  display: block;
+  width: 130px;
+  height: 8px;
+  border-radius: 4px;
+  background: var(--neutro);
+}
+
+.regua i {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  border-radius: 4px;
+}
+
+.regua i.acima {
+  left: 50%;
+  background: var(--laranja);
+}
+
+.regua i.abaixo {
+  right: 50%;
+  background: var(--azul);
+}
+
+/* O zero, por cima do preenchimento: é a referência da leitura. */
+.regua::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: -3px;
+  bottom: -3px;
+  width: 1px;
+  background: var(--tinta-fraca);
 }

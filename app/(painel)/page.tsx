@@ -1,8 +1,14 @@
 import { dados } from "@/lib/cache";
 import type { OrcamentoCiclo } from "@/lib/types";
-import VisaoGeral from "./visao-geral";
+import Resumo from "./resumo";
 
-/** Página 01 — Visão Geral (docs/plano-dashboard.md §4). */
+/**
+ * Página 00 — Resumo Executivo: a tela de entrada da reunião (Fase 12).
+ *
+ * A Visão Geral, que era esta rota, mudou para `/visao-geral` — ela continua
+ * sendo o diagnóstico do ciclo, mas a abertura da reunião agora é a diretriz
+ * orçamentária do presidente.
+ */
 export default async function Page() {
   const ciclos = await dados.ciclos();
   const anos = [...new Set(ciclos.map((c) => c.ano))];
@@ -12,5 +18,5 @@ export default async function Page() {
     orcamentos[o.ano] = o;
   }
 
-  return <VisaoGeral orcamentos={orcamentos} />;
+  return <Resumo orcamentos={orcamentos} />;
 }

@@ -377,7 +377,15 @@ const FORA_DA_AVALIACAO = new Set([
 export const avaliavel = (status: string): boolean =>
   !FORA_DA_AVALIACAO.has(status);
 
-const ehNovo = (p: ProjetoCiclo): boolean => p.revisao.tipo !== "renovacao";
+/**
+ * Continuação de um projeto da remessa anterior (Fase 5). "revisar" ainda NÃO é
+ * renovação: o vínculo é plausível mas não decidido, e até a equipe decidir no
+ * CSV o projeto conta como novo — ocupa pasta e entra na conta dos novos.
+ */
+export const ehRenovacao = (p: ProjetoCiclo): boolean =>
+  p.revisao.tipo === "renovacao";
+
+const ehNovo = (p: ProjetoCiclo): boolean => !ehRenovacao(p);
 
 /** Quem entra na pasta de um diretor/conselheiro: novo (ou a revisar) e não rejeitado. */
 export const vaiParaPasta = (p: ProjetoCiclo): boolean =>

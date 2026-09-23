@@ -298,6 +298,15 @@ que foi submetido cabe nessa divisão.
 
 Manual: [`docs/fase12-resumo.md`](docs/fase12-resumo.md).
 
+**Fase 13 (login e publicação na Vercel)** — só 3 pessoas entram (Filipe,
+Wendel, Guilherme Pereira; `user_id` em `PAINEL_USUARIOS`), com a **mesma senha
+do sistema de submissão**: `extensions.crypt` (pgcrypto) confere o bcrypt de
+`auth.users` num `SELECT` — hash não sai do banco, nada gravado na origem (é a
+única leitura do schema `auth`). Sessão = cookie HMAC de 12 h
+(`src/lib/sessao.ts`), portão em `proxy.ts` **e** `exigirSessao()` em toda
+Server Action. CSP/HSTS/noindex em `next.config.ts`. Variáveis da Vercel,
+rate limit e o que segue aberto: [`docs/publicacao.md`](docs/publicacao.md).
+
 **Próximo passo:** nada obrigatório. Em aberto, só se a equipe pedir: exportar PNG
 (hoje é PDF pela impressão), zoom/pan no mapa e ler .docx no visor (o
 descompactador já está lá; falta extrair o texto de `word/document.xml`).

@@ -6,6 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState, useTransition } from "react";
 import type { StatusGrupo } from "@/lib/types";
 import { atualizarDados } from "../actions";
+import { sair } from "../login/actions";
 import {
   alternar,
   casaBusca,
@@ -404,6 +405,7 @@ export default function Shell({
             >
               Exportar PDF
             </button>
+            <button onClick={() => sair()}>Sair</button>
           </Menu>
           <button
             className="botao-atualizar"

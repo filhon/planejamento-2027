@@ -2556,3 +2556,64 @@ body.apresentacao .rolagem {
   width: 1px;
   background: var(--tinta-fraca);
 }
+
+/* ---------------------------------------------------------------- login */
+
+.login {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: var(--espaco-lg);
+  background: var(--azul);
+}
+
+.login-cartao {
+  width: min(100%, 380px);
+  padding: var(--espaco-2xl);
+  background: var(--papel);
+  border-radius: var(--raio);
+  box-shadow: var(--sombra-flutuante);
+}
+
+.login-cartao .titulo {
+  margin-top: var(--espaco-lg);
+  font-size: var(--texto-pagina);
+  color: var(--azul);
+}
+
+.login-sub {
+  margin: var(--espaco-xs) 0 var(--espaco-xl);
+  color: var(--tinta-fraca);
+  font-size: var(--texto-ui);
+}
+
+.login-form {
+  display: grid;
+  gap: var(--espaco-lg);
+}
+
+.login-form label {
+  display: grid;
+  gap: var(--espaco-xs);
+  font-size: var(--texto-ui);
+  font-weight: 600;
+  color: var(--tinta);
+}
+
+.login-form input {
+  font: inherit;
+  font-weight: 400;
+  padding: 10px 12px;
+  border: 1px solid var(--neutro-forte);
+  border-radius: 8px;
+}
+
+.login-erro {
+  margin: 0;
+  color: var(--vermelho);
+  font-size: var(--texto-ui);
+}
+
+.login-form .botao-atualizar {
+  padding: 11px 18px;
+}

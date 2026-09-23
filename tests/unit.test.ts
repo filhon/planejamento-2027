@@ -486,6 +486,14 @@ test("o parecer em HTML é desenhado, e só com as tags da lista", () => {
   assert.ok(
     !sanitizarHtml("<scr<script>ipt>alert(1)</script>").includes("ipt>"),
   );
+  // Apagar a tag do meio não pode remontar uma tag nova.
+  assert.equal(
+    sanitizarHtml("<<span>img src=x onerror=alert(1)>"),
+    "&lt;img src=x onerror=alert(1)&gt;",
+  );
+  assert.ok(
+    !/<img/i.test(sanitizarHtml('<img alt=">" src=x onerror=alert(1)>')),
+  );
 
   // Texto puro continua no caminho do React, que escapa sozinho.
   assert.equal(ehHtmlRico("Orçamento de R$ 5 < R$ 10 para M&M"), false);
@@ -1573,4 +1581,44 @@ test("recorte vazio e ciclo sem teto não inventam desvio", () => {
   assert.equal(semTeto.acima?.chave, "social");
   assert.equal(rotuloRubrica("projetos-sociais-cristaos"), "Social");
   assert.equal(rotuloRubrica("capelania"), "Fora das rúbricas");
+});
+
+test("sessão: assinatura, vencimento, adulteração e lista fechada", async () => {
+  const { assinarSessao, lerSessao, sessaoValida, destinoSeguro } =
+    await import("../src/lib/sessao");
+  const seg = "x".repeat(40);
+  const uid = "032a79ca-6cf0-4dee-a521-61f10ad1aaa1";
+  const exp = Math.floor(Date.now() / 1000) + 60;
+  const t = assinarSessao({ uid, nome: "F", exp }, seg);
+
+  assert.equal(lerSessao(t, seg)?.uid, uid);
+  assert.equal(lerSessao(t, "y".repeat(40)), null, "segredo errado");
+  assert.equal(lerSessao(t, seg, (exp + 1) * 1000), null, "vencida");
+  const [corpo, ass] = t.split(".");
+  const outro = Buffer.from(
+    JSON.stringify({ uid: "x", nome: "F", exp }),
+  ).toString("base64url");
+  assert.equal(lerSessao(`${outro}.${ass}`, seg), null, "corpo trocado");
+  assert.equal(lerSessao(`${corpo}.${ass}.x`, seg), null);
+  assert.equal(lerSessao(undefined, seg), null);
+
+  process.env.SESSAO_SEGREDO = seg;
+  process.env.PAINEL_USUARIOS = uid.toUpperCase() + ", lixo";
+  assert.equal(sessaoValida(t)?.uid, uid);
+  process.env.PAINEL_USUARIOS = "04cbdcf6-5fc9-45ca-9a8b-dc6088598560";
+  assert.equal(sessaoValida(t), null, "tirado da lista perde a sessão");
+  process.env.SESSAO_SEGREDO = "curto";
+  assert.throws(() => sessaoValida(t), "sem segredo decente ninguém entra");
+
+  assert.equal(destinoSeguro("/projetos?x=1"), "/projetos?x=1");
+  for (const ruim of [
+    "//evil.com",
+    "/\\evil.com",
+    "https://evil.com",
+    "",
+    "evil",
+    "/\t/evil.com",
+    "/\n/evil.com",
+  ])
+    assert.equal(destinoSeguro(ruim), "/", ruim);
 });

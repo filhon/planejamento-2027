@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { atualizar } from "@/lib/cache";
 import { adicionarLinkPrestacao } from "@/lib/enrichment";
 import { alternarCandidato } from "@/lib/parcerias-dados";
+import { exigirSessao } from "./sessao";
 
 /**
  * Botão "Atualizar" da reunião: derruba o cache (inclusive os CSVs de
@@ -11,6 +12,7 @@ import { alternarCandidato } from "@/lib/parcerias-dados";
  * Continua sendo só leitura — `atualizar()` apenas esvazia caches locais.
  */
 export async function atualizarDados(): Promise<void> {
+  await exigirSessao();
   atualizar();
   revalidatePath("/");
 }
@@ -28,15 +30,15 @@ export interface EstadoLink {
  * origem: o banco de submissões continua somente-leitura, e o que se anexa aqui
  * é evidência para a reunião, não o relatório oficial do sistema.
  *
- * O formulário é público na rede da reunião, então a validação é aqui e não no
- * `<input type="url">`: só `https` (um `javascript:` colado viraria href) e só
- * um projeto de verdade.
+ * A validação é aqui e não no `<input type="url">`: só `https` (um
+ * `javascript:` colado viraria href) e só um projeto de verdade.
  */
 export async function salvarLinkPrestacao(
   alvo: { id: string; ano: number; titulo: string },
   _estado: EstadoLink,
   form: FormData,
 ): Promise<EstadoLink> {
+  await exigirSessao();
   if (!UUID.test(alvo.id))
     return { erro: "Projeto não reconhecido. Recarregue a página." };
 
@@ -88,6 +90,7 @@ export async function marcarCandidato(
   alvo: { chave: string; rotulo: string },
   nota: string,
 ): Promise<{ marcado: boolean }> {
+  await exigirSessao();
   if (!/^(APMT|JMM|JMN-IPB|Pioneiros):.{1,200}$/.test(alvo.chave))
     throw new Error("Missionário inválido.");
   const marcado = alternarCandidato({

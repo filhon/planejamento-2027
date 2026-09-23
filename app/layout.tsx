@@ -33,6 +33,7 @@ export const metadata: Metadata = {
   title: "Painel Consultivo — Hebron ASEEC",
   description: "Planejamento das remessas missionárias da Hebron ASEEC.",
   icons: { icon: "/simbolo.png" },
+  robots: { index: false, follow: false },
 };
 
 export default function RootLayout({

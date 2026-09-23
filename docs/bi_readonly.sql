@@ -39,6 +39,16 @@ alter role bi_readonly with bypassrls;
 --    create policy bi_readonly_select on public.cycle_projects
 --      for select to bi_readonly using (true);
 
+-- 2b. Login do painel (entrou na publicação) ---------------------------------
+--    O painel confere a senha dos 3 usuários liberados DENTRO do banco
+--    (`extensions.crypt`, pgcrypto) — o hash nunca sai de lá. Para isso o papel
+--    precisa ler só estas colunas de auth.users, e mais nada do schema auth:
+grant usage on schema auth to bi_readonly;
+grant select (id, email, encrypted_password, email_confirmed_at, deleted_at, banned_until)
+  on auth.users to bi_readonly;
+grant usage on schema extensions to bi_readonly;
+grant execute on function extensions.crypt(text, text) to bi_readonly;
+
 -- 3. Conferência ----------------------------------------------------------
 --    Depois de rodar, conectar COM bi_readonly (mesmo pooler IPv4:
 --    aws-1-us-east-1.pooler.supabase.com:5432, user `bi_readonly.<project-ref>`)

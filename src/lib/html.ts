@@ -58,11 +58,18 @@ export function sanitizarHtml(texto: string): string {
     texto
       .replace(COM_CORPO, "")
       .replace(/<!--[\s\S]*?-->/g, "")
-      .replace(/<(\/?)([a-zA-Z][a-zA-Z0-9]*)\b[^>]*>/g, (_, barra, nome) => {
-        const tag = (nome as string).toLowerCase();
-        if (!PERMITIDAS.has(tag)) return "";
-        return barra ? `</${tag}>` : tag === "br" ? "<br>" : `<${tag}>`;
-      })
+      // Um passe só: todo `<`/`>` que não é tag inteira vira entidade. Sem
+      // isso, apagar a tag do meio de `<<span>img onerror=…>` remonta um
+      // `<img>` que nenhum passe volta a olhar.
+      .replace(
+        /<(\/?)([a-zA-Z][a-zA-Z0-9]*)\b[^>]*>|[<>]/g,
+        (m, barra, nome) => {
+          if (!nome) return m === "<" ? "&lt;" : "&gt;";
+          const tag = (nome as string).toLowerCase();
+          if (!PERMITIDAS.has(tag)) return "";
+          return barra ? `</${tag}>` : tag === "br" ? "<br>" : `<${tag}>`;
+        },
+      )
       // O editor marca linha em branco como `<p><br></p>`: com o espaçamento
       // entre parágrafos do painel, isso abriria um vão de três linhas.
       .replace(/<p>(?:\s|<br>|&nbsp;)*<\/p>/gi, "")

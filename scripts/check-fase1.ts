@@ -28,7 +28,12 @@ import {
 } from "../src/lib/enrichment";
 import { construirIndicePaises, dobrar, normalizarLocal } from "../src/lib/geo";
 import { GRUPO_SENSIVEL } from "../src/lib/types";
-import { ALTA_DEMANDA, montarBrasil, montarMundo } from "../src/lib/parcerias";
+import {
+  ALTA_DEMANDA,
+  ehNacional,
+  montarBrasil,
+  montarMundo,
+} from "../src/lib/parcerias";
 
 const brl = new Intl.NumberFormat("pt-BR", {
   style: "currency",
@@ -344,7 +349,7 @@ async function checarParcerias(ano: number): Promise<void> {
   const porAgencia = (a: string) =>
     dp.missionarios.filter((m) => m.agencia === a).length;
   ok(
-    `${dp.missionarios.length} missionários · APMT ${porAgencia("APMT")} · JMM ${porAgencia("JMM")} · JMN-IPB ${porAgencia("JMN-IPB")} · Pioneiros ${porAgencia("Pioneiros")}`,
+    `${dp.missionarios.length} missionários · APMT ${porAgencia("APMT")} · JMM ${porAgencia("JMM")} · JMN-IPB ${porAgencia("JMN-IPB")} · JMN-CBB ${porAgencia("JMN-CBB")} · Pioneiros ${porAgencia("Pioneiros")}`,
   );
   const semLocal = dp.missionarios.filter((m) => !m.local.iso3 && !m.regiao);
   if (semLocal.length)
@@ -354,7 +359,7 @@ async function checarParcerias(ano: number): Promise<void> {
       `país sem de-para: ${dp.pendencias.paisesSemDePara.join(", ")} — completar data/country_map.csv`,
     );
   else ok("todo país das agências está no de-para");
-  const jmn = dp.missionarios.filter((m) => m.agencia === "JMN-IPB");
+  const jmn = dp.missionarios.filter((m) => ehNacional(m.agencia));
   ok(
     `${jmn.filter((m) => m.codigoIbge).length} de ${jmn.length} da JMN casados com município do IBGE`,
   );
@@ -372,9 +377,11 @@ async function checarParcerias(ano: number): Promise<void> {
     anteriores,
     dp.missionarios,
     dp.candidatos,
+    dp.presencas,
   );
+  ok(`${dp.presencas.length} países declarados pela JMM (db-jmm-paises.csv)`);
   ok(
-    `mundo: ${mundo.comAgencia} países com agência · ${mundo.oportunidades} sem pedido em ${ano} · ${mundo.retomar} a retomar · ${mundo.missionariosDisponiveis} missionários disponíveis`,
+    `mundo:${mundo.comAgencia} países com agência · ${mundo.oportunidades} sem pedido em ${ano} · ${mundo.retomar} a retomar · ${mundo.missionariosDisponiveis} missionários disponíveis`,
   );
   const br = montarBrasil(
     projetos,

@@ -17,14 +17,16 @@ import {
   type Candidato,
   type Missionario,
   type Municipio,
+  type Presenca,
 } from "./parcerias";
 import type { LocalNormalizado } from "./types";
 
 /**
  * Leitura dos dados de parceria (Fase 11) — tudo em data/*.csv, FORA da origem:
- *  - db-apmt.csv, db-jmm.csv, db-jmn-ipb.csv, db-pioneiros.csv: relação de
- *    missionários que as agências mandaram (formatos diferentes, um leitor por
- *    arquivo);
+ *  - db-apmt.csv, db-jmm.csv, db-jmn-ipb.csv, db-jmn-cbb.csv, db-pioneiros.csv:
+ *    relação de missionários que as agências mandaram (formatos diferentes, um
+ *    leitor por arquivo);
+ *  - db-jmm-paises.csv: países onde a JMM atua, sem nomes (vira `Presenca`);
  *  - ranking-dd.csv: cidades por demanda de produtos Hebron (1 = mais compra);
  *  - municipios-br.csv: centróide de cada município (gerado por
  *    `npm run municipios:regen` a partir do IBGE);
@@ -33,7 +35,9 @@ import type { LocalNormalizado } from "./types";
 
 const APMT_CSV = resolve(DATA_DIR, "db-apmt.csv");
 const JMM_CSV = resolve(DATA_DIR, "db-jmm.csv");
+const JMM_PAISES_CSV = resolve(DATA_DIR, "db-jmm-paises.csv");
 const JMN_CSV = resolve(DATA_DIR, "db-jmn-ipb.csv");
+const CBB_CSV = resolve(DATA_DIR, "db-jmn-cbb.csv");
 const PIONEIROS_CSV = resolve(DATA_DIR, "db-pioneiros.csv");
 const RANKING_CSV = resolve(DATA_DIR, "ranking-dd.csv");
 const MUNICIPIOS_CSV = resolve(DATA_DIR, "municipios-br.csv");
@@ -44,6 +48,7 @@ const REGIAO = /^(área|area)\s*\d+|^asia$|^oriente médio$|^curdistão$/i;
 
 export interface DadosParcerias {
   missionarios: Missionario[];
+  presencas: Presenca[];
   municipios: Municipio[];
   candidatos: Candidato[];
   /** Para o `npm run check`: o que não casou. */
@@ -212,12 +217,16 @@ export function carregarParcerias(): DadosParcerias {
     });
   }
 
-  for (const r of lerCsv(JMN_CSV)) {
-    const nome = r["Missionário"];
-    if (!nome) continue;
-    const uf = ufDe(r["Estado"]);
-    const municipio =
-      r["Município"] && r["Município"] !== "-" ? r["Município"] : null;
+  // Missões nacionais (IPB e CBB): município + UF, casados com o IBGE.
+  const nacional = (
+    agencia: Agencia,
+    nome: string,
+    tipo: string | undefined,
+    cidade: string | undefined,
+    estado: string | undefined,
+  ): Missionario => {
+    const uf = ufDe(estado);
+    const municipio = cidade && cidade !== "-" ? cidade : null;
     // "Araçagy, São José de Ribamar" é bairro + município; no DF tudo é Brasília.
     const tentativas = [
       municipio ?? "",
@@ -232,13 +241,41 @@ export function carregarParcerias(): DadosParcerias {
         : null;
     if (uf && municipio && !casado)
       municipiosSemCasar.add(`${municipio}/${uf}`);
-    missionarios.push({
-      ...base("JMN-IPB", nome),
+    return {
+      ...base(agencia, nome),
       ...local("Brasil"),
-      tipo: r["Tipo"] || null,
+      tipo: tipo || null,
       municipio,
       uf,
       codigoIbge: casado?.codigo ?? null,
+    };
+  };
+
+  for (const r of lerCsv(JMN_CSV)) {
+    const nome = r["Missionário"];
+    if (!nome) continue;
+    missionarios.push(
+      nacional("JMN-IPB", nome, r["Tipo"], r["Município"], r["Estado"]),
+    );
+  }
+
+  // CBB: veio em CP850 (convertido para UTF-8), `;`, 1ª linha é o título
+  // ("Quadro de Obreiros… 09/2026"). O quadro traz também a equipe de apoio
+  // (professor, cuidador, zelador…): só quem tem função "Miss…" é missionário.
+  for (const r of parse(readFileSync(CBB_CSV, "utf-8"), {
+    columns: true,
+    bom: true,
+    delimiter: ";",
+    from_line: 2,
+    skip_empty_lines: true,
+    trim: true,
+    relax_column_count: true,
+  }) as Record<string, string>[]) {
+    const nome = r["Nome"];
+    if (!nome || !/^miss/i.test(r["Função"] ?? "")) continue;
+    missionarios.push({
+      ...nacional("JMN-CBB", nome, r["Função"], r["Cidade"], r["UF"]),
+      publico: r["Projeto"] || null,
     });
   }
 
@@ -261,8 +298,14 @@ export function carregarParcerias(): DadosParcerias {
     });
   }
 
+  const presencas: Presenca[] = lerCsv(JMM_PAISES_CSV).map((r) => ({
+    agencia: "JMM",
+    local: local(r["Países"] ?? "").local,
+  }));
+
   return {
     missionarios,
+    presencas,
     municipios,
     candidatos: carregarCandidatos(),
     pendencias: {

@@ -1427,8 +1427,18 @@ test("parcerias: UF, município e as duas agregações", async () => {
       miss({ chave: "f", agencia: "JMN-IPB", local: local("BRA"), uf: "SE" }),
     ],
     [{ chave: "a", rotulo: "", nota: "", marcadoEm: "" }],
+    [
+      { agencia: "JMM", local: local("JPN", "Japão") },
+      { agencia: "JMM", local: local("MOZ") },
+      { agencia: "JMM", local: local(null, "Oriente Médio") },
+    ],
   );
   const por = Object.fromEntries(mundo.paises.map((p) => [p.chave, p]));
+  // País só declarado: conta como país com agência, sem inventar missionário.
+  assert.equal(por["JPN"]!.missionarios, 0);
+  assert.equal(por["JPN"]!.situacao, "oportunidade");
+  assert.deepEqual(por["MOZ"]!.porAgencia, { JMM: 1 });
+  assert.equal(por["Oriente Médio"], undefined);
   assert.equal(por["NPL"]!.situacao, "oportunidade");
   assert.equal(por["NPL"]!.parceiros2026, 1);
   assert.equal(por["NPL"]!.candidatos, 1);
@@ -1436,7 +1446,7 @@ test("parcerias: UF, município e as duas agregações", async () => {
   // Pedido rejeitado não "atinge" o país; aprovado no anterior → retomar.
   assert.equal(por["PER"]!.situacao, "retomar");
   assert.equal(por["Área 14 - Sahel"]!.sensivel, true);
-  assert.equal(mundo.comAgencia, 3);
+  assert.equal(mundo.comAgencia, 4);
   assert.equal(mundo.paises[0]!.chave, "PER"); // retomar vem primeiro
   assert.equal(mundo.missionariosDisponiveis, 4);
 
@@ -1460,7 +1470,7 @@ test("parcerias: UF, município e as duas agregações", async () => {
       }),
       miss({
         chave: "g",
-        agencia: "JMN-IPB",
+        agencia: "JMN-CBB",
         local: local("BRA"),
         uf: "SE",
         municipio: "Colônia 13",
@@ -1475,6 +1485,7 @@ test("parcerias: UF, município e as duas agregações", async () => {
   assert.equal(br.ufs[0]!.uf, "SE"); // descoberta com gente em alta demanda primeiro
   assert.equal(br.ufs[0]!.melhor?.municipio.nome, "Aracaju");
   assert.equal(br.ufs[0]!.emAltaDemanda, 1);
+  assert.equal(br.ufs[0]!.missionarios, 2); // IPB + CBB somam na UF
   assert.equal(br.cidadesAltaDemanda, 1);
   assert.equal(br.pontos[0]!.missionarios.length, 1);
 });

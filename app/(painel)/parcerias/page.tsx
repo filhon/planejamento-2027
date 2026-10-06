@@ -14,7 +14,8 @@ import Parcerias from "./parcerias";
  * cita (os 5.570 do CSV não precisam ir para o navegador).
  */
 export default async function Page() {
-  const { missionarios, municipios, candidatos } = await dados.parcerias();
+  const { missionarios, presencas, municipios, candidatos } =
+    await dados.parcerias();
   const br = geometriaBrasil();
 
   const citados = new Set(missionarios.map((m) => m.codigoIbge));
@@ -32,6 +33,7 @@ export default async function Page() {
       geoBr={br.ufs}
       viewBoxBr={VIEW_BOX_BR}
       missionarios={missionarios}
+      presencas={presencas}
       municipios={pontos}
       candidatosIniciais={candidatos}
     />

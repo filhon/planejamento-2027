@@ -91,7 +91,7 @@ export async function marcarCandidato(
   nota: string,
 ): Promise<{ marcado: boolean }> {
   await exigirSessao();
-  if (!/^(APMT|JMM|JMN-IPB|Pioneiros):.{1,200}$/.test(alvo.chave))
+  if (!/^(APMT|JMM|JMN-IPB|JMN-CBB|Pioneiros):.{1,200}$/.test(alvo.chave))
     throw new Error("Missionário inválido.");
   const marcado = alternarCandidato({
     chave: alvo.chave,

@@ -13,6 +13,7 @@ import type { ProjetoCiclo } from "@/lib/types";
 import type { PaisGeo, UfGeo } from "@/lib/mapa";
 import {
   ALTA_DEMANDA,
+  ehNacional,
   montarBrasil,
   montarMundo,
   NOME_UF,
@@ -20,6 +21,7 @@ import {
   type Candidato,
   type Missionario,
   type Municipio,
+  type Presenca,
   type Situacao,
 } from "@/lib/parcerias";
 import Link from "next/link";
@@ -63,6 +65,7 @@ export default function Parcerias({
   geoBr,
   viewBoxBr,
   missionarios: missionariosTodos,
+  presencas: presencasTodas,
   municipios,
   candidatosIniciais,
 }: {
@@ -71,6 +74,7 @@ export default function Parcerias({
   geoBr: UfGeo[];
   viewBoxBr: string;
   missionarios: Missionario[];
+  presencas: Presenca[];
   municipios: MunicipioXY[];
   candidatosIniciais: Candidato[];
 }) {
@@ -100,12 +104,21 @@ export default function Parcerias({
       filtros.continente.length
         ? missionariosTodos.filter(
             (m) =>
-              m.agencia === "JMN-IPB" ||
+              ehNacional(m.agencia) ||
               m.local.sensivel ||
               filtros.continente.includes(m.local.continente),
           )
         : missionariosTodos,
     [missionariosTodos, filtros.continente],
+  );
+  const presencas = useMemo(
+    () =>
+      filtros.continente.length
+        ? presencasTodas.filter((p) =>
+            filtros.continente.includes(p.local.continente),
+          )
+        : presencasTodas,
+    [presencasTodas, filtros.continente],
   );
   const missionarios = missionariosNoRecorte;
   const filtrosIgnorados = [
@@ -135,8 +148,15 @@ export default function Parcerias({
   const areaMapa = useRef<HTMLDivElement>(null);
 
   const mundo = useMemo(
-    () => montarMundo(projetos, projetosAnteriores, missionarios, candidatos),
-    [projetos, projetosAnteriores, missionarios, candidatos],
+    () =>
+      montarMundo(
+        projetos,
+        projetosAnteriores,
+        missionarios,
+        candidatos,
+        presencas,
+      ),
+    [projetos, projetosAnteriores, missionarios, candidatos, presencas],
   );
   const brasil = useMemo(
     () => montarBrasil(projetos, missionarios, municipios, candidatos),
@@ -193,7 +213,7 @@ export default function Parcerias({
     if (modo === "mundo") {
       const ordem = new Map(mundo.paises.map((p, i) => [p.chave, i]));
       return missionarios
-        .filter((m) => m.agencia !== "JMN-IPB")
+        .filter((m) => !ehNacional(m.agencia))
         .filter((m) => {
           const chave = m.local.iso3 ?? m.regiao ?? m.local.nomePt;
           if (sel) return chave === sel;
@@ -209,7 +229,7 @@ export default function Parcerias({
     const demanda = (m: Missionario) =>
       municipios.find((c) => c.codigo === m.codigoIbge)?.demanda ?? Infinity;
     return missionarios
-      .filter((m) => m.agencia === "JMN-IPB")
+      .filter((m) => ehNacional(m.agencia))
       .filter((m) => (sel ? m.uf === sel : m.uf && !porUf.get(m.uf)?.coberta))
       .sort(
         (a, b) =>
@@ -234,9 +254,9 @@ export default function Parcerias({
       <p className="intro-parcerias">
         Quem aparece aqui <b>não enviou projeto</b> nesta remessa: são
         missionários, pastores e evangelistas da{" "}
-        <b>base das agências parceiras</b> (APMT, JMM, Pioneiros e JMN/IPB),
-        cedida para a Hebron tomar a iniciativa e propor a parceria — em países
-        e UFs onde nenhum pedido chegou.
+        <b>base das agências parceiras</b> (APMT, JMM, Pioneiros e as Missões
+        Nacionais da IPB e da CBB), cedida para a Hebron tomar a iniciativa e
+        propor a parceria — em países e UFs onde nenhum pedido chegou.
         {filtrosIgnorados.length > 0 && (
           <span className="marca-alerta">
             {" "}
@@ -260,7 +280,7 @@ export default function Parcerias({
         <span className="sub">
           {modo === "mundo"
             ? `Onde APMT, JMM e Pioneiros têm missionário e não chegou pedido na Remessa ${ano}.`
-            : `UFs sem projeto na Remessa ${ano} e quem da JMN/IPB está lá — de preferência numa cidade que compra da Hebron.`}
+            : `UFs sem projeto na Remessa ${ano} e quem da JMN (IPB ou CBB) está lá — de preferência numa cidade que compra da Hebron.`}
         </span>
       </div>
 
@@ -393,7 +413,11 @@ export default function Parcerias({
                                 <span>Missionários</span>
                                 <span>
                                   {Object.entries(pais.porAgencia)
-                                    .map(([a, n]) => `${a} ${n}`)
+                                    .map(([a, n]) =>
+                                      n
+                                        ? `${a} ${n}`
+                                        : `${a} (atua, sem nomes)`,
+                                    )
                                     .join(" · ")}
                                 </span>
                               </div>
@@ -597,11 +621,13 @@ export default function Parcerias({
                               )}
                             </b>
                             <span>
-                              {plural(
-                                p.missionarios,
-                                "missionário",
-                                "missionários",
-                              )}{" "}
+                              {p.missionarios
+                                ? plural(
+                                    p.missionarios,
+                                    "missionário",
+                                    "missionários",
+                                  )
+                                : "sem nomes"}{" "}
                               · {Object.keys(p.porAgencia).join("+")}
                             </span>
                           </span>
@@ -712,6 +738,7 @@ export default function Parcerias({
                 <tr>
                   <th>Candidato</th>
                   <th>Missionário</th>
+                  <th>Agência</th>
                   <th>Tipo</th>
                   <th>Município</th>
                   <th>UF</th>
@@ -785,7 +812,11 @@ export default function Parcerias({
                     className={marcado ? "linha-candidata" : undefined}
                   >
                     {estrela}
-                    <td>{m.nome}</td>
+                    <td>
+                      {m.nome}
+                      {m.publico && <span className="sub"> · {m.publico}</span>}
+                    </td>
+                    <td>{m.agencia}</td>
                     <td>{m.tipo ?? "—"}</td>
                     <td>
                       {m.municipio ?? "—"}
@@ -824,7 +855,7 @@ export default function Parcerias({
               })}
               {linhas.length === 0 && (
                 <tr>
-                  <td colSpan={modo === "mundo" ? 6 : 7} className="sub">
+                  <td colSpan={modo === "mundo" ? 6 : 8} className="sub">
                     Nenhum missionário neste recorte.
                   </td>
                 </tr>

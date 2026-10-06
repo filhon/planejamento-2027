@@ -12,11 +12,24 @@ export { NOME_UF, UF_POR_CODIGO, UFS, ufDe } from "./uf";
  * Duas perguntas do diretor:
  *  - MUNDO: onde as agências parceiras (APMT, JMM, Pioneiros) têm missionário e NÃO chegou
  *    pedido nesta remessa? É lá que a Hebron pode tomar a iniciativa.
- *  - BRASIL: qual UF ficou sem projeto, e quem da JMN/IPB está lá — de
+ *  - BRASIL: qual UF ficou sem projeto, e quem da JMN (IPB ou CBB) está lá — de
  *    preferência na cidade que mais compra produtos da Hebron (retribuição).
  */
 
-export type Agencia = "APMT" | "JMM" | "JMN-IPB" | "Pioneiros";
+export type Agencia = "APMT" | "JMM" | "JMN-IPB" | "JMN-CBB" | "Pioneiros";
+
+/** Missões nacionais (IPB e CBB): só Brasil, com município — vão para a aba Brasil. */
+export const ehNacional = (a: Agencia) => a === "JMN-IPB" || a === "JMN-CBB";
+
+/**
+ * País onde a agência declara atuar sem mandar o nome de quem está lá
+ * (`db-jmm-paises.csv`): pinta e conta como "país com agência", com zero
+ * missionários — não se inventa gente.
+ */
+export interface Presenca {
+  agencia: Agencia;
+  local: LocalNormalizado;
+}
 
 export interface Missionario {
   agencia: Agencia;
@@ -24,9 +37,9 @@ export interface Missionario {
   local: LocalNormalizado;
   /** Região das agências ("Área 14 - Sahel Africano"): conta, não pinta. */
   regiao: string | null;
-  /** APMT: "Indígena", "Quilombola"… (o campo no Brasil). */
+  /** APMT: "Indígena", "Quilombola"… (o campo no Brasil); JMN-CBB: o projeto ("Cristolândia"). */
   publico: string | null;
-  /** JMN-IPB: tipo de obreiro, município e UF como vieram. */
+  /** JMN-IPB/CBB: tipo de obreiro (função), município e UF como vieram. */
   tipo: string | null;
   municipio: string | null;
   uf: string | null;
@@ -125,6 +138,7 @@ export function montarMundo(
   anteriores: ProjetoCiclo[],
   missionarios: Missionario[],
   candidatos: Candidato[],
+  presencas: Presenca[] = [],
 ): ResumoMundo {
   const marcados = new Set(candidatos.map((c) => c.chave));
   const pedidos = contar(
@@ -137,18 +151,17 @@ export function montarMundo(
   );
 
   const porChave = new Map<string, PaisParceria>();
-  for (const m of missionarios) {
-    if (m.agencia === "JMN-IPB") continue; // só Brasil; é a outra aba
-    const chave = chaveLocal(m.local, m.regiao);
-    if (!chave) continue;
+  const obter = (local: LocalNormalizado, regiao: string | null) => {
+    const chave = chaveLocal(local, regiao);
+    if (!chave) return null;
     let pais = porChave.get(chave);
     if (!pais) {
-      const iso3 = m.local.iso3;
+      const iso3 = local.iso3;
       pais = {
         chave,
         iso3,
-        nome: iso3 ? m.local.nomePt : (m.regiao ?? m.local.nomePt),
-        continente: m.local.continente,
+        nome: iso3 ? local.nomePt : (regiao ?? local.nomePt),
+        continente: local.continente,
         sensivel: !iso3,
         missionarios: 0,
         porAgencia: {},
@@ -160,10 +173,23 @@ export function montarMundo(
       };
       porChave.set(chave, pais);
     }
+    return pais;
+  };
+  for (const m of missionarios) {
+    if (ehNacional(m.agencia)) continue; // só Brasil; é a outra aba
+    const pais = obter(m.local, m.regiao);
+    if (!pais) continue;
     pais.missionarios++;
     pais.porAgencia[m.agencia] = (pais.porAgencia[m.agencia] ?? 0) + 1;
     if ((m.recebido2026 ?? 0) > 0) pais.parceiros2026++;
     if (marcados.has(m.chave)) pais.candidatos++;
+  }
+  // Presença declarada: a agência entra no país (conta para "mais de uma
+  // agência"), sem somar missionário. Região sem ISO não pinta — fica de fora.
+  for (const p of presencas) {
+    if (!p.local.iso3) continue;
+    const pais = obter(p.local, null)!;
+    pais.porAgencia[p.agencia] ??= 0;
   }
 
   for (const p of porChave.values()) {
@@ -261,7 +287,7 @@ export function montarBrasil(
   );
 
   for (const m of missionarios) {
-    if (m.agencia !== "JMN-IPB" || !m.uf) continue;
+    if (!ehNacional(m.agencia) || !m.uf) continue;
     const linha = ufs.get(m.uf);
     if (!linha) continue;
     linha.missionarios++;

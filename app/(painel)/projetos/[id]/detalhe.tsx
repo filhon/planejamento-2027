@@ -4,7 +4,6 @@ import { ehHtmlRico, sanitizarHtml } from "@/lib/html";
 import type { Anexo, ProjetoDetalhe, RelatorioDetalhe } from "@/lib/types";
 import {
   COR_STATUS,
-  ROTULO_STATUS,
   fmtMoeda,
   num,
   plural,
@@ -159,7 +158,7 @@ export default function Detalhe({ d }: { d: ProjetoDetalhe }) {
         <span>{p.instituicaoNome ?? "sem instituição"}</span>
         <span>{p.local.nomePt}</span>
         <span>
-          {ROTULO_TIPO[p.revisao.tipo]} · {ROTULO_STATUS[p.statusGrupo]}
+          {ROTULO_TIPO[p.revisao.tipo]} · {rotuloStatus(p.status)}
         </span>
       </div>
 
@@ -174,7 +173,7 @@ export default function Detalhe({ d }: { d: ProjetoDetalhe }) {
             className="pastilha-tipo"
             style={{ "--cor": COR_STATUS[p.statusGrupo] } as CSSProperties}
           >
-            {ROTULO_STATUS[p.statusGrupo]}
+            {rotuloStatus(p.status)}
           </span>
           {p.revisao.responsavel && (
             <span className="ficha">

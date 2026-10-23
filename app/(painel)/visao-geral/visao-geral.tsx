@@ -5,16 +5,16 @@ import { useMemo, type CSSProperties } from "react";
 import {
   agrupar,
   curvaAcumulada,
+  grupoDeStatus,
   montarRenovacoes,
   montarResumo,
   projetosAte,
 } from "@/lib/agregar";
-import type { OrcamentoCiclo, ProjetoCiclo, StatusGrupo } from "@/lib/types";
+import type { OrcamentoCiclo, ProjetoCiclo } from "@/lib/types";
 import { alternar, usePainel } from "../contexto";
 import {
   COR_STATUS,
-  ORDEM_STATUS,
-  ROTULO_STATUS,
+  compararStatus,
   fmtInt,
   fmtMoeda,
   fmtMoedaCurta,
@@ -22,6 +22,7 @@ import {
   pct,
   plural,
   rotuloCategoria,
+  rotuloStatus,
   SEM_RESULTADO,
 } from "../formato";
 import { Barras, Kpi, Secao } from "../ui";
@@ -220,11 +221,12 @@ function Concentracao({
 }
 
 function funil(projetos: ProjetoCiclo[]) {
-  const grupos = agrupar(projetos, (p) => p.statusGrupo);
-  return ORDEM_STATUS.filter((g) => grupos.has(g)).map((g) => {
-    const lista = grupos.get(g) ?? [];
+  const grupos = agrupar(projetos, (p) => p.status);
+  return [...grupos.keys()].sort(compararStatus).map((status) => {
+    const lista = grupos.get(status) ?? [];
     return {
-      grupo: g as StatusGrupo,
+      status,
+      grupo: grupoDeStatus(status),
       projetos: lista.length,
       solicitado: somar(lista, (p) => p.solicitado),
     };
@@ -401,14 +403,14 @@ export default function VisaoGeral({
         >
           <Barras
             itens={funil(projetos).map((f) => ({
-              chave: f.grupo,
-              rotulo: ROTULO_STATUS[f.grupo],
+              chave: f.status,
+              rotulo: rotuloStatus(f.status),
               valor: f.projetos,
               texto: `${fmtInt.format(f.projetos)} · ${fmtMoedaCurta.format(f.solicitado)}`,
               cor: COR_STATUS[f.grupo],
-              ativo: filtros.status.includes(f.grupo),
+              ativo: filtros.status.includes(f.status),
               aoClicar: () =>
-                aplicar({ status: alternar(filtros.status, f.grupo) }),
+                aplicar({ status: alternar(filtros.status, f.status) }),
             }))}
           />
         </Secao>
@@ -552,7 +554,7 @@ export default function VisaoGeral({
                         } as CSSProperties
                       }
                     >
-                      {ROTULO_STATUS[p.statusGrupo]}
+                      {rotuloStatus(p.status)}
                     </span>
                   </td>
                   <td className="n">{num(p.notaMediana, 1)}</td>

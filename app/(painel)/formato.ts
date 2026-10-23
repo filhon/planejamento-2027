@@ -71,42 +71,45 @@ export function setaVariacao(solicitado: number, recebido: number | null) {
   return `${d > 0 ? "↑" : "↓"} ${pct(Math.abs(d))}`;
 }
 
-export const ROTULO_STATUS: Record<StatusGrupo, string> = {
-  aprovado: "Aprovado",
-  "em-avaliacao": "Em avaliação",
-  classificado: "Classificado",
-  rejeitado: "Rejeitado",
-  encerrado: "Encerrado",
-  neutro: "Rascunho / outros",
-};
-
 /**
  * O status COMO ESTÁ na origem (`em-validacao`, `devolvido-para-correcao`).
- * `ROTULO_STATUS` rotula o grupo da paleta; este rotula o status individual,
- * que aparece no funil detalhado do Pipeline e no histórico da pasta — onde
- * saía o slug do banco, lido em voz alta na reunião. Status novo cai no
+ * É ele que o filtro global, os funis e as tabelas mostram; o grupo da paleta
+ * (`StatusGrupo`) só decide a cor. Antes o filtro era por grupo, e o
+ * "Rascunho / outros" juntava o que nunca foi enviado (rascunho) com o que foi
+ * enviado e voltou ao proponente (devolvido para correção). Status novo cai no
  * mesmo recuo de `rotuloCategoria` (hífen vira espaço, primeira maiúscula).
+ *
+ * A ordem das chaves é a do fluxo, da entrada à decisão, e é a ordem do filtro
+ * e dos funis. São os 14 valores do enum `status` de `cycle_projects`.
  */
 const ROTULO_STATUS_BRUTO: Record<string, string> = {
-  aprovado: "Aprovado",
-  "em-andamento": "Em andamento",
-  concluido: "Concluído",
+  rascunho: "Rascunho",
   submetido: "Submetido",
+  "devolvido-para-correcao": "Devolvido para correção",
   "em-analise": "Em análise",
   "em-validacao": "Em validação",
   "para-votacao": "Para votação",
   "em-votacao": "Em votação",
   classificado: "Classificado",
+  aprovado: "Aprovado",
+  "em-andamento": "Em andamento",
+  concluido: "Concluído",
   rejeitado: "Rejeitado",
   reprovado: "Reprovado",
-  rascunho: "Rascunho",
-  "devolvido-para-correcao": "Devolvido para correção",
   cancelado: "Cancelado",
 };
 
 export const rotuloStatus = (s: string) =>
   ROTULO_STATUS_BRUTO[s] ??
   s.replace(/-/g, " ").replace(/^./, (l) => l.toUpperCase());
+
+/** Todos os status da origem, na ordem do fluxo. */
+export const STATUS_ORIGEM = Object.keys(ROTULO_STATUS_BRUTO);
+
+/** Ordena pela ordem do fluxo; status fora do enum conhecido vai para o fim. */
+export const compararStatus = (a: string, b: string) =>
+  (STATUS_ORIGEM.indexOf(a) + 1 || 99) - (STATUS_ORIGEM.indexOf(b) + 1 || 99) ||
+  a.localeCompare(b, "pt-BR");
 
 /** Paleta semântica de status (docs/plano-dashboard.md §7). */
 export const COR_STATUS: Record<StatusGrupo, string> = {
@@ -156,7 +159,7 @@ export function resumoFiltros(
       filtros.continente.length > 0 &&
         `Continente: ${filtros.continente.join(", ")}`,
       filtros.status.length > 0 &&
-        `Status: ${filtros.status.map((s) => ROTULO_STATUS[s as StatusGrupo]).join(", ")}`,
+        `Status: ${filtros.status.map(rotuloStatus).join(", ")}`,
       filtros.categoria.length > 0 &&
         `Categoria: ${filtros.categoria.map(rotuloCategoria).join(", ")}`,
       filtros.instituicao.length > 0 &&
@@ -189,13 +192,3 @@ export function resumoFiltros(
  */
 export const SEM_RESULTADO =
   "Nada neste recorte. Limpe os filtros no ✕ da barra acima.";
-
-/** Ordem do funil: da entrada à decisão. */
-export const ORDEM_STATUS: StatusGrupo[] = [
-  "neutro",
-  "em-avaliacao",
-  "classificado",
-  "aprovado",
-  "encerrado",
-  "rejeitado",
-];

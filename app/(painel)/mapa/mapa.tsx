@@ -12,7 +12,7 @@ import {
   fmtMoedaCurta,
   pct,
   plural,
-  ROTULO_STATUS,
+  rotuloStatus,
   rotuloCategoria,
   SEM_RESULTADO,
 } from "../formato";
@@ -359,7 +359,7 @@ export default function Mapa({
                   <td>{p.local.nomePt}</td>
                   <td>{p.instituicaoNome ?? "—"}</td>
                   <td>{rotuloCategoria(p.categoria)}</td>
-                  <td>{ROTULO_STATUS[p.statusGrupo]}</td>
+                  <td>{rotuloStatus(p.status)}</td>
                   <td className="n">{fmtMoeda.format(p.solicitado)}</td>
                 </tr>
               ))}

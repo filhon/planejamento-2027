@@ -4,7 +4,6 @@ import Link from "next/link";
 import { NOME_UF } from "@/lib/uf";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState, useTransition } from "react";
-import type { StatusGrupo } from "@/lib/types";
 import { atualizarDados } from "../actions";
 import { sair } from "../login/actions";
 import {
@@ -18,7 +17,14 @@ import {
   type CicloCarregado,
   type Filtros,
 } from "./contexto";
-import { ROTULO_STATUS, resumoFiltros, rotuloCategoria } from "./formato";
+import {
+  STATUS_ORIGEM,
+  compararStatus,
+  fmtInt,
+  resumoFiltros,
+  rotuloCategoria,
+  rotuloStatus,
+} from "./formato";
 
 /**
  * Moldura de todas as páginas: marca, navegação, toggle de ano e a barra de
@@ -70,6 +76,8 @@ function digitando(alvo: EventTarget | null): boolean {
 interface Opcao {
   valor: string;
   rotulo: string;
+  /** Texto miúdo à direita, só na lista (ex.: quantos projetos no ciclo). */
+  nota?: string;
 }
 
 /**
@@ -138,6 +146,7 @@ function CampoMulti({
               onChange={() => aoAlternar(o.valor)}
             />
             {o.rotulo}
+            {o.nota && <span className="opcoes-nota">{o.nota}</span>}
           </label>
         ))}
         {visiveis.length === 0 && (
@@ -283,7 +292,11 @@ export default function Shell({
   const opcoes = useMemo(
     () => ({
       continentes: ordenados(todos.map((p) => p.local.continente)),
-      status: ordenados(todos.map((p) => p.statusGrupo)) as StatusGrupo[],
+      // Os 14 da origem mesmo sem projeto no ciclo (o zero também é resposta),
+      // mais algum que a origem tenha ganhado depois desta lista.
+      status: [
+        ...new Set([...STATUS_ORIGEM, ...todos.map((p) => p.status)]),
+      ].sort(compararStatus),
       categorias: ordenados(todos.map((p) => p.categoria)),
       instituicoes: ordenados(
         todos
@@ -457,7 +470,8 @@ export default function Shell({
             rotulo="Status"
             opcoes={opcoes.status.map((s) => ({
               valor: s,
-              rotulo: ROTULO_STATUS[s],
+              rotulo: rotuloStatus(s),
+              nota: fmtInt.format(todos.filter((p) => p.status === s).length),
             }))}
             selecionados={filtros.status}
             aoAlternar={(v) => aplicar({ status: alternar(filtros.status, v) })}

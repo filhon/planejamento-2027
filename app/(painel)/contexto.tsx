@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext } from "react";
-import type { ProjetoCiclo, StatusGrupo } from "@/lib/types";
+import type { ProjetoCiclo } from "@/lib/types";
 import type { Filtros } from "@/lib/agregar";
 
 /**
@@ -53,7 +53,8 @@ export interface EstadoPainel {
   todos: ProjetoCiclo[];
   opcoes: {
     continentes: string[];
-    status: StatusGrupo[];
+    /** Status da origem (os 14 do enum, na ordem do fluxo). */
+    status: string[];
     categorias: string[];
     /** Nomes das instituições com projeto no ciclo ativo. */
     instituicoes: string[];

@@ -53,6 +53,11 @@ export function grupoDeStatus(status: string): StatusGrupo {
  */
 export interface Filtros {
   continente: string[];
+  /**
+   * Status COMO ESTÁ na origem (`rascunho`, `devolvido-para-correcao`…), não o
+   * grupo da paleta: o grupo "neutro" juntava o nunca enviado com o devolvido
+   * ao proponente, e a mesa precisa separar os dois.
+   */
   status: string[];
   categoria: string[];
   /**
@@ -161,7 +166,7 @@ export function filtrar(projetos: ProjetoCiclo[], f: Filtros): ProjetoCiclo[] {
   return projetos.filter(
     (p) =>
       casa(f.continente, p.local.continente) &&
-      casa(f.status, p.statusGrupo) &&
+      casa(f.status, p.status) &&
       casa(f.categoria, p.categoria) &&
       casa(f.instituicao, p.instituicaoNome ?? "") &&
       casa(f.tipo, p.revisao.tipo) &&

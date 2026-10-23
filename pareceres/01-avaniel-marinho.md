@@ -1,6 +1,6 @@
 # Pareceres — pasta de Avaniel Marinho (remessa 2026 · Edital 2027)
 
-12 projetos novos, sem parecer nem tags na origem. Analisados o formulário e os anexos (orçamento, cronograma, portfólio, cartas); os vídeos não foram analisados.
+13 projetos novos: 12 sem parecer nem tags na origem e 1 (nº 13) que já tinha parecer ou tags da equipe, refeito no mesmo padrão. Analisados o formulário e os anexos (orçamento, cronograma, portfólio, cartas); os vídeos não foram analisados.
 Legenda das pendências: **DEVOLVER** = não foi possível responder objetivo e/ou emprego do recurso; **Ajustar** = dá para avaliar, mas há ponto a esclarecer.
 
 ---
@@ -158,3 +158,16 @@ Projeto Rumo ao Sertão (conveniada) · Outros · Alexandria/RN e Catolé do Roc
 **Pendências:** DEVOLVER. Formulário quase vazio: não identifica os missionários nem seus campos e atividades, não tem indicadores nem equipe, e não informa que parte do sustento total os R$ 108 mil representam (teto de 75%). Data do orçamento errada ("31 de agosto de 2027").
 
 **Tags:** Missões Nacionais · Áreas inóspitas
+
+---
+
+### 13. Bolsa de estudos — Pós-graduação em Pregação Expositiva (SPN)
+
+Igreja Presbiteriana de Sobral (não conveniada) · Educação · Camocim/CE · **R$ 3.140,00** · `82654597-48b2-4241-b98a-9627b87b1c21`
+
+**Objetivo:** Bolsa integral para o Presb. Antônio Ronys dos Santos Carneiro, licenciado da congregação de Camocim (40 membros), cursar em 2027 a pós-graduação lato sensu em Pregação Expositiva do Seminário Presbiteriano do Norte (EaD, 12 módulos, 360 h).
+**Emprego do recurso:** Matrícula (R$ 150), 12 mensalidades de R$ 220 (R$ 2.640) e livros (R$ 350).
+**Convergência:** Bolsa de pós-graduação (4.1.6); formação de líderes da igreja local, com contrapartida de treinar presbíteros, diáconos e professores de EBD (foco 2027). Camocim não está no Anexo 2 (Sobral, a igreja-mãe, está).
+**Pendências:** Ajustar (menor). Falta comprovante de inscrição ou aceite no SPN. O cadastro marca "área sensível", sem motivo aparente. O mesmo presbítero lidera o "Multiplicando Vidas" (R$ 15 mil, pasta da Fernanda).
+
+**Tags:** Educação · Pós-Graduação · Trabalhos com líderes evangélicos

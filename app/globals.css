@@ -427,6 +427,14 @@ main {
   border-bottom-color: var(--azul-claro);
 }
 
+/* Contagem do ciclo ao lado da opção: o zero diz "não há", sem precisar marcar. */
+.opcoes-nota {
+  margin-left: auto;
+  padding-left: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--tinta-fraca);
+}
+
 .opcoes-vazio {
   padding: 7px 9px;
   font-size: var(--texto-ui);

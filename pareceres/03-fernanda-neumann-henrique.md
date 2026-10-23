@@ -1,6 +1,6 @@
 # Pareceres — pasta de Fernanda Neumann Henrique (remessa 2026 · Edital 2027)
 
-10 projetos novos, sem parecer nem tags na origem. Analisados o formulário e os anexos.
+12 projetos novos: 10 sem parecer nem tags na origem e 2 (nº 11 e 12) que já tinham parecer ou tags da equipe, refeitos no mesmo padrão. Analisados o formulário e os anexos.
 Legenda das pendências: **DEVOLVER** = não foi possível responder objetivo e/ou emprego do recurso; **Ajustar** = dá para avaliar, mas há ponto a esclarecer.
 
 ---
@@ -132,3 +132,29 @@ Missão Portas Abertas (conveniada) · Missões nacionais (sic) · África Subsa
 **Pendências:** DEVOLVER para elucidação do emprego do recurso: ao menos as rubricas (material, encontros, hospedagem, facilitadores), sem expor pessoas. Sem indicadores e sem equipe. A categoria está errada: é missão transcultural.
 
 **Tags:** Missões Transculturais · África · Países violentos
+
+---
+
+### 11. Multiplicando Vidas — evangelismo, discipulado e ação social (Camocim)
+
+Igreja Presbiteriana de Sobral (não conveniada) · Missões nacionais · Camocim/CE · **R$ 15.000,00** · `2bc46962-77a1-4651-9bc1-422d0db376d1`
+
+**Objetivo:** Mobilizar a congregação de Camocim (em vias de se organizar como igreja) numa ação de 3 a 4 meses no entorno do templo: capacitar 20 voluntários, mapear e visitar 50 lares, fazer um mutirão social e uma cruzada evangelística, e levar os interessados ao discipulado.
+**Emprego do recurso:** Treinamento, R$ 4.000 (manuais, apostilas, coffee break, preletor, coletes); assistência social, R$ 9.000 (100 cestas básicas a R$ 60, medicamentos e vitaminas, tinta para 4 fachadas, insumos do "Sábado do Bem"); evangelismo, R$ 2.000 (100 Bíblias, folhetos, som).
+**Convergência:** Evangelismo e mobilização da igreja local (3.3.3), com capacitação de membros e discipulado de novos convertidos (3.3.1). Região de baixo poder aquisitivo (7.2.7). Camocim não está no Anexo 2.
+**Pendências:** Ajustar (menor). O texto fala em 50 famílias, e o orçamento em 100 cestas e 100 Bíblias. Distribuir medicamentos de uso contínuo requer prescrição. O cadastro marca "área sensível", sem motivo aparente. A mesma congregação pede a bolsa de pós do seu presbítero (R$ 3.140, pasta do Avaniel).
+
+**Tags:** Missões Nacionais · Impactos Missionários · Projetos Sociais Cristãos
+
+---
+
+### 12. Projeto Proclamar (Rev. Cácio e Elisângela Silva)
+
+Agência Presbiteriana de Missões Transculturais — APMT (conveniada) · Missões transculturais · São Paulo/SP (atuação global) · **R$ 24.000,00** · `a62a5d6d-3827-4b17-92e4-cde58b300b2d`
+
+**Objetivo:** Sustento do Rev. Cácio Silva, Executivo Operacional da APMT, na supervisão de 336 missionários em 45 países (orientação de candidatos, estratégia, acompanhamento de projetos, cuidado pastoral), com foco em direcionar obreiros aos povos menos evangelizados.
+**Emprego do recurso:** Sustento familiar. A Hebron entraria com R$ 2.000/mês (7,9% de um custo mensal de R$ 25,3 mil, com moradia financiada, plano de saúde, previdência privada, escola dos filhos, dízimo e IR). Hoje o casal tem 81% do sustento: faltam 19%, e outros 15% estão em risco.
+**Convergência:** Sustento de missionários (Objetivo estratégico, dentro do teto de 75%); orientação a povos não alcançados (7.2.5), mas de forma indireta. É função de gestão de agência, sem campo próprio. A sede em São Paulo não caracteriza projeto na cidade prioritária (7.2.2).
+**Pendências:** Ajustar (menor). Sem indicadores, sem equipe, sem data de início e sem número de parcelas. O casal diz que a Hebron já o apoiava pela WEC Amazônia (Amanajé) e pede que o apoio passe à APMT: confirmar se a renovação "Projeto AMANAJÉ" (WEC, R$ 108 mil; recebeu R$ 84 mil em 2025) ainda inclui esse sustento, para não pagar duas vezes. O plano é de 4 anos (2027–2030).
+
+**Tags:** Missões Transculturais · Liderança Estratégica · Povos Não Alcançados

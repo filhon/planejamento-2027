@@ -7,8 +7,7 @@ import type { AvaliacoesCiclo, ProjetoCiclo } from "@/lib/types";
 import { alternar, usePainel } from "../contexto";
 import {
   COR_STATUS,
-  ORDEM_STATUS,
-  ROTULO_STATUS,
+  compararStatus,
   fmtInt,
   fmtMoedaCurta,
   num,
@@ -69,7 +68,7 @@ export default function Pipeline({
   const semAvaliacao = projetos.filter((p) => p.avaliacoes === 0);
   const emAvaliacao = projetos.filter((p) => p.statusGrupo === "em-avaliacao");
 
-  // Funil detalhado: status BRUTO da origem, na ordem semântica do grupo.
+  // Funil detalhado: status BRUTO da origem, na ordem do fluxo.
   const funilDetalhado = useMemo(() => {
     const grupos = agrupar(projetos, (p) => p.status);
     return [...grupos.entries()]
@@ -79,11 +78,7 @@ export default function Pipeline({
         projetos: lista.length,
         solicitado: lista.reduce((s, p) => s + p.solicitado, 0),
       }))
-      .sort(
-        (a, b) =>
-          ORDEM_STATUS.indexOf(a.grupo) - ORDEM_STATUS.indexOf(b.grupo) ||
-          b.projetos - a.projetos,
-      );
+      .sort((a, b) => compararStatus(a.status, b.status));
   }, [projetos]);
 
   const histograma = useMemo(() => {
@@ -176,16 +171,14 @@ export default function Pipeline({
               valor: f.projetos,
               texto: `${fmtInt.format(f.projetos)} · ${fmtMoedaCurta.format(f.solicitado)}`,
               cor: COR_STATUS[f.grupo],
-              ativo: filtros.status.includes(f.grupo),
+              ativo: filtros.status.includes(f.status),
               aoClicar: () =>
-                aplicar({ status: alternar(filtros.status, f.grupo) }),
+                aplicar({ status: alternar(filtros.status, f.status) }),
             }))}
           />
           <p className="rodape">
-            Clicar numa linha filtra o painel pelo <b>grupo</b> a que ela
-            pertence (Em avaliação, Aprovado …), e não por aquele status
-            sozinho: &quot;Em validação&quot; traz junto todos os outros que
-            também estão em avaliação.
+            Clicar numa linha filtra o painel por aquele status. A cor é a do
+            grupo (em avaliação, aprovado …).
           </p>
         </Secao>
 
@@ -347,7 +340,7 @@ export default function Pipeline({
                           } as CSSProperties
                         }
                       >
-                        {ROTULO_STATUS[p.statusGrupo]}
+                        {rotuloStatus(p.status)}
                       </span>
                     </td>
                     <td className="n">{fmtMoedaCurta.format(p.solicitado)}</td>

@@ -338,27 +338,43 @@ test("agregação por país soma valores e conta instituições distintas", () =
 test("filtros globais se combinam dentro do eixo e entre eixos", () => {
   const angola = normalizarLocal({ country: "Angola" }, indice);
   const universo = [
-    projeto({ id: "a", statusGrupo: "aprovado", estado: "PE" }),
+    projeto({ id: "a", status: "aprovado", estado: "PE" }),
     projeto({
       id: "b",
-      statusGrupo: "aprovado",
+      status: "aprovado",
       categoria: "saude",
       estado: "pe",
     }),
-    projeto({ id: "c", statusGrupo: "encerrado", estado: "Pernambuco" }),
+    projeto({ id: "c", status: "concluido", estado: "Pernambuco" }),
     projeto({
       id: "d",
-      statusGrupo: "rejeitado",
+      status: "rejeitado",
       categoria: "saude",
       local: angola,
+    }),
+    // Mesmo grupo da paleta ("neutro"), status diferentes: o filtro separa.
+    projeto({ id: "e", status: "rascunho", statusGrupo: "neutro" }),
+    projeto({
+      id: "f",
+      status: "devolvido-para-correcao",
+      statusGrupo: "neutro",
     }),
   ];
 
   const ids = (f: Partial<Filtros>) =>
     filtrar(universo, { ...SEM_FILTRO, ...f }).map((p) => p.id);
 
-  assert.deepEqual(ids({}), ["a", "b", "c", "d"], "sem filtro não recorta");
+  assert.deepEqual(
+    ids({}),
+    ["a", "b", "c", "d", "e", "f"],
+    "sem filtro não recorta",
+  );
   assert.deepEqual(ids({ status: ["aprovado"] }), ["a", "b"]);
+  assert.deepEqual(
+    ids({ status: ["devolvido-para-correcao"] }),
+    ["f"],
+    "status é o da origem, não o grupo: devolvido não traz o rascunho",
+  );
   assert.deepEqual(ids({ iso3: "AGO" }), ["d"]);
   // UF casa por `ufDe`: sigla em qualquer caixa e nome por extenso.
   assert.deepEqual(ids({ uf: "PE" }), ["a", "b", "c"]);
@@ -407,7 +423,7 @@ test("filtro por instituição isola a organização", () => {
     projeto({
       id: "b",
       instituicaoNome: "Missão Vida Internacional",
-      statusGrupo: "aprovado",
+      status: "aprovado",
     }),
     projeto({ id: "c", instituicaoNome: "Associação Boa Semente" }),
     projeto({ id: "d", instituicaoNome: null }),

@@ -1,6 +1,6 @@
 # Pareceres — pasta de Wedja Henrique Pires (remessa 2026 · Edital 2027)
 
-10 projetos novos, sem parecer nem tags na origem. Analisados o formulário e os anexos.
+13 projetos novos: 10 sem parecer nem tags na origem, 2 (nº 11 e 12) que já tinham parecer ou tags da equipe, refeitos no mesmo padrão, e 1 (nº 13) cadastrado em 19/10/2026, depois da triagem. Analisados o formulário e os anexos.
 Legenda das pendências: **DEVOLVER** = não foi possível responder objetivo e/ou emprego do recurso; **Ajustar** = dá para avaliar, mas há ponto a esclarecer.
 
 ---
@@ -132,3 +132,42 @@ Organização Palavra da Vida (conveniada) · Missões nacionais · Paudalho/PE 
 **Pendências:** Ajustar. O sustento atual (US$ 2.100/mês, cerca de R$ 11 mil) já cobre o orçamento apresentado (R$ 9.985): justificar a necessidade, que o texto atribui ao câmbio. O orçamento inclui dízimo e previdência. A meta de captação é R$ 4 mil/mês; a Hebron cobriria metade.
 
 **Tags:** Missões Nacionais · Educação · Trabalhos com líderes evangélicos
+
+---
+
+### 11. Familiar — sustento de Rubens Teixeira e Ruth Fonseca (Missão do Céu)
+
+Missão do Céu (conveniada) · Outros · Manaus/AM · **R$ 60.000,00** · `b6ac3977-80f8-4031-8280-505af69ea27e`
+
+**Objetivo:** Sustento do casal que gerencia os projetos (Rubens: Capacitação, Cuida de Ti Mesmo, Ferramentas Ministeriais, Pesquisa Missionária e Mobilização) e as finanças (Ruth) da Missão do Céu, em Manaus desde 2024, e que coordena também o programa de mestrado T-LINK para pastores locais.
+**Emprego do recurso:** R$ 5.000/mês, 43% do sustento familiar de R$ 11.600 (aluguel R$ 2.500, alimentação R$ 2.200, escola da filha R$ 1.200, verba de emergência R$ 1.000, previdência R$ 700, saúde R$ 700, reserva para viagem de férias R$ 600 e outros). Os outros R$ 6.600 já estão garantidos.
+**Convergência:** Sustento de missionários (Objetivo estratégico, dentro do teto de 75%); apoio a ribeirinhos e indígenas do interior amazônico (Objetivo "povos não alcançados e desfavorecidos"), de forma indireta: é função de gestão. Manaus está no Anexo 2 (7.2.2).
+**Pendências:** Ajustar (menor). O título ("Familiar") não identifica o projeto nem os missionários. O único indicador (1.000 pessoas) é da Missão inteira, não deste pedido. A Missão do Céu tem 4 pedidos nesta remessa, somando R$ 256 mil (ver DFM, pasta do Rodrigo).
+
+**Tags:** Missões Nacionais · Liderança Estratégica · Trabalhos com líderes evangélicos
+
+---
+
+### 12. Despertando o Coração: Missões para Pequenos (livro infantil)
+
+Associação Brasileira Esperança para Você — Hope To You Brasil (não conveniada) · Educação · Recife/PE · **R$ 33.800,00** · `0f87befb-b502-4535-b7c8-c72e7c27677c`
+
+**Objetivo:** Produzir um livro infantil ilustrado sobre Antão Pessoa, colportor nordestino do início do século XX, para despertar vocação missionária nas crianças.
+**Emprego do recurso:** Impressão de 200 exemplares em capa dura (R$ 17.000), ilustrações originais (R$ 10.000), diagramação (R$ 3.000), capa (R$ 1.500), revisão (R$ 1.000), divulgação do lançamento (R$ 800) e ISBN (R$ 500). A escrita não é cobrada.
+**Convergência:** Material que leva à mobilização missionária (3.3.3; produção de material, 4.1.7); público infantojuvenil. A editora fica em Recife (Anexo 2), mas o projeto não tem ação local.
+**Pendências:** Ajustar. Saem R$ 169 por exemplar (R$ 85 só de impressão) para uma tiragem de 200: avaliar tiragem maior ou versão digital. Dizer como os livros chegam às crianças (doados? vendidos? para quais igrejas ou escolas?) e, se vendidos, para onde vai a receita. O portfólio é outro livro da editora. O prazo é de 5 meses e o cronograma de 4. A Hope To You também pede o "Liderança & Transformação" (pasta do Josimar). Já há devolutiva registrada.
+
+**Tags:** Educação · Crianças · Impactos Missionários
+
+---
+
+### 13. CPL Sertão — Curso de Preparação de Líderes (IBN)
+
+Instituto Bíblico do Norte (não conveniada) · Educação · Serra Talhada e Serra Branca/PE (sede em Garanhuns) · **R$ 90.000,00** · `45fd0829-c59a-4144-a10f-f8438ec863b9`
+
+**Objetivo:** Formar 40 líderes de igrejas e frentes de plantação do Vale do Pajeú e do Sertão do Araripe em 10 módulos mensais (fev a nov/2027), em 2 polos de 20 alunos: Bíblia, hermenêutica, evangelismo e discipulado, Credo Apostólico e Catecismo, missões, liderança e aconselhamento. Professores voluntários, certificação pelo IBN.
+**Emprego do recurso:** Alimentação e hospedagem dos alunos (R$ 150 por aluno por mês em Serra Talhada e R$ 200 em Serra Branca; R$ 70.000) e reembolso de combustível e alimentação dos professores (R$ 1.000 por mês por polo; R$ 20.000). Colchões e ventiladores (R$ 4.500) ficam com a IP das Graças e a IP de Candeias.
+**Convergência:** Muito alinhado ao foco 2027: formação de líderes, discipulado, evangelismo e plantação de igrejas (3.3.1, 3.3.3 e 3.3.4). Sertão de baixo poder aquisitivo (7.2.7). Serra Talhada está no Anexo 2 (7.2.2). O ofício cita o "Projeto Escola Discípulos" da Hebron.
+**Pendências:** Ajustar (menor). Cadastrado em 19/10/2026, depois do prazo do Edital (31/08, item 5.1), com ofício de 16/10 endereçado a Guilherme Pires: a diretoria decide se entra nesta remessa. Ainda não está na triagem (`data/projetos_avaliacao.csv`). Sem indicadores e sem equipe no formulário. Os alunos não pagam nada: avaliar uma taxa simbólica. O professor de Liderança está indefinido ("Rev. Lamartine ou Rev. Edson"). O IBN tem outros três pedidos nesta remessa.
+
+**Tags:** Educação · Liderança Estratégica · Trabalhos com líderes evangélicos · Plantação de Igreja

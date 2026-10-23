@@ -1,6 +1,6 @@
 # Pareceres — pasta de Bruno de Matos Henrique (remessa 2026 · Edital 2027)
 
-12 projetos novos, sem parecer nem tags na origem. Analisados o formulário e os anexos.
+13 projetos novos: 12 sem parecer nem tags na origem e 1 (nº 13) que já tinha parecer ou tags da equipe, refeito no mesmo padrão. Analisados o formulário e os anexos.
 Legenda das pendências: **DEVOLVER** = não foi possível responder objetivo e/ou emprego do recurso; **Ajustar** = dá para avaliar, mas há ponto a esclarecer.
 
 ---
@@ -158,3 +158,16 @@ Igreja Evangélica Verbo da Vida São Luís — Cohama (não conveniada) · Miss
 **Pendências:** Ajustar. Indicar as rubricas cobertas pelos R$ 24 mil. Boa parte do orçamento é assistencial (cestas, lanches, brinquedos).
 
 **Tags:** Missões Nacionais · Projetos Sociais Cristãos · Vulnerabilidades (drogas, rua, prostituição, etc.)
+
+---
+
+### 13. Terreno Igreja Presbiteriana Esperança
+
+Igreja Presbiteriana Esperança (não conveniada) · Construção/reforma · Feira de Santana/BA (bairro Queimadinha) · **R$ 80.000,00** · `2b94379d-f1a1-4b95-b788-379f0a46c896`
+
+**Objetivo:** Dar sede própria à IP Esperança (57 membros, hoje sem templo) no bairro Queimadinha, que tem alagamentos, violência e 38,7% dos moradores com até ½ salário mínimo: terreno em 2027, obra em 2028 e acabamento em 2029.
+**Emprego do recurso:** Não está definido. O pedido é "terreno **ou** sustento do obreiro", e o valor não bate com nenhuma das duas vias: o plano financeiro pede R$ 120 mil à Hebron para o terreno (de R$ 220 mil) e a alternativa de sustento é R$ 60 mil (R$ 5 mil/mês).
+**Convergência:** Feira de Santana está no Anexo 2 (7.2.2); construção (4.1.1); região de baixo poder aquisitivo (7.2.7). O plano de discipulado (2 grupos nos lares, discipulado um a um) toca o foco 2027, mas não entra no pedido.
+**Pendências:** DEVOLVER para elucidação do emprego do recurso: escolher a via (terreno ou sustento) e o valor correspondente. Se for terreno, falta terreno identificado e avaliação. A carta de recomendação do Presbitério é assinada pelo próprio pastor do projeto (Rev. Ozenildo, secretário executivo). O prazo no formulário é de 1 mês, com 12 parcelas. É o 1º de três ciclos (terreno, estrutura, acabamento; R$ 370 mil no total), com renovação já prevista.
+
+**Tags:** Construção e Reforma · Aquisição de Bens (Barcos, Carros, Terrenos…) · Missões Nacionais · Plantação de Igreja

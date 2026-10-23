@@ -1,6 +1,6 @@
 # Pareceres — pasta de Josias Henrique (remessa 2026 · Edital 2027)
 
-10 projetos novos, sem parecer nem tags na origem. Analisados o formulário e os anexos.
+13 projetos novos: 10 sem parecer nem tags na origem e 3 (nº 11 a 13) que já tinham parecer ou tags da equipe, refeitos no mesmo padrão. Analisados o formulário e os anexos.
 Legenda das pendências: **DEVOLVER** = não foi possível responder objetivo e/ou emprego do recurso; **Ajustar** = dá para avaliar, mas há ponto a esclarecer.
 
 ---
@@ -132,3 +132,42 @@ Igreja Presbiteriana House (não conveniada) · Projetos sociais cristãos · Gu
 **Pendências:** Ajustar. O orçamento é estimativa sem cotações e não inclui a estrutura de sustentação da parede nem o local de instalação. Informar o responsável técnico pela segurança (o texto cita 2 bombeiros na equipe). A IP House também pede apoio ao projeto na China (pasta do Guilherme).
 
 **Tags:** Crianças
+
+---
+
+### 11. Diário de Hora Silenciosa Interativo 2026-2027
+
+Organização Palavra da Vida (não conveniada neste cadastro) · Educação · Atibaia/SP (uso no Brasil, Portugal e Moçambique) · **R$ 12.000,00** · `85e16133-7053-4dc4-b5b0-e016697cb147`
+
+**Objetivo:** Traduzir do inglês o devocional diário para adolescentes da Word of Life (leitura bíblica, memorização e oração), usado no programa de evangelismo e discipulado das cerca de 100 igrejas parceiras do Ministério com Igreja Local.
+**Emprego do recurso:** Honorários de tradução e revisão: cerca de 90 mil palavras a R$ 0,13 (52 semanas de devocionais), pagos à tradutora Tirzah Fernandes Pinto.
+**Convergência:** Discipulado (3.3.1), com produção de material didático (4.1.7). O material é de outra entidade (Word of Life International): verificar se a licença de uso à Hebron (11.9) é possível.
+**Pendências:** Ajustar. O projeto já está devolvido, e a carta de recomendação assinada que a devolutiva pediu ainda não está anexada. O período começa em ago/2026, antes da parceria (8.1): ajustar para 2027. Confirmar o vínculo da tradutora (missionária da OPV ou prestadora de serviço). O cronograma e o orçamento são o mesmo arquivo. Só 1 indicador.
+
+**Tags:** Educação · Impactos Missionários
+
+---
+
+### 12. Odontologia para Guiné-Bissau
+
+Associação Educativa Evangélica — UniEVANGÉLICA (não conveniada) · Saúde · Bissau (Guiné-Bissau) · **R$ 207.260,69** · `6279424a-873d-4c2d-8b6b-a00751f5f044`
+
+**Objetivo:** Equipar a clínica-escola do primeiro curso de Odontologia da Guiné-Bissau (Escola Nacional de Saúde, com UniChristus e UniEVANGÉLICA), para formar 35 cirurgiões-dentistas guineenses até 2030. O país tem 0,01 dentista por 10 mil habitantes.
+**Emprego do recurso:** Compra no Brasil de 10 consultórios odontológicos Gnatus G1 FIT (R$ 199.923,09) e 10 mochos (R$ 7.337,60), conforme orçamento de fábrica, a enviar por contêiner pelo Porto de Santos.
+**Convergência:** África, prioridade nº 1 (7.2.3); país de baixo poder aquisitivo (7.2.7) e de baixo percentual de evangélicos. Não é tratamento pontual de saúde (4.1.5): é equipamento de clínica-escola, mais próximo de 4.1.1. O componente cristão é genérico ("integrar fé cristã, ética e competência").
+**Pendências:** Ajustar. O frete marítimo, o desembaraço, a instalação e a manutenção não têm orçamento nem responsável. Definir de quem serão os equipamentos (escola pública guineense?). O termo de cooperação anexado é entre a UniEVANGÉLICA e a GROW, não com a escola guineense, e diz que cada parte arca com as próprias despesas. A carta é pessoal, sobre a coordenadora, não sobre o projeto. O indicador está malformado. O orçamento tinha validade de 3 dias. O cronograma põe a prática clínica em 2026, e a descrição, em jan/2028. É o maior pedido desta leva.
+
+**Tags:** Saúde · Educação · África · Janela 10/40 · Baixo percentual de evangélicos · Aquisição de Bens (Barcos, Carros, Terrenos…)
+
+---
+
+### 13. Projeto Nova Flor Sertão Baiano
+
+Associação de Esportes Nova Flor — AENF (não conveniada) · Projetos sociais cristãos · Povoado de Cocos, Baianópolis/BA · **R$ 60.000,00** · `8e9a414a-9a83-487c-aa62-5abd7389531d`
+
+**Objetivo:** Abrir um núcleo de mini atletismo no contraturno escolar para 60 crianças de 4 a 13 anos (5 dias por semana, 2 h por dia), com discipulado diário de 30 minutos, lanche, acompanhamento das famílias e identificação de talentos esportivos.
+**Emprego do recurso:** Não está definido. O orçamento soma R$ 573.860: custeio de R$ 360.060 (com R$ 9.235/mês para os dois coordenadores, o casal fundador) e investimento de R$ 213.800 (caminhonete 4x4 de R$ 130 mil e cozinha industrial de R$ 55 mil). O pedido de R$ 60 mil (10,5%) não diz o que cobre. A aba "Resumo" soma errado (R$ 221.800).
+**Convergência:** Crianças em vulnerabilidade (Objetivo "público infantojuvenil"); projeto social cristão (4.1.2); região de baixo poder aquisitivo (7.2.7). Baianópolis fica perto de Barreiras (Anexo 2), mas não está na lista.
+**Pendências:** DEVOLVER para elucidação do emprego do recurso: indicar as rubricas dos R$ 60 mil e as fontes do restante. O núcleo ainda não existe. O portfólio é da Nova Flor Esportes, uma **empresa** de gestão esportiva e turismo esportivo, não da associação proponente. A carta é de apresentação, assinada pelo próprio coordenador; já há devolutiva pedindo carta de terceiros. Há um único indicador, malformado.
+
+**Tags:** Projetos Sociais Cristãos · Crianças · Educação

@@ -1,6 +1,6 @@
 # Pareceres — pasta de Guilherme Pereira (remessa 2026 · Edital 2027)
 
-12 projetos novos, sem parecer nem tags na origem. Analisados o formulário e os anexos.
+13 projetos novos: 12 sem parecer nem tags na origem e 1 (nº 13) que já tinha parecer ou tags da equipe, refeito no mesmo padrão. Analisados o formulário e os anexos.
 Legenda das pendências: **DEVOLVER** = não foi possível responder objetivo e/ou emprego do recurso; **Ajustar** = dá para avaliar, mas há ponto a esclarecer.
 
 ---
@@ -158,3 +158,16 @@ Agência Presbiteriana de Missões Transculturais — APMT (conveniada) · Miss�
 **Pendências:** Ajustar. Indicar a rubrica dos R$ 36 mil (as Bíblias e viagens somam R$ 34,6 mil por ano, o que sugere o projeto). Sem indicadores, sem número de parcelas; resultado esperado genérico ("evangelização de muçulmanos").
 
 **Tags:** Missões Transculturais · Povos Não Alcançados
+
+---
+
+### 13. Revitalização da IP Comunidade Viva e plantação da IP de Aguazinha
+
+Instituto Bíblico do Norte (não conveniada), para a IP Comunidade Viva · Missões nacionais · Recife e Olinda/PE · **R$ 36.000,00** · `459d2174-bf59-4f3a-8e5a-34ce456f5f24`
+
+**Objetivo:** Concluir a revitalização da IP Comunidade Viva (de 29 para 45 membros desde fev/2025, depois de uma crise pastoral), preparando um pastor auxiliar para assumir a igreja em 2029, e avançar a plantação de uma congregação em Aguazinha (Olinda).
+**Emprego do recurso:** R$ 3.000/mês: R$ 2.000 para a côngrua do pastor auxiliar da sede (de R$ 3.500) e R$ 1.000 para o repasse à plantação de Aguazinha (de R$ 2.000). O Presbitério promete R$ 1.000/mês a Aguazinha se a Hebron aprovar.
+**Convergência:** Revitalização e implantação de igrejas e pequenos grupos (3.3.4 e 3.3.2), porém o recurso é sustento, não capacitação. Recife e Olinda estão no Anexo 2 (7.2.2). A igreja foi organizada em 2016 com apoio da Hebron.
+**Pendências:** Ajustar. A proponente é o IBN, mas a beneficiária é a igreja, com CNPJ próprio (IP da Ilha do Retiro): confirmar quem recebe e por que via IBN. A metodologia fala em dois pastores auxiliares, e o orçamento cobre um. O prazo no formulário é de 24 meses, com datas só de 2027, e o cronograma já prevê renovação para 2028. Já há devolutiva registrada. O IBN tem outros três pedidos nesta remessa (quadra, bolsas de plantação e CPL Sertão).
+
+**Tags:** Missões Nacionais · Revitalização de Igreja · Plantação de Igreja

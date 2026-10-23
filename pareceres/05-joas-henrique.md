@@ -1,6 +1,6 @@
 # Pareceres — pasta de Joás Henrique (remessa 2026 · Edital 2027)
 
-12 projetos novos, sem parecer nem tags na origem. Analisados o formulário e os anexos.
+13 projetos novos: 12 sem parecer nem tags na origem e 1 (nº 13) que já tinha parecer ou tags da equipe, refeito no mesmo padrão. Analisados o formulário e os anexos.
 Legenda das pendências: **DEVOLVER** = não foi possível responder objetivo e/ou emprego do recurso; **Ajustar** = dá para avaliar, mas há ponto a esclarecer.
 
 ---
@@ -158,3 +158,16 @@ Igreja Presbiteriana das Graças (não conveniada) · Educação · Araripina e 
 **Pendências:** Ajustar (menor). O cronograma anexado é texto gerado por IA sem revisão: termina com "Se precisar de alterações, avise-me" e fala em 5 dias, enquanto o formulário diz 4. A hospedagem da equipe aparece com valor zero.
 
 **Tags:** Educação · Trabalhos com líderes evangélicos · Liderança Estratégica · Missões Nacionais
+
+---
+
+### 13. Ministério de Tradução da Bíblia (povo Baniwa)
+
+Missão Novas Tribos do Brasil (conveniada) · Missões transculturais · São Gabriel da Cachoeira/AM · **R$ 22.800,00** · `276421cd-dc93-4785-ae24-6782344071ad`
+
+**Objetivo:** Avançar a tradução do Novo Testamento para o baniwa (81,5% concluído; cerca de 6 mil falantes em mais de 90 comunidades do Noroeste Amazônico, além de aldeias na Colômbia e na Venezuela), com o missionário Zenilson Bezerra, que também é consultor de tradução de outras equipes da MNTB.
+**Emprego do recurso:** R$ 1.400/mês (R$ 16.800 no ano): auxílio aos falantes nativos que testam a tradução (R$ 801), internet para o Paratext e a consultoria (R$ 249), visitas a aldeias próximas (R$ 200), combustível (R$ 100) e impressão de testes (R$ 50). Mais 3 viagens de voadeira a aldeias distantes (R$ 6.000).
+**Convergência:** Tradução da Bíblia (Objetivo estratégico); indígenas (7.2.5; Objetivo "povos não alcançados e desfavorecidos"); área inóspita do Alto Rio Negro (7.2.4). Custo enxuto e ligado à atividade; não é sustento.
+**Pendências:** Ajustar (menor). A devolutiva pediu o relatório de atividades da MNTB (documento obrigatório), que não está anexado. Sem indicadores: pedir a meta de 2027 (de 81,5% para quanto?). O pedido de formação universitária da filha, que a devolutiva mandou separar, virou o projeto "Formação Universitária em Enfermagem para o Reino" (R$ 19.200, pasta do Josimar).
+
+**Tags:** Tradução da Bíblia · Missões Transculturais · Povos Não Alcançados · Áreas inóspitas

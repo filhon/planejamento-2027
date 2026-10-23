@@ -46,7 +46,7 @@ type Modo = "mundo" | "brasil";
 type MunicipioXY = Municipio & { x: number; y: number };
 
 const soStatus = (ps: ProjetoCiclo[], status: string[]) =>
-  status.length ? ps.filter((p) => status.includes(p.statusGrupo)) : ps;
+  status.length ? ps.filter((p) => status.includes(p.status)) : ps;
 
 const ROTULO_SITUACAO: Record<Situacao, string> = {
   oportunidade: "Sem pedido",

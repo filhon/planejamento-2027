@@ -1,6 +1,6 @@
 # Pareceres — pasta de Rodrigo Pires (remessa 2026 · Edital 2027)
 
-11 projetos novos, sem parecer nem tags na origem. Analisados o formulário e os anexos.
+12 projetos novos: 11 sem parecer nem tags na origem e 1 (nº 12) que já tinha parecer ou tags da equipe, refeito no mesmo padrão. Analisados o formulário e os anexos.
 Legenda das pendências: **DEVOLVER** = não foi possível responder objetivo e/ou emprego do recurso; **Ajustar** = dá para avaliar, mas há ponto a esclarecer.
 
 ---
@@ -145,3 +145,16 @@ Editora Ultimato Ltda (conveniada) · Outros · Viçosa/MG · **R$ 30.000,00** �
 **Pendências:** Ajustar (menor). O prazo no formulário está em 2026. O cronograma prevê "envio de proposta para 2027 à Hebron" e "relatório semestral", o que sugere parceria em curso. A Ultimato também tem a renovação "Ação ministerial em prol de pessoas privadas de liberdade". Indicadores qualitativos frágeis (comentários positivos).
 
 **Tags:** nenhuma da lista se aplica diretamente
+
+---
+
+### 12. Distribuição de Ferramentas Ministeriais (DFM)
+
+Missão do Céu (conveniada) · Outros · Manaus/AM (interior do Amazonas) · **R$ 48.000,00** · `bde41730-4a91-4bec-ab8a-0c08ddd2fd26`
+
+**Objetivo:** Distribuir de graça material bíblico a 500 obreiros e líderes de comunidades remotas do interior amazônico, com envios mensais pelos Correios e por barco e 3 treinamentos presenciais (fev, abr e set).
+**Emprego do recurso:** Material, R$ 31.500 (Cartão do Céu, um SD card com Bíblia em áudio e 860 conteúdos, R$ 10.500; Bíblias de estudo R$ 8.500; "radinhos da Bíblia" R$ 5.500; revistas e literatura infantil R$ 7.000); fretes dos Correios (R$ 6.000) e fluviais (R$ 3.500); treinamentos (R$ 5.000); embalagens e contingência (R$ 2.000). São R$ 96 por pessoa.
+**Convergência:** Material de discipulado e evangelismo para líderes locais (3.3.1 e 3.3.3); ribeirinhos e indígenas (Objetivo "povos não alcançados e desfavorecidos"); área inóspita (7.2.4). Manaus está no Anexo 2, mas a ação é no interior.
+**Pendências:** Ajustar (menor). O formulário diz que o material é **doado** por parceiros (SBB, AMME Evangelizar, A Fé Vem Pelo Ouvir, HCJB), mas o orçamento o **compra**: esclarecer. Só 1 indicador. A Missão do Céu tem 4 pedidos nesta remessa: este, o sustento da família Teixeira (R$ 60 mil, pasta da Wedja) e 2 renovações (Capacitação Bíblica, R$ 52 mil; Cuida de Ti Mesmo, R$ 96 mil), somando R$ 256 mil.
+
+**Tags:** Missões Nacionais · Áreas inóspitas · Trabalhos com líderes evangélicos

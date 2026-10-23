@@ -1,6 +1,6 @@
 # Pareceres — pasta de Josimar Henrique Júnior (remessa 2026 · Edital 2027)
 
-12 projetos novos, sem parecer nem tags na origem. Analisados o formulário e os anexos.
+13 projetos novos: 12 sem parecer nem tags na origem e 1 (nº 13) que já tinha parecer ou tags da equipe, refeito no mesmo padrão. Analisados o formulário e os anexos.
 Legenda das pendências: **DEVOLVER** = não foi possível responder objetivo e/ou emprego do recurso; **Ajustar** = dá para avaliar, mas há ponto a esclarecer.
 
 ---
@@ -158,3 +158,16 @@ Associação Cristã Pioneiros (conveniada) · Missões transculturais · Regiã
 **Pendências:** Ajustar. Indicar a destinação dos R$ 24 mil. Sem indicadores e sem equipe. Área sensível: o portfólio anexado expõe nomes, igreja enviadora e cidade de destino.
 
 **Tags:** Missões Transculturais · Janela 10/40 · Povos Não Alcançados · Região com alto índice de idolatria · Plantação de Igreja
+
+---
+
+### 13. AGD Níger — Maison des Fleurs (alfabetização e costura para mulheres)
+
+Missão Diante do Trono (conveniada) · Projetos sociais cristãos · Niamey (Níger) · **R$ 51.120,00** · `c04a1f8b-4436-4e8a-90c7-26dcf299a219`
+
+**Objetivo:** Manter em 2027 a Maison des Fleurs, que funciona desde 2009 em Niamey: alfabetização (em francês e na língua local) e formação de 3 anos em corte e costura para mulheres de famílias muçulmanas, com devocional diário, mentoria cristã e visita semanal de missionários.
+**Emprego do recurso:** Duas professoras (R$ 21.600 no ano, 42%), água e energia (R$ 6.480), tecidos, linhas, moldes e cadernos (R$ 10.800) e 16 máquinas de costura para as formandas (R$ 12.240).
+**Convergência:** África, Janela 10/40 e país com violência armada (7.2.3); extrema pobreza (7.2.7); evangelismo e discipulado em contexto muçulmano de difícil acesso (3.3.1 e 3.3.3; 7.2.5); mulheres em vulnerabilidade (7.2.9). O recurso chega pela DT, sediada no Brasil (9.2).
+**Pendências:** Ajustar (menor). O indicador fala em 15 formandas e o orçamento em 16 máquinas. O prazo no formulário é de 1 mês, com 12 parcelas. O portfólio cita "manutenção e ampliação do espaço físico", que não está no orçamento. A mesma AGD Níger pede a renovação da Creche Koubya (R$ 69,6 mil).
+
+**Tags:** Projetos Sociais Cristãos · Missões Transculturais · África · Janela 10/40 · Baixo percentual de evangélicos · Países violentos · Educação

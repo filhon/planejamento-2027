@@ -55,6 +55,14 @@ const apelido = (s: string) =>
 const escHtml = (s: string) =>
   s.replace(/[&<>"]/g, (c) => `&#${c.charCodeAt(0)};`);
 
+/**
+ * Devolvido ao proponente: está na pasta, mas o sistema de votação ainda não o
+ * mostra — o diretor busca e recebe "não existe". O material avisa antes.
+ */
+const emCorrecao = (p: ProjetoCiclo) => p.status === "devolvido-para-correcao";
+const SITUACAO_CORRECAO =
+  "Em correção pelo proponente — ainda não liberado para votação";
+
 export default function Exportar({ lista }: { lista: ProjetoCiclo[] }) {
   const { ano, anoAnterior, filtros, nomePais } = usePainel();
 
@@ -80,6 +88,11 @@ export default function Exportar({ lista }: { lista: ProjetoCiclo[] }) {
     .filter(Boolean)
     .join("-");
 
+  const nCorrecao = lista.filter(emCorrecao).length;
+  const avisoCorrecao = nCorrecao
+    ? `${plural(nCorrecao, "projeto desta lista foi devolvido", "projetos desta lista foram devolvidos")} ao proponente para correção e ainda não ${nCorrecao === 1 ? "aparece" : "aparecem"} no sistema de votação. ${nCorrecao === 1 ? "Ele está marcado" : "Estão marcados"} na relação; a busca no sistema volta a encontrá-${nCorrecao === 1 ? "lo" : "los"} quando a correção for reenviada.`
+    : null;
+
   const totalSolicitado = lista.reduce((s, p) => s + p.solicitado, 0);
   const totalRecebido = lista.reduce(
     (s, p) => s + (p.revisao.recebidoAnterior ?? 0),
@@ -91,6 +104,7 @@ export default function Exportar({ lista }: { lista: ProjetoCiclo[] }) {
       [titulo],
       [`Recorte: ${recorte}`],
       ...(aviso ? [[aviso]] : []),
+      ...(avisoCorrecao ? [[avisoCorrecao]] : []),
       [
         `${plural(lista.length, "projeto", "projetos")} · ${fmtMoeda.format(totalSolicitado)} solicitados · ${fmtMoeda.format(totalRecebido)} recebidos`,
       ],
@@ -103,6 +117,7 @@ export default function Exportar({ lista }: { lista: ProjetoCiclo[] }) {
         // Número cru e com sinal (18,6 = pede 18,6% a mais): o sinal é a seta,
         // e a coluna continua ordenável na planilha.
         "Variação do pedido (%)",
+        "Situação",
       ],
       ...lista.map((p) => {
         const d = deltaPedido(p.solicitado, p.revisao.recebidoAnterior);
@@ -112,13 +127,14 @@ export default function Exportar({ lista }: { lista: ProjetoCiclo[] }) {
           p.solicitado,
           p.revisao.recebidoAnterior,
           d === null ? null : Math.round(d * 1000) / 10,
+          emCorrecao(p) ? SITUACAO_CORRECAO : null,
         ];
       }),
     ];
     baixar(
       `${arquivo}.xlsx`,
       planilha(`Projetos ${ano}`, linhas, {
-        larguras: [56, 38, 20, 26, 22],
+        larguras: [56, 38, 20, 26, 22, 58],
         // Tudo acima do cabeçalho fica preso: rolar 200 projetos sem ver de
         // quem é a lista é como o material volta errado da reunião.
         congelar: linhas.length - lista.length,
@@ -146,7 +162,11 @@ export default function Exportar({ lista }: { lista: ProjetoCiclo[] }) {
         return `<tr>
   <td class="ordem">${String(i + 1).padStart(2, "0")}</td>
   <td><span class="projeto">${escHtml(p.titulo)}</span>
-    <span class="instituicao">${escHtml(p.instituicaoNome ?? "instituição não informada")}</span></td>
+    <span class="instituicao">${escHtml(p.instituicaoNome ?? "instituição não informada")}</span>${
+      emCorrecao(p)
+        ? `\n    <span class="correcao">${escHtml(SITUACAO_CORRECAO)}</span>`
+        : ""
+    }</td>
   <td class="valor">${fmtInt.format(p.solicitado)}</td>
   <td class="valor historico">${recebido === null ? '<span class="sem">—</span>' : fmtInt.format(recebido)}</td>
   <td class="valor variacao ${(deltaPedido(p.solicitado, recebido) ?? 0) > 0 ? "sobe" : "desce"}">${
@@ -333,6 +353,12 @@ export default function Exportar({ lista }: { lista: ProjetoCiclo[] }) {
 
   .projeto { display: block; font-weight: 600; font-size: 10pt; overflow-wrap: anywhere; }
   .instituicao { display: block; font-size: 8.5pt; color: var(--tinta-fraca); }
+  /* A palavra carrega o aviso; o filete e a cor só reforçam fora do P&B. */
+  .correcao {
+    display: inline-block; margin-top: 3px; padding: 1px 6px;
+    border: 0.75pt solid var(--laranja); color: var(--laranja);
+    font-size: 7.5pt; font-weight: 600;
+  }
 
   .soma td {
     padding-top: 7px;
@@ -390,6 +416,15 @@ export default function Exportar({ lista }: { lista: ProjetoCiclo[] }) {
       ? `<section class="nota-bloco">
     <span class="rotulo">Nota</span>
     <p>${escHtml(aviso)}</p>
+  </section>`
+      : ""
+  }
+
+  ${
+    avisoCorrecao
+      ? `<section class="nota-bloco">
+    <span class="rotulo">Em correção</span>
+    <p>${escHtml(avisoCorrecao)}</p>
   </section>`
       : ""
   }

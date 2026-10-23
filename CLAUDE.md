@@ -85,6 +85,12 @@ teto: entrando um nono eixo, algum sai. O **Convênio** saiu por isso (o de
 Instituição faz o mesmo recorte melhor); `ehConveniada` continua valendo no
 Orçamento, que é onde as duas fatias importam.
 
+O filtro de **Status** é pelo status **da origem** (os 14 do enum, na ordem do
+fluxo, com a contagem do ciclo ao lado — `STATUS_ORIGEM` em `formato.ts`), não
+pelo grupo da paleta: o grupo "Rascunho / outros" juntava rascunho (nunca
+enviado) com devolvido para correção e cancelado. O grupo (`statusGrupo`) só
+decide a cor; funis e tabelas também mostram o status da origem.
+
 **Fase 6 (gráficos da Visão Geral)** — a tela de abertura ganhou as leituras que
 nenhum ranking dava:
 

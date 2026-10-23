@@ -16,7 +16,7 @@ import {
   fmtMoeda,
   fmtMoedaCurta,
   plural,
-  ROTULO_STATUS,
+  rotuloStatus,
   SEM_RESULTADO,
 } from "../formato";
 import { Kpi, Secao } from "../ui";
@@ -281,7 +281,7 @@ export default function Projetos({
                       <Tipo revisao={p.revisao} />
                     </td>
                     <td>{p.revisao.responsavel ?? "—"}</td>
-                    <td>{ROTULO_STATUS[p.statusGrupo]}</td>
+                    <td>{rotuloStatus(p.status)}</td>
                     <td className="n">{fmtMoeda.format(p.solicitado)}</td>
                     <td className="n">
                       {p.revisao.recebidoAnterior === null ? (

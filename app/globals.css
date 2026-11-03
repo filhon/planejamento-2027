@@ -2485,21 +2485,40 @@ body.apresentacao .rolagem {
 
 /*
  * O veredito: a frase que abre a reunião, montada dos mesmos números da tabela
- * de rúbricas. Fica FORA de cartão de propósito — é a leitura da página, não um
- * bloco entre blocos —, com o filete azul da marca fazendo a divisão.
+ * de rubricas. Fica FORA de cartão de propósito (é a leitura da página, não um
+ * bloco entre blocos), com o filete azul da marca fazendo a divisão. A primeira
+ * frase é o <h1> e o maior texto da tela; o detalhe que fecha a conta vem abaixo.
  */
 .veredito {
   margin: 0 0 var(--espaco-xl);
   padding: 0 0 var(--espaco-lg) 0;
   border-bottom: 2px solid var(--azul);
-  font-size: var(--texto-titulo);
-  line-height: 1.5;
   max-width: 105ch;
+}
+
+.veredito h1 {
+  margin: 0 0 var(--espaco-sm);
+  font-size: var(--texto-pagina);
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.veredito p {
+  margin: 0;
+  font-size: var(--texto-destaque);
+  line-height: 1.5;
 }
 
 .veredito b {
   color: var(--azul);
   font-weight: 700;
+}
+
+/* O recorte global não vale no Resumo; a mesa precisa saber que ele está ligado. */
+.aviso-recorte {
+  margin: calc(-1 * var(--espaco-md)) 0 var(--espaco-xl);
+  font-size: var(--texto-ui);
+  max-width: 105ch;
 }
 
 /* Segunda linha dentro de uma célula: de onde vem o número da célula (as
@@ -2531,8 +2550,10 @@ body.apresentacao .rolagem {
 .regua {
   position: relative;
   display: block;
-  width: 130px;
-  height: 8px;
+  /* Em `em` da escala de texto: na TV o token sobe e a régua sobe junto. */
+  font-size: var(--texto-ui);
+  width: 8em;
+  height: 0.5em;
   border-radius: 4px;
   background: var(--neutro);
 }

@@ -276,9 +276,9 @@ O presidente da associação fixou a divisão do teto — **Missões 50% · Cons
 de igrejas 25% · Outros 20% · Social 5%** — e a pergunta que abre a mesa é se o
 que foi submetido cabe nessa divisão.
 
-- **Os percentuais são a diretriz; o de-para rúbrica → categoria é leitura
-  nossa** (a origem tem sete categorias, não rúbricas). Os dois em
-  `src/lib/rubricas.ts` (puro, testado), e a tabela mostra sob cada rúbrica
+- **Os percentuais são a diretriz; o de-para rubrica → categoria é leitura
+  nossa** (a origem tem sete categorias, não rubricas). Os dois em
+  `src/lib/rubricas.ts` (puro, testado), e a tabela mostra sob cada rubrica
   quais categorias entraram — é onde a mesa contesta o de-para em voz alta.
 - **Base = projetos avaliáveis** (a mesma regra das pastas). Rejeitado, rascunho
   e cancelado ficam fora porque não disputam o teto: em 2026 são **R$ 7,1 mi**
@@ -288,10 +288,14 @@ que foi submetido cabe nessa divisão.
   (20%) — e **Social pede 9,4% para um alvo de 5%, R$ 591 mil acima do seu
   envelope**. Em 2025 o conselho aprovou Missões em 50,0% exatos e Social em
   11,5%: a diretriz descreve a prática, **menos em Social**.
-- **Renovações (140, R$ 7,48 mi tendo recebido R$ 7,07 mi) e novos (110,
-  R$ 6,58 mi) saem com nome** — a relação inteira, com rúbrica, pasta e
-  variação, título abrindo a pasta do projeto, e atalho para Projetos & Pastas
-  com o filtro de Triagem aplicado.
+- **O recorte global não vale aqui** (o veredito é lido em voz alta e um atalho
+  para as renovações o tornava falso); o aviso laranja diz quando há filtro
+  ligado. A tela traz o veredito como `<h1>`, a tabela de rubricas, uma matriz
+  renovação × novo por rubrica e duas listas curtas com nome (renovações que
+  pedem mais que o dobro; os 10 maiores novos). A relação inteira mora em
+  Projetos & Pastas. **A cortar** (pedido − teto) e **A remanejar** (excesso que
+  cabe na folga das outras rubricas) são duas contas, e o desvio em reais e a
+  régua saem da mesma (`desvio / teto`).
 - **Régua de desvio** (`.regua`): barra divergente com zero no meio, laranja à
   direita (acima do envelope), azul à esquerda. Lado + cor + a palavra na célula
   — três codificações, porque é TV a três metros e fotocópia.

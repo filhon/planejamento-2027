@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { Parkinsans, Titillium_Web } from "next/font/google";
+import { Titillium_Web } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 
 /*
@@ -16,9 +17,9 @@ import "./globals.css";
  * A Titillium tem métricas e segue no caminho automático, que é melhor: o
  * recuo dela vem com `size-adjust` e não mexe no layout ao trocar.
  */
-const titulo = Parkinsans({
-  subsets: ["latin"],
-  weight: ["500", "600", "700"],
+const titulo = localFont({
+  src: "./fonts/parkinsans.woff2", // variável 300–800, subconjunto latin (@fontsource-variable/parkinsans)
+  weight: "300 800",
   variable: "--fonte-titulo",
   fallback: ["system-ui", "sans-serif"],
 });

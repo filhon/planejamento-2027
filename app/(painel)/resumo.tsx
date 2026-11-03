@@ -11,38 +11,44 @@ import {
 import type { OrcamentoCiclo, ProjetoCiclo } from "@/lib/types";
 import { usePainel } from "./contexto";
 import {
+  deltaPedido,
   fmtInt,
   fmtMoeda,
-  fmtMoedaCurta,
   num,
   pct,
   plural,
   rotuloCategoria,
-  variacaoPedido,
+  setaVariacao,
 } from "./formato";
-import { Kpi, Secao } from "./ui";
+import { Secao } from "./ui";
 
 /**
- * Resumo Executivo — a tela de abertura da reunião (Fase 12).
+ * Resumo Executivo: a tela de abertura da reunião (Fase 12).
  *
  * Responde, nesta ordem, as três perguntas da diretriz orçamentária do
- * presidente: **cabe no teto?**, **a divisão por rúbrica bate?** e **o que é
+ * presidente: **cabe no teto?**, **a divisão por rubrica bate?** e **o que é
  * renovação e o que é projeto novo** (com nome, para a mesa poder cobrar).
  *
- * Base: os projetos **avaliáveis** do recorte — rejeitado, rascunho e cancelado
- * ficam fora porque não disputam o teto (em 2026 são R$ 7 mi que inflavam toda
- * a aderência). É a mesma régua que decide quem ocupa pasta de diretor.
+ * Base: os projetos **avaliáveis da remessa inteira**. Rejeitado, rascunho e
+ * cancelado ficam fora porque não disputam o teto (em 2026 são R$ 7 mi que
+ * inflavam toda a aderência). Os filtros globais NÃO valem aqui: a frase que
+ * abre a reunião é lida em voz alta, e "149 projetos pedem R$ 7,5 mi, abaixo do
+ * teto" depois de um atalho para as renovações era falso para a remessa. A lista
+ * completa, que aceita recorte, ordenação e exportação, mora em Projetos & Pastas.
  */
 
 const somar = (ps: ProjetoCiclo[], f: (p: ProjetoCiclo) => number | null) =>
   ps.reduce((s, p) => s + (f(p) ?? 0), 0);
 
+/** Quantos nomes cada lista curta mostra; o resto está em Projetos & Pastas. */
+const LIMITE = 10;
+
 /**
- * Régua de desvio: barra divergente com o zero no meio — à direita (laranja) a
- * rúbrica pede ACIMA do envelope da diretriz, à esquerda (azul) fica abaixo.
+ * Régua de desvio: barra divergente com o zero no meio. À direita (laranja) a
+ * rubrica pede ACIMA do envelope da diretriz, à esquerda (azul) fica abaixo.
  *
- * O mesmo dado está codificado três vezes — lado, cor e a palavra na célula ao
- * lado — porque esta página sai em fotocópia preto e branco e é lida a três
+ * O mesmo dado está codificado três vezes (lado, cor e a palavra na célula ao
+ * lado) porque esta página sai em fotocópia preto e branco e é lida a três
  * metros na TV. A escala é comum a todas as linhas (o maior desvio ocupa a
  * meia-largura), com piso de 5 p.p. para desvio pequeno não parecer grande.
  */
@@ -60,7 +66,7 @@ function Regua({ pp, escala }: { pp: number; escala: number }) {
 }
 
 /**
- * "R$ 591.122 acima do seu envelope" — a conta que a mesa faria de cabeça.
+ * "R$ 591.122 acima do seu envelope": a conta que a mesa faria de cabeça.
  * Sem teto confiável não há envelope em reais, e sobra a aderência em
  * percentual, que é o que a diretriz diz de fato. `curto` corta o substantivo
  * na segunda metade da frase, onde ele já foi dito.
@@ -80,30 +86,27 @@ export default function Resumo({
 }: {
   orcamentos: Record<number, OrcamentoCiclo>;
 }) {
-  const {
-    ano,
-    anoAnterior,
-    projetos,
-    projetosAnteriores,
-    filtroAtivo,
-    aplicar,
-  } = usePainel();
+  const { ano, anoAnterior, ciclos, todos, projetos, filtroAtivo, aplicar } =
+    usePainel();
 
   /**
    * Os atalhos desta página levam o recorte para Projetos & Pastas em vez de
-   * recortar a própria tela: filtrar o Resumo por uma rúbrica faria a tabela da
-   * diretriz mostrar essa rúbrica com 100% do pedido — verdade inútil.
+   * recortar a própria tela: filtrar o Resumo por uma rubrica faria a tabela da
+   * diretriz mostrar essa rubrica com 100% do pedido, verdade inútil.
    */
   const irPara = (parcial: Parameters<typeof aplicar>[0]) => () =>
     aplicar(parcial);
 
   const naMesa = useMemo(
-    () => projetos.filter((p) => avaliavel(p.status)),
-    [projetos],
+    () => todos.filter((p) => avaliavel(p.status)),
+    [todos],
   );
   const naMesaAntes = useMemo(
-    () => projetosAnteriores.filter((p) => avaliavel(p.status)),
-    [projetosAnteriores],
+    () =>
+      (ciclos.find((c) => c.ano === anoAnterior)?.projetos ?? []).filter((p) =>
+        avaliavel(p.status),
+      ),
+    [ciclos, anoAnterior],
   );
 
   const orcamento = orcamentos[ano];
@@ -111,8 +114,8 @@ export default function Resumo({
   const diretriz = useMemo(() => montarDiretriz(naMesa, teto), [naMesa, teto]);
 
   /**
-   * Régua histórica: quanto o conselho APROVOU em cada rúbrica na remessa
-   * anterior. Não é previsão — é o que aconteceu, e é o que diz se a diretriz
+   * Régua histórica: quanto o conselho APROVOU em cada rubrica na remessa
+   * anterior. Não é previsão: é o que aconteceu, e é o que diz se a diretriz
    * repete a prática ou a corrige. (Em 2026 não há um único aprovado; sem esta
    * coluna a tabela não teria nenhuma referência de realização.)
    */
@@ -131,11 +134,7 @@ export default function Resumo({
     return { total, porChave };
   }, [antes, naMesaAntes]);
 
-  const renovacoes = useMemo(
-    () =>
-      naMesa.filter(ehRenovacao).sort((a, b) => b.solicitado - a.solicitado),
-    [naMesa],
-  );
+  const renovacoes = useMemo(() => naMesa.filter(ehRenovacao), [naMesa]);
   const novos = useMemo(
     () =>
       naMesa
@@ -143,10 +142,58 @@ export default function Resumo({
         .sort((a, b) => b.solicitado - a.solicitado),
     [naMesa],
   );
-  const recebidoRenovacoes = somar(
-    renovacoes,
-    (p) => p.revisao.recebidoAnterior,
+
+  /**
+   * Renovação × novo por rubrica. A variação compara só as renovações que têm
+   * base (o que recebeu antes): somar o pedido das que não têm faria o salto
+   * parecer maior do que é.
+   */
+  const porRubrica = useMemo(
+    () =>
+      diretriz.linhas.map((l) => {
+        const ren = renovacoes.filter((p) =>
+          l.categorias.includes(p.categoria),
+        );
+        const comBase = ren.filter(
+          (p) => (p.revisao.recebidoAnterior ?? 0) > 0,
+        );
+        return {
+          linha: l,
+          recebido: somar(ren, (p) => p.revisao.recebidoAnterior),
+          pedidoComBase: somar(comBase, (p) => p.solicitado),
+          recebidoComBase: somar(comBase, (p) => p.revisao.recebidoAnterior),
+        };
+      }),
+    [diretriz, renovacoes],
   );
+  const totalRen = {
+    pedido: somar(renovacoes, (p) => p.solicitado),
+    recebido: somar(renovacoes, (p) => p.revisao.recebidoAnterior),
+    pedidoComBase: porRubrica.reduce((s, r) => s + r.pedidoComBase, 0),
+    recebidoComBase: porRubrica.reduce((s, r) => s + r.recebidoComBase, 0),
+  };
+
+  /** As renovações que pedem mais que o dobro do que receberam: o que a mesa cobra. */
+  const dobram = useMemo(
+    () =>
+      renovacoes
+        .filter(
+          (p) =>
+            (deltaPedido(p.solicitado, p.revisao.recebidoAnterior) ?? 0) > 1,
+        )
+        .sort(
+          (a, b) =>
+            b.solicitado -
+            (b.revisao.recebidoAnterior ?? 0) -
+            (a.solicitado - (a.revisao.recebidoAnterior ?? 0)),
+        ),
+    [renovacoes],
+  );
+  const aMaisDobram = somar(
+    dobram,
+    (p) => p.solicitado - (p.revisao.recebidoAnterior ?? 0),
+  );
+  const maioresNovos = novos.slice(0, LIMITE);
 
   /** Sem ciclo anterior (ou sem nada aprovado nele) a coluna histórica sai. */
   const temAntes = anoAnterior !== undefined && aprovadoAntes.total > 0;
@@ -156,12 +203,14 @@ export default function Resumo({
     0.05,
     ...diretriz.linhas.map((l) => Math.abs(l.desvioPp)),
   );
+  const variacaoAno =
+    antes.pedido > 0 ? diretriz.pedido / antes.pedido - 1 : null;
 
   if (naMesa.length === 0) {
     return (
       <p className="vazio">
-        Nenhum projeto avaliável no recorte atual. Rejeitado, rascunho e
-        cancelado ficam fora desta tela — eles não disputam o teto.
+        Nenhum projeto avaliável nesta remessa. Rejeitado, rascunho e cancelado
+        ficam fora desta tela porque não disputam o teto.
       </p>
     );
   }
@@ -169,107 +218,87 @@ export default function Resumo({
   return (
     <>
       {/* O veredito antes da tabela: é o que alguém lê em voz alta para abrir a
-          reunião, e é montado dos mesmos números da tabela abaixo. */}
-      <p className="veredito">
-        <b>{plural(diretriz.projetos, "projeto", "projetos")}</b> na mesa pedem{" "}
-        <b>{fmtMoeda.format(diretriz.pedido)}</b>
-        {vao === null ? (
-          <> — a remessa não tem teto confiável para comparar.</>
-        ) : vao > 0 ? (
-          <>
-            {" "}
-            — <b>{fmtMoeda.format(vao)} acima</b> do teto de{" "}
-            {fmtMoeda.format(teto ?? 0)}.
-          </>
-        ) : (
-          <>
-            {" "}
-            — {fmtMoeda.format(-vao)} abaixo do teto de{" "}
-            {fmtMoeda.format(teto ?? 0)}, que cobre o pedido inteiro.
-          </>
-        )}{" "}
-        {diretriz.acima === null ? (
-          <>Na divisão da diretriz, todas as rúbricas estão na faixa.</>
-        ) : (
-          <>
-            Na divisão da diretriz, <b>{diretriz.acima.rotulo}</b> pede{" "}
-            {excedente(diretriz.acima)}
-            {diretriz.abaixo && (
+          reunião, e é montado dos mesmos números da tabela abaixo. A primeira
+          frase é o título da página; o resto é o detalhe que fecha a conta. */}
+      <div className="veredito">
+        <h1>
+          <b>{plural(diretriz.projetos, "projeto", "projetos")}</b> na mesa
+          pedem <b>{fmtMoeda.format(diretriz.pedido)}</b>
+          {vao === null ? (
+            <> (a remessa não tem teto confiável para comparar).</>
+          ) : vao > 0 ? (
+            <>
+              , <b>{fmtMoeda.format(vao)} acima</b> do teto de{" "}
+              {fmtMoeda.format(teto ?? 0)}.
+            </>
+          ) : (
+            <>
+              , {fmtMoeda.format(-vao)} abaixo do teto de{" "}
+              {fmtMoeda.format(teto ?? 0)}, que cobre o pedido inteiro.
+            </>
+          )}
+        </h1>
+        <p>
+          São {plural(renovacoes.length, "renovação", "renovações")} e{" "}
+          {plural(novos.length, "projeto novo", "projetos novos")}.{" "}
+          {diretriz.acima === null ? (
+            <>Na divisão da diretriz, todas as rubricas estão na faixa.</>
+          ) : (
+            <>
+              Na divisão da diretriz, <b>{diretriz.acima.rotulo}</b> pede{" "}
+              {excedente(diretriz.acima)}
+              {diretriz.abaixo && (
+                <>
+                  ; <b>{diretriz.abaixo.rotulo}</b>,{" "}
+                  {excedente(diretriz.abaixo, true)}
+                </>
+              )}
+              .
+            </>
+          )}
+          {diretriz.cortar !== null &&
+            diretriz.remanejar !== null &&
+            (diretriz.cortar > 0 || diretriz.remanejar > 0) && (
               <>
-                ; <b>{diretriz.abaixo.rotulo}</b>,{" "}
-                {excedente(diretriz.abaixo, true)}
+                {" "}
+                A mesa fecha{" "}
+                {diretriz.cortar > 0 && (
+                  <>
+                    <b>cortar {fmtMoeda.format(diretriz.cortar)}</b>
+                  </>
+                )}
+                {diretriz.cortar > 0 && diretriz.remanejar > 0 && " e "}
+                {diretriz.remanejar > 0 && (
+                  <>
+                    <b>remanejar {fmtMoeda.format(diretriz.remanejar)}</b> entre
+                    rubricas
+                  </>
+                )}
+                .
               </>
             )}
-            .
-          </>
-        )}
-      </p>
-
-      <div className="kpis">
-        <Kpi
-          rotulo="Na mesa"
-          valor={fmtInt.format(diretriz.projetos)}
-          nota={`${fmtInt.format(renovacoes.length)} renovações · ${fmtInt.format(novos.length)} novos`}
-        />
-        <Kpi
-          rotulo="Pedido total"
-          valor={fmtMoedaCurta.format(diretriz.pedido)}
-          atual={diretriz.pedido}
-          anterior={naMesaAntes.length > 0 ? antes.pedido : undefined}
-          anoAnterior={anoAnterior}
-          formatar={(v) => fmtMoedaCurta.format(v)}
-          /* Pedir mais que a remessa anterior não é boa notícia numa mesa que
-             precisa caber no teto: o delta sobe em laranja, não em verde. */
-          inverso
-        />
-        <Kpi
-          rotulo="Teto da remessa"
-          valor={teto === null ? "—" : fmtMoedaCurta.format(teto)}
-          nota={
-            vao === null
-              ? "sem linha de orçamento confiável"
-              : `${fmtMoedaCurta.format(Math.abs(vao))} ${vao > 0 ? "a cortar do pedido" : "de folga"}`
-          }
-          tom={vao === null ? undefined : vao > 0 ? "atencao" : "bom"}
-        />
-        <Kpi
-          rotulo="A remanejar pela diretriz"
-          valor={
-            diretriz.remanejar === null
-              ? "—"
-              : fmtMoedaCurta.format(diretriz.remanejar)
-          }
-          nota={
-            diretriz.remanejar === null
-              ? "depende do teto do ciclo"
-              : diretriz.remanejar === 0
-                ? "nenhuma rúbrica passou do envelope"
-                : `${plural(
-                    diretriz.linhas.filter((l) => (l.desvio ?? 0) > 0).length,
-                    "rúbrica acima",
-                    "rúbricas acima",
-                  )} do envelope`
-          }
-          tom={
-            diretriz.remanejar === null
-              ? undefined
-              : diretriz.remanejar > 0
-                ? "atencao"
-                : "bom"
-          }
-        />
+        </p>
       </div>
+
+      {filtroAtivo && (
+        <p className="marca-alerta aviso-recorte">
+          Há recorte ativo ({fmtInt.format(projetos.length)} de{" "}
+          {fmtInt.format(todos.length)} projetos), mas esta tela mostra a
+          remessa inteira: a divisão da diretriz só faz sentido sobre tudo o que
+          disputa o teto. O recorte vale em Projetos &amp; Pastas.
+        </p>
+      )}
 
       <div className="grade">
         <Secao
-          titulo="Rúbricas da diretriz"
-          sub="Envelope = a diretriz aplicada ao teto da remessa. A régua mostra o desvio: à esquerda abaixo do envelope, à direita acima."
+          titulo="Rubricas da diretriz"
+          sub="Envelope = a diretriz aplicada ao teto da remessa. Desvio = pedido menos envelope; a régua mostra o mesmo desvio, em pontos do teto: à esquerda abaixo do envelope, à direita acima."
           largura="cheia"
         >
           <table className="tabela">
             <thead>
               <tr>
-                <th>Rúbrica</th>
+                <th>Rubrica</th>
                 <th className="n">Projetos</th>
                 <th className="n">Pedido</th>
                 <th className="n">Diretriz</th>
@@ -288,13 +317,14 @@ export default function Resumo({
                       <b>{l.rotulo}</b>
                       <span className="celula-sub">
                         {l.categorias.map(rotuloCategoria).join(" · ")}
-                        {l.nota && ` — ${l.nota}`}
+                        {l.nota && `. ${l.nota}`}
                       </span>
                     </td>
                     <td className="n">
                       <Link
                         className="link-projeto"
                         href="/projetos"
+                        title="Abrir estes projetos em Projetos & Pastas"
                         onClick={irPara({ categoria: l.categorias })}
                       >
                         {fmtInt.format(l.projetos)}
@@ -330,9 +360,11 @@ export default function Resumo({
                     {temAntes && (
                       <td className="n">
                         {pct(aprovado / aprovadoAntes.total)}
-                        <span className="celula-sub">
-                          {aprovado === 0 ? "" : fmtMoeda.format(aprovado)}
-                        </span>
+                        {aprovado > 0 && (
+                          <span className="celula-sub">
+                            {fmtMoeda.format(aprovado)}
+                          </span>
+                        )}
                       </td>
                     )}
                   </tr>
@@ -343,7 +375,15 @@ export default function Resumo({
               <tr>
                 <td>Total</td>
                 <td className="n">{fmtInt.format(diretriz.projetos)}</td>
-                <td className="n">{fmtMoeda.format(diretriz.pedido)}</td>
+                <td className="n">
+                  {fmtMoeda.format(diretriz.pedido)}
+                  {variacaoAno !== null && (
+                    <span className="celula-sub">
+                      {variacaoAno >= 0 ? "▲" : "▼"}{" "}
+                      {pct(Math.abs(variacaoAno))} sobre {anoAnterior}
+                    </span>
+                  )}
+                </td>
                 <td className="n">100%</td>
                 <td className="n">
                   {teto === null ? "—" : fmtMoeda.format(teto)}
@@ -368,20 +408,13 @@ export default function Resumo({
               "projeto avaliável",
               "projetos avaliáveis",
             )}{" "}
-            da Remessa {ano} — rejeitado, rascunho e cancelado ficam fora porque
+            da Remessa {ano}. Rejeitado, rascunho e cancelado ficam fora porque
             não disputam o teto.{" "}
             {teto !== null &&
-              `O teto vem da linha de orçamento marcada como "${orcamento?.fonteOrcamento.status ?? "sem status"}" — ${orcamento?.fonteOrcamento.criterio}.`}{" "}
-            A divisão por rúbrica é a diretriz; o de-para rúbrica → categoria é
-            leitura nossa das categorias da origem, que não tem o conceito de
-            rúbrica.
-            {filtroAtivo && (
-              <span className="marca-alerta">
-                {" "}
-                Há recorte ativo: a aderência acima é do recorte, não da remessa
-                inteira.
-              </span>
-            )}
+              `O teto vem da linha de orçamento marcada como "${orcamento?.fonteOrcamento.status ?? "sem status"}" (${orcamento?.fonteOrcamento.criterio}).`}{" "}
+            Os percentuais são a diretriz do presidente; o de-para rubrica →
+            categoria é leitura nossa das categorias do sistema de submissão,
+            que não tem o conceito de rubrica.
           </p>
 
           {(orcamento?.fonteOrcamento.alertas.length ?? 0) > 0 && (
@@ -394,157 +427,178 @@ export default function Resumo({
         </Secao>
 
         <Secao
-          titulo={`Renovações — ${plural(renovacoes.length, "projeto", "projetos")}`}
-          sub={
-            renovacoes.length === 0
-              ? "Nenhuma renovação no recorte."
-              : `Pedem ${fmtMoeda.format(somar(renovacoes, (p) => p.solicitado))} tendo recebido ${fmtMoeda.format(recebidoRenovacoes)} na remessa anterior. Continuação de projeto que a origem não liga: o vínculo é derivado fora dela.`
-          }
+          titulo="Renovações e projetos novos, por rubrica"
+          sub={`As ${plural(renovacoes.length, "renovação", "renovações")} pedem ${fmtMoeda.format(totalRen.pedido)} tendo recebido ${fmtMoeda.format(totalRen.recebido)} na remessa anterior. O vínculo com a remessa anterior é derivado fora do sistema de submissão, que não liga um ciclo ao outro.`}
           largura="cheia"
           acoes={
-            renovacoes.length > 0 && (
-              <Link
-                className="botao-claro"
-                href="/projetos"
-                onClick={irPara({ tipo: ["renovacao"] })}
-              >
-                Abrir as renovações em Projetos &amp; Pastas →
-              </Link>
-            )
+            <>
+              {renovacoes.length > 0 && (
+                <Link
+                  className="botao-claro"
+                  href="/projetos"
+                  onClick={irPara({ tipo: ["renovacao"] })}
+                >
+                  Abrir as renovações →
+                </Link>
+              )}
+              {novos.length > 0 && (
+                <Link
+                  className="botao-claro"
+                  href="/projetos"
+                  onClick={irPara({ tipo: ["novo", "revisar"] })}
+                >
+                  Abrir os novos →
+                </Link>
+              )}
+            </>
           }
         >
-          {renovacoes.length === 0 ? (
-            <p className="sub">
-              A triagem novo × renovação existe a partir da Remessa 2026 — a
-              origem não liga um ciclo ao outro, e o vínculo de 2025 para trás
-              não foi derivado.
-            </p>
-          ) : (
-            <div className="rolagem">
-              <table className="tabela">
-                <thead>
-                  <tr>
-                    <th>Projeto</th>
-                    <th>Instituição</th>
-                    <th>Rúbrica</th>
-                    <th className="n">Recebeu antes</th>
-                    <th className="n">Pede agora</th>
-                    <th>Variação</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {renovacoes.map((p) => (
-                    <tr key={p.id}>
-                      <td>
-                        <Link
-                          className="link-projeto"
-                          href={`/projetos/${p.id}`}
-                        >
-                          {p.titulo}
-                        </Link>
-                      </td>
-                      <td>{p.instituicaoNome ?? "—"}</td>
-                      <td className="rotulo">{rotuloRubrica(p.categoria)}</td>
-                      <td className="n">
-                        {p.revisao.recebidoAnterior === null
-                          ? "—"
-                          : fmtMoeda.format(p.revisao.recebidoAnterior)}
-                      </td>
-                      <td className="n">{fmtMoeda.format(p.solicitado)}</td>
-                      <td className="rotulo">
-                        {variacaoPedido(
-                          p.solicitado,
-                          p.revisao.recebidoAnterior,
-                        ) || "sem base anterior"}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-                <tfoot>
-                  <tr>
-                    <td>Total</td>
-                    <td />
-                    <td />
-                    <td className="n">{fmtMoeda.format(recebidoRenovacoes)}</td>
-                    <td className="n">
-                      {fmtMoeda.format(somar(renovacoes, (p) => p.solicitado))}
+          <table className="tabela">
+            <thead>
+              <tr>
+                <th>Rubrica</th>
+                <th className="n">Renovações</th>
+                <th className="n">Pedem</th>
+                <th className="n">Receberam antes</th>
+                <th className="n">Variação</th>
+                <th className="n">Novos</th>
+                <th className="n">Pedem</th>
+              </tr>
+            </thead>
+            <tbody>
+              {porRubrica.map(
+                ({ linha: l, recebido, pedidoComBase, recebidoComBase }) => (
+                  <tr key={l.chave}>
+                    <td>
+                      <b>{l.rotulo}</b>
                     </td>
-                    <td />
+                    <td className="n">{fmtInt.format(l.renovacoes)}</td>
+                    <td className="n">{fmtMoeda.format(l.pedidoRenovacoes)}</td>
+                    <td className="n">{fmtMoeda.format(recebido)}</td>
+                    <td className="n">
+                      {setaVariacao(pedidoComBase, recebidoComBase) || "—"}
+                    </td>
+                    <td className="n">{fmtInt.format(l.novos)}</td>
+                    <td className="n">{fmtMoeda.format(l.pedidoNovos)}</td>
                   </tr>
-                </tfoot>
-              </table>
-            </div>
-          )}
+                ),
+              )}
+            </tbody>
+            <tfoot>
+              <tr>
+                <td>Total</td>
+                <td className="n">{fmtInt.format(renovacoes.length)}</td>
+                <td className="n">{fmtMoeda.format(totalRen.pedido)}</td>
+                <td className="n">{fmtMoeda.format(totalRen.recebido)}</td>
+                <td className="n">
+                  {setaVariacao(
+                    totalRen.pedidoComBase,
+                    totalRen.recebidoComBase,
+                  ) || "—"}
+                </td>
+                <td className="n">{fmtInt.format(novos.length)}</td>
+                <td className="n">
+                  {fmtMoeda.format(somar(novos, (p) => p.solicitado))}
+                </td>
+              </tr>
+            </tfoot>
+          </table>
+          <p className="rodape">
+            A variação compara só as renovações com valor recebido na remessa
+            anterior; as sem base ficam de fora da conta.
+          </p>
         </Secao>
 
-        <Secao
-          titulo={`Projetos novos — ${plural(novos.length, "projeto", "projetos")}`}
-          sub={
-            novos.length === 0
-              ? "Nenhum projeto novo no recorte."
-              : `Pedem ${fmtMoeda.format(somar(novos, (p) => p.solicitado))}. Cada um vai para a pasta de um diretor ou conselheiro, que apresenta e submete a voto.`
-          }
-          largura="cheia"
-          acoes={
-            novos.length > 0 && (
-              <Link
-                className="botao-claro"
-                href="/projetos"
-                onClick={irPara({ tipo: ["novo", "revisar"] })}
-              >
-                Abrir os novos em Projetos &amp; Pastas →
-              </Link>
-            )
-          }
-        >
-          {novos.length > 0 && (
-            <div className="rolagem">
-              <table className="tabela">
-                <thead>
-                  <tr>
-                    <th>Projeto</th>
-                    <th>Instituição</th>
-                    <th>Rúbrica</th>
-                    <th>País</th>
-                    <th>Pasta</th>
-                    <th className="n">Pede</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {novos.map((p) => (
-                    <tr key={p.id}>
-                      <td>
-                        <Link
-                          className="link-projeto"
-                          href={`/projetos/${p.id}`}
-                        >
-                          {p.titulo}
-                        </Link>
-                      </td>
-                      <td>{p.instituicaoNome ?? "—"}</td>
-                      <td className="rotulo">{rotuloRubrica(p.categoria)}</td>
-                      <td>{p.local.nomePt}</td>
-                      <td>{p.revisao.responsavel ?? "sem responsável"}</td>
-                      <td className="n">{fmtMoeda.format(p.solicitado)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-                <tfoot>
-                  <tr>
-                    <td>Total</td>
-                    <td />
-                    <td />
-                    <td />
-                    <td />
+        {dobram.length > 0 && (
+          <Secao
+            titulo="Renovações que pedem mais que o dobro"
+            sub={`${plural(dobram.length, "renovação pede", "renovações pedem")} mais que o dobro do que recebeu, ${fmtMoeda.format(aMaisDobram)} a mais no total.`}
+            largura="cheia"
+          >
+            <table className="tabela">
+              <thead>
+                <tr>
+                  <th>Projeto</th>
+                  <th>Instituição</th>
+                  <th>Rubrica</th>
+                  <th className="n">Recebeu antes</th>
+                  <th className="n">Pede agora</th>
+                  <th className="n">Variação</th>
+                </tr>
+              </thead>
+              <tbody>
+                {dobram.slice(0, LIMITE).map((p) => (
+                  <tr key={p.id}>
+                    <td>
+                      <Link className="link-projeto" href={`/projetos/${p.id}`}>
+                        {p.titulo}
+                      </Link>
+                    </td>
+                    <td>{p.instituicaoNome ?? "—"}</td>
+                    <td className="rotulo">{rotuloRubrica(p.categoria)}</td>
                     <td className="n">
-                      {fmtMoeda.format(somar(novos, (p) => p.solicitado))}
+                      {fmtMoeda.format(p.revisao.recebidoAnterior ?? 0)}
+                    </td>
+                    <td className="n">{fmtMoeda.format(p.solicitado)}</td>
+                    <td className="n">
+                      {setaVariacao(p.solicitado, p.revisao.recebidoAnterior)}
                     </td>
                   </tr>
-                </tfoot>
-              </table>
-            </div>
-          )}
-        </Secao>
+                ))}
+              </tbody>
+            </table>
+            {dobram.length > LIMITE && (
+              <p className="rodape">
+                Os {LIMITE} de maior diferença em reais; os outros{" "}
+                {fmtInt.format(dobram.length - LIMITE)} estão em Projetos &amp;
+                Pastas.
+              </p>
+            )}
+          </Secao>
+        )}
+
+        {maioresNovos.length > 0 && (
+          <Secao
+            titulo={`Os ${maioresNovos.length} maiores projetos novos`}
+            sub={`Somam ${fmtMoeda.format(somar(maioresNovos, (p) => p.solicitado))}, ${pct(
+              somar(maioresNovos, (p) => p.solicitado) /
+                Math.max(
+                  1,
+                  somar(novos, (p) => p.solicitado),
+                ),
+            )} do que os ${fmtInt.format(novos.length)} novos pedem. Cada um vai para a pasta de um diretor ou conselheiro, que apresenta e submete a voto.`}
+            largura="cheia"
+          >
+            <table className="tabela">
+              <thead>
+                <tr>
+                  <th>Projeto</th>
+                  <th>Instituição</th>
+                  <th>Rubrica</th>
+                  <th>País</th>
+                  <th>Pasta</th>
+                  <th className="n">Pede</th>
+                </tr>
+              </thead>
+              <tbody>
+                {maioresNovos.map((p) => (
+                  <tr key={p.id}>
+                    <td>
+                      <Link className="link-projeto" href={`/projetos/${p.id}`}>
+                        {p.titulo}
+                      </Link>
+                    </td>
+                    <td>{p.instituicaoNome ?? "—"}</td>
+                    <td className="rotulo">{rotuloRubrica(p.categoria)}</td>
+                    <td>{p.local.nomePt}</td>
+                    <td>{p.revisao.responsavel ?? "—"}</td>
+                    <td className="n">{fmtMoeda.format(p.solicitado)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </Secao>
+        )}
       </div>
     </>
   );

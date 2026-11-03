@@ -1521,7 +1521,7 @@ test("geometria do Brasil: 27 UFs com path e projeção dentro do viewBox", asyn
   );
 });
 
-// ------------------------------ diretriz orçamentária por rúbrica (Fase 12)
+// ------------------------------ diretriz orçamentária por rubrica (Fase 12)
 
 const pedido = (
   id: string,
@@ -1530,7 +1530,7 @@ const pedido = (
   tipo: "novo" | "renovacao" = "novo",
 ) => triado(id, { tipo }, { categoria, solicitado });
 
-test("rúbricas: envelope vem do teto, desvio sai em reais e em pontos", () => {
+test("rubricas: envelope vem do teto, desvio sai em reais e em pontos", () => {
   const d = montarDiretriz(
     [
       pedido("a", "missoes-transculturais", 400, "renovacao"),
@@ -1572,8 +1572,43 @@ test("rúbricas: envelope vem do teto, desvio sai em reais e em pontos", () => {
   assert.equal(d.acima?.chave, "social");
   assert.equal(d.abaixo?.chave, "outros");
 
-  // Sem "fora das rúbricas" quando toda categoria está mapeada.
+  // Sem "fora das rubricas" quando toda categoria está mapeada.
   assert.equal(d.linhas.length, 4);
+});
+
+test("rubricas: pedido acima do teto separa cortar de remanejar, e a régua nunca contradiz o desvio", () => {
+  // Pedido 1100 para um teto de 1000: vão de 100. Envelopes: 500 · 250 · 200 · 50.
+  const d = montarDiretriz(
+    [
+      pedido("a", "missoes-nacionais", 495), // 45,0% do pedido, mas 495 < 500: abaixo
+      pedido("b", "construcao-reforma", 255), // 255 > 250: acima do envelope
+      pedido("c", "educacao", 300), // 300 > 200: acima
+      pedido("d", "projetos-sociais-cristaos", 50), // 50 = 50
+    ],
+    1000,
+  );
+  const por = new Map(d.linhas.map((l) => [l.chave, l]));
+
+  assert.equal(d.cortar, 100);
+  // Excesso 5 + 100 = 105; folga 5 (Missões). Mover só cabe o que há de folga.
+  assert.equal(d.remanejar, 5);
+
+  // O sinal do desvio em pontos é sempre o do desvio em reais: com teto, os dois
+  // saem da mesma conta (pedido − teto × alvo).
+  for (const l of d.linhas) {
+    assert.equal(Math.sign(l.desvioPp), Math.sign(l.desvio ?? 0), l.chave);
+  }
+  assert.ok(Math.abs(por.get("outros")!.desvioPp - 0.1) < 1e-9);
+});
+
+test("rubricas: cabendo no teto não há o que cortar, só remanejar", () => {
+  const d = montarDiretriz(
+    [pedido("a", "missoes-nacionais", 300), pedido("b", "educacao", 400)],
+    1000,
+  );
+  assert.equal(d.cortar, 0);
+  // Outros pede 400 para um envelope de 200: 200 de excesso, e sobra folga de sobra.
+  assert.equal(d.remanejar, 200);
 });
 
 test("categoria que a diretriz não nomeia soma numa linha própria", () => {
@@ -1602,12 +1637,13 @@ test("recorte vazio e ciclo sem teto não inventam desvio", () => {
     null,
   );
   assert.equal(semTeto.remanejar, null);
+  assert.equal(semTeto.cortar, null);
   assert.ok(semTeto.linhas.every((l) => l.envelope === null));
   assert.ok(semTeto.linhas.every((l) => l.desvio === null));
   // A aderência em pontos não depende do teto — é o que sobra quando ele falta.
   assert.equal(semTeto.acima?.chave, "social");
   assert.equal(rotuloRubrica("projetos-sociais-cristaos"), "Social");
-  assert.equal(rotuloRubrica("capelania"), "Fora das rúbricas");
+  assert.equal(rotuloRubrica("capelania"), "Fora das rubricas");
 });
 
 test("sessão: assinatura, vencimento, adulteração e lista fechada", async () => {

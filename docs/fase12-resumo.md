@@ -8,7 +8,7 @@ os dois. A Visão Geral, que era esta rota, virou [`/visao-geral`](<../app/(pain
 
 Recebida pronta do presidente da associação: o teto da remessa se divide em
 
-| Rúbrica               | Diretriz | Categorias da origem (`cycle_projects.category`) |
+| Rubrica               | Diretriz | Categorias da origem (`cycle_projects.category`) |
 | --------------------- | -------- | ------------------------------------------------ |
 | Missões               | 50%      | `missoes-transculturais` · `missoes-nacionais`   |
 | Construção de igrejas | 25%      | `construcao-reforma`                             |
@@ -16,9 +16,9 @@ Recebida pronta do presidente da associação: o teto da remessa se divide em
 | Social                | 5%       | `projetos-sociais-cristaos`                      |
 
 **Os percentuais são a diretriz; o de-para é leitura nossa.** A origem não tem o
-conceito de rúbrica — tem sete categorias. As duas coisas moram em
+conceito de rubrica — tem sete categorias. As duas coisas moram em
 [`src/lib/rubricas.ts`](../src/lib/rubricas.ts) e a tabela da tela mostra, sob o
-nome de cada rúbrica, quais categorias entraram nela: é onde a mesa contesta o
+nome de cada rubrica, quais categorias entraram nela: é onde a mesa contesta o
 de-para em voz alta, que é o único lugar onde isso se decide.
 
 Ressalva que a tela carrega sozinha: `construcao-reforma` é **construção E
@@ -28,21 +28,22 @@ projeto a projeto (seria uma coluna nova em `data/`, no molde do
 enriquecimento).
 
 Categoria nova na origem não desaparece da conta: cai numa linha
-**"Fora das rúbricas"** com alvo 0% (hoje não existe nenhuma).
+**"Fora das rubricas"** com alvo 0% (hoje não existe nenhuma).
 
 ## Como o desvio é medido
 
-Duas leituras, porque a mesa usa as duas:
-
-- **Envelope** = `teto × diretriz`. O desvio em reais (`pedido − envelope`) é o
-  que se remaneja. Depende do teto do ciclo, então some quando não há linha de
-  orçamento confiável.
-- **Aderência em pontos** = `% do pedido − % da diretriz`. Não depende do teto e
-  é o que a diretriz diz de fato.
-
-O KPI **"A remanejar pela diretriz"** é a soma só dos excessos — o dinheiro que
-teria de sair das rúbricas que passaram do envelope. O vão contra o teto é outra
-conta e está no KPI ao lado.
+- **Envelope** = `teto × diretriz`. O desvio em reais é `pedido − envelope`.
+  Depende do teto do ciclo, então some quando não há linha de orçamento
+  confiável.
+- **A régua e a linha "p.p." sob o desvio são a MESMA conta** em pontos do teto
+  (`desvio / teto`; sem teto cai para `% do pedido − % da diretriz`). Antes eram
+  duas contas (pedido ÷ teto contra pedido ÷ pedido) e, como o pedido passa do
+  teto, uma rubrica podia sair "+R$ 50 mil" na coluna e "abaixo" na régua.
+- **A cortar** = quanto o pedido passa do teto (0 se cabe). É dinheiro que não
+  existe.
+- **A remanejar** = quanto do excesso das rubricas acima do envelope cabe na
+  folga das que ficaram abaixo (`min(excesso, folga)`). Excesso = remanejar +
+  cortar. O KPI antigo "A remanejar" somava os dois e chamava tudo de remanejar.
 
 **Base: projetos avaliáveis** (`avaliavel()`, a mesma regra das pastas):
 rejeitado, rascunho e cancelado ficam fora porque não disputam o teto. Em 2026
@@ -54,7 +55,7 @@ aderência.
 250 projetos avaliáveis pedem **R$ 14,06 mi** contra um teto de R$ 14,5 mi — o
 teto cobre o pedido inteiro, e o aperto está na **divisão**:
 
-| Rúbrica               | Pedido     | % do pedido | Diretriz | Envelope   | Desvio          | Aprovado em 2025 |
+| Rubrica               | Pedido     | % do pedido | Diretriz | Envelope   | Desvio          | Aprovado em 2025 |
 | --------------------- | ---------- | ----------- | -------- | ---------- | --------------- | ---------------- |
 | Missões               | R$ 6,55 mi | 46,6%       | 50%      | R$ 7,25 mi | −R$ 700 mil     | 50,0%            |
 | Construção de igrejas | R$ 3,25 mi | 23,1%       | 25%      | R$ 3,63 mi | −R$ 377 mil     | 22,4%            |
@@ -63,7 +64,7 @@ teto cobre o pedido inteiro, e o aperto está na **divisão**:
 
 **O achado:** a diretriz descreve bem a prática do conselho — em 2025 Missões
 levou 50,0% do aprovado, exatamente o alvo — **menos em Social, que rodou 11,5%
-e agora pede 9,4% para um alvo de 5%**. É a única rúbrica cujo desvio não é
+e agora pede 9,4% para um alvo de 5%**. É a única rubrica cujo desvio não é
 ajuste fino: são R$ 591 mil, e a decisão é da mesa (cortar pedido ou rever o
 percentual).
 
@@ -72,43 +73,38 @@ aparece quando existe ciclo anterior com algo aprovado.
 
 ## Renovações e projetos novos
 
-As duas relações que a diretriz pede com nome ("quantos, quais são"), na ordem
-do dinheiro:
+A tela não repete a relação inteira (264 linhas já moram, com filtro, ordenação
+e exportação, em Projetos & Pastas). Ela traz:
 
-- **Renovações — 140 projetos**, pedem R$ 7,48 mi tendo recebido R$ 7,07 mi
-  (+5,9%). Colunas: instituição, rúbrica, recebeu antes, pede agora, variação.
-- **Projetos novos — 110 projetos**, pedem R$ 6,58 mi. Colunas: instituição,
-  rúbrica, país, **pasta** (o diretor que apresenta) e valor.
+- **Uma matriz por rubrica**: renovações (quantas, pedem, receberam antes,
+  variação) e novos (quantos, pedem). A variação compara só as renovações com
+  base anterior.
+- **Renovações que pedem mais que o dobro** do que receberam, com nome (até 10,
+  pela maior diferença em reais).
+- **Os 10 maiores projetos novos**, com instituição, rubrica, país e pasta.
 
-O título de cada linha abre a pasta do projeto. O cabeçalho de cada bloco leva o
-recorte para Projetos & Pastas com o filtro de Triagem aplicado (mesmo padrão do
-"Ver N projetos" das Parcerias). A contagem de cada rúbrica leva para lá com o
-filtro de Categoria.
+O título de cada linha abre a pasta do projeto. Os botões "Abrir as renovações" e
+"Abrir os novos" levam o recorte para Projetos & Pastas com o filtro de Triagem
+aplicado. A contagem de cada rubrica leva para lá com o filtro de Categoria.
 
-O vínculo novo × renovação é derivado **fora da origem** (Fase 5) — a origem não
-liga um ciclo ao outro. `revisar` (vínculo plausível, não decidido) conta como
-**novo**, que é a régua já usada nas pastas; em 2026 a equipe zerou essa faixa.
-
-Na Remessa 2025 não há renovação nenhuma: o vínculo de 2025 para trás não foi
-derivado, e o bloco diz isso em vez de mostrar zero sem explicação.
+O vínculo novo × renovação é derivado **fora da origem** (Fase 5). `revisar`
+conta como **novo**, a régua já usada nas pastas.
 
 ## Recorte, TV e papel
 
-- **Os filtros globais valem** aqui, como em todo o painel. Com recorte ativo, o
-  rodapé da tabela avisa que a aderência é do recorte, não da remessa — um
-  envelope calculado do teto do ciclo inteiro contra um pedido filtrado
-  compararia coisas diferentes sem dizer.
-- **A régua de desvio** é uma barra divergente com o zero no meio (`.regua`):
-  direita/laranja acima do envelope, esquerda/azul abaixo. O mesmo dado sai
-  codificado três vezes — lado, cor e a palavra na célula vizinha ("4,4 p.p.
-  acima") — porque isto é lido a três metros na TV e sai em fotocópia.
-- **O veredito** (a frase acima dos KPIs) é montado dos mesmos números da
-  tabela; em modo apresentação ele cresce para 22px. É o que se lê em voz alta
-  para abrir a reunião.
-- **No papel** o documento sai inteiro: as duas relações desenrolam (as tabelas
-  roladas já perdem o `max-height` na impressão) e o total volta a ser a última
-  linha. São ~20 páginas em A4 paisagem com as 250 linhas — se a mesa quiser um
-  documento de duas páginas, o corte é limitar a relação impressa aos N maiores.
+- **Os filtros globais NÃO valem aqui.** O veredito é lido em voz alta; depois de
+  um atalho para "renovações", ele dizia "149 projetos pedem R$ 7,5 mi, abaixo do
+  teto", falso para a remessa. A tela mostra sempre a remessa inteira e, com
+  recorte ligado, avisa em laranja logo abaixo do veredito.
+- **O veredito** é o `<h1>`: a primeira frase em 26px (34px na TV), e o detalhe
+  (renovações e novos, divisão, "a mesa fecha: cortar R$ X e remanejar R$ Y") em
+  22px. Não há mais faixa de KPIs; o que ela tinha de novo (delta sobre o ano
+  anterior) está no rodapé da coluna Pedido.
+- **A régua de desvio** (`.regua`) é uma barra divergente com o zero no meio:
+  direita/laranja acima do envelope, esquerda/azul abaixo, com a palavra na
+  célula vizinha. Dimensiona em `em` do token de texto, então cresce na TV.
+- **No papel** a página sai em poucas folhas: veredito, tabela de rubricas, a
+  matriz e as duas listas curtas.
 
 ## Junto vieram (dois defeitos de impressão da casa)
 
@@ -131,12 +127,12 @@ apresentação, então a reunião agora abre no Resumo.
 
 ## Onde está o quê
 
-| Arquivo                                                   | O que tem                                       |
-| --------------------------------------------------------- | ----------------------------------------------- |
-| [`src/lib/rubricas.ts`](../src/lib/rubricas.ts)           | a diretriz, o de-para e `montarDiretriz` (puro) |
-| [`app/(painel)/resumo.tsx`](<../app/(painel)/resumo.tsx>) | a página (cliente, reagrega sob os filtros)     |
-| [`app/(painel)/page.tsx`](<../app/(painel)/page.tsx>)     | a rota `/` — só busca ciclos e orçamentos       |
-| `tests/unit.test.ts`                                      | envelope, desvio, remanejamento, linha "fora"   |
+| Arquivo                                                   | O que tem                                          |
+| --------------------------------------------------------- | -------------------------------------------------- |
+| [`src/lib/rubricas.ts`](../src/lib/rubricas.ts)           | a diretriz, o de-para e `montarDiretriz` (puro)    |
+| [`app/(painel)/resumo.tsx`](<../app/(painel)/resumo.tsx>) | a página (cliente, reagrega sob os filtros)        |
+| [`app/(painel)/page.tsx`](<../app/(painel)/page.tsx>)     | a rota `/` — só busca ciclos e orçamentos          |
+| `tests/unit.test.ts`                                      | envelope, desvio, cortar × remanejar, linha "fora" |
 
 Mudar a diretriz (ou o de-para) é editar `RUBRICAS` em `rubricas.ts`. Os
 percentuais **não** estão em CSV: é parâmetro de negócio de uma linha, não dado

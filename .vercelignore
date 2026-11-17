@@ -1,0 +1,8 @@
+# Deploy pela CLI (`vercel`) sobe a pasta, não o Git: sem isto o .env.local
+# (credencial postgres) e os votos de backups/ iriam junto — o trace do Next
+# inclui o .env.local porque src/lib/env.ts o lê com fs.
+.env*.local
+backups/
+.next/
+node_modules/
+*.tsbuildinfo

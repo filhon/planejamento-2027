@@ -41,21 +41,24 @@ Para incluir ou tirar alguém, edite `PAINEL_USUARIOS`. O id está em
 Use os nomes `DB_*`. Na Vercel, `USER` pode vir preenchido pelo sistema
 operacional e ganharia do `.env.local`.
 
-| Variável          | Valor                                                                                                                     |
-| ----------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| `DB_HOST`         | `aws-1-us-east-1.pooler.supabase.com`                                                                                     |
-| `DB_PORT`         | `5432` (modo sessão; na 6543 a trava `default_transaction_read_only` não se sustenta)                                     |
-| `DB_NAME`         | `postgres`                                                                                                                |
-| `DB_USER`         | `postgres.yhauleemahxvbrdkdwju` (e `bi_readonly.yhauleemahxvbrdkdwju` quando existir)                                     |
-| `DB_PASSWORD`     | a senha                                                                                                                   |
-| `PAINEL_USUARIOS` | os 3 ids, separados por vírgula (os mesmos do `.env.local`)                                                               |
-| `FIREBASE_SERVICE_ACCOUNT` | o JSON da conta de serviço do Firebase (cru ou em base64) — ver “Banco do painel” abaixo |
-| `SESSAO_SEGREDO`  | **um segredo novo**, diferente do local: `node -e "console.log(require('crypto').randomBytes(48).toString('base64url'))"` |
+| Variável                   | Valor                                                                                                                     |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `DB_HOST`                  | `aws-1-us-east-1.pooler.supabase.com`                                                                                     |
+| `DB_PORT`                  | `5432` (modo sessão; na 6543 a trava `default_transaction_read_only` não se sustenta)                                     |
+| `DB_NAME`                  | `postgres`                                                                                                                |
+| `DB_USER`                  | `postgres.yhauleemahxvbrdkdwju` (e `bi_readonly.yhauleemahxvbrdkdwju` quando existir)                                     |
+| `DB_PASSWORD`              | a senha                                                                                                                   |
+| `PAINEL_USUARIOS`          | os 3 ids, separados por vírgula (os mesmos do `.env.local`)                                                               |
+| `FIREBASE_SERVICE_ACCOUNT` | o JSON da conta de serviço do Firebase (cru ou em base64) — ver “Banco do painel” abaixo                                  |
+| `SESSAO_SEGREDO`           | **um segredo novo**, diferente do local: `node -e "console.log(require('crypto').randomBytes(48).toString('base64url'))"` |
 
-Na Vercel, faça também estes três ajustes:
+A região da função (`iad1`, Washington, a mesma do banco us-east-1) está
+fixada em [vercel.json](../vercel.json). O [.vercelignore](../.vercelignore)
+impede que um deploy pela CLI (`vercel --prod` desta máquina) suba o
+`.env.local` e o `backups/`; pelo Git eles já não vão.
 
-- **Região da função**: `iad1` (Washington), a mesma do banco (us-east-1).
-  É o padrão, mas confira em Settings → Functions.
+Na Vercel, faça também estes dois ajustes:
+
 - **Firewall → Rate Limiting**: crie uma regra para `POST /login`, por exemplo
   10 requisições por minuto por IP.
 - **Deployment Protection**: deixe as prévias protegidas. É o padrão.
@@ -76,14 +79,14 @@ Na Vercel, faça também estes três ajustes:
 
 Tudo o que o painel **grava** fica no Firestore, nunca na origem:
 
-| Coleção                  | Documento                       | Campos                                                                                  |
-| ------------------------ | ------------------------------- | --------------------------------------------------------------------------------------- |
-| `prestacao_links`        | automático                      | `projectId`, `ano`, `titulo`, `rotulo`, `link`, `adicionadoEm`, `adicionadoPor`       |
-| `parcerias_candidatos`   | `encodeURIComponent(chave)`     | `chave`, `rotulo`, `nota`, `marcadoEm`, `marcadoPor`                                    |
-| `decisoes`               | `projectId` (uuid da origem)    | `ano`, `titulo`, `situacao`, `valorAprovado`, `observacao`, `atualizadoEm`, `atualizadoPor` |
-| `decisoes/{id}/historico` | automático                     | cópia de cada gravação (inclusive a que apaga a decisão)                                 |
-| `triagem`                | `projectId`                     | derivados do `avaliacao:regen` (`sugestaoTipo`, `similaridade`, `sugestaoProjetoAnterior*`, `status`, `solicitado`…) + curados `tipo`, `projetoAnteriorId`, `responsavel`, `observacoes` |
-| `triagem/{id}/historico` | automático                      | cópia de cada edição feita na pasta do projeto                                          |
+| Coleção                   | Documento                    | Campos                                                                                                                                                                                   |
+| ------------------------- | ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `prestacao_links`         | automático                   | `projectId`, `ano`, `titulo`, `rotulo`, `link`, `adicionadoEm`, `adicionadoPor`                                                                                                          |
+| `parcerias_candidatos`    | `encodeURIComponent(chave)`  | `chave`, `rotulo`, `nota`, `marcadoEm`, `marcadoPor`                                                                                                                                     |
+| `decisoes`                | `projectId` (uuid da origem) | `ano`, `titulo`, `situacao`, `valorAprovado`, `observacao`, `atualizadoEm`, `atualizadoPor`                                                                                              |
+| `decisoes/{id}/historico` | automático                   | cópia de cada gravação (inclusive a que apaga a decisão)                                                                                                                                 |
+| `triagem`                 | `projectId`                  | derivados do `avaliacao:regen` (`sugestaoTipo`, `similaridade`, `sugestaoProjetoAnterior*`, `status`, `solicitado`…) + curados `tipo`, `projetoAnteriorId`, `responsavel`, `observacoes` |
+| `triagem/{id}/historico`  | automático                   | cópia de cada edição feita na pasta do projeto                                                                                                                                           |
 
 A **decisão de contingência** (situação + valor aprovado, na pasta do projeto)
 não volta para o sistema de submissão nem entra nos KPIs/Orçamento: é um

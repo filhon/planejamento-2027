@@ -131,7 +131,10 @@ export default function Detalhe({
 }: {
   d: ProjetoDetalhe;
   decisao: Decisao | null;
-  triagem: { avaliadores: string[]; anteriores: { id: string; titulo: string }[] };
+  triagem: {
+    avaliadores: string[];
+    anteriores: { id: string; titulo: string }[];
+  };
 }) {
   const p = d.projeto;
   const videos = d.anexos.filter((a) => a.ehVideo);
@@ -248,12 +251,7 @@ export default function Detalhe({
         {p.revisao.observacoes && (
           <p className="observacao">{p.revisao.observacoes}</p>
         )}
-        <EditarTriagem
-          key={p.id}
-          id={p.id}
-          revisao={p.revisao}
-          {...triagem}
-        />
+        <EditarTriagem key={p.id} id={p.id} revisao={p.revisao} {...triagem} />
       </div>
 
       {/*

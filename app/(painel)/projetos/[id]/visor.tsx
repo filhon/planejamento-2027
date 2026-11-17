@@ -263,9 +263,7 @@ export default function ListaAnexos({ anexos }: { anexos: Anexo[] }) {
               {tamanhoArquivo(a.bytes) && ` · ${tamanhoArquivo(a.bytes)}`}
               {/* No papel o anexo vira botão sem destino: a URL sai por extenso
                   para ser digitável (a folha esconde o que não for do papel). */}
-              {a.url && (
-                <span className="so-impressao-inline"> · {a.url}</span>
-              )}
+              {a.url && <span className="so-impressao-inline"> · {a.url}</span>}
             </span>
           </li>
         ))}

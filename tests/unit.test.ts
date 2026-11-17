@@ -7,6 +7,7 @@ import assert from "node:assert/strict";
 
 import { assertReadOnly, ReadOnlyViolationError } from "../src/lib/db";
 import { embedDrive, rotuloDrive } from "../src/lib/drive";
+import { lerValor, validarDecisao } from "../src/lib/decisao";
 import {
   deltaPedido,
   plural,
@@ -39,7 +40,7 @@ import {
   vaiParaPasta,
   type Filtros,
 } from "../src/lib/agregar";
-import { carregarCountryMap } from "../src/lib/enrichment";
+import { carregarCountryMap, numeroDoCsv } from "../src/lib/enrichment";
 import { ehHtmlRico, sanitizarHtml } from "../src/lib/html";
 import { geometriaMundo } from "../src/lib/mapa";
 import {
@@ -98,6 +99,16 @@ test("guarda bloqueia escrita e libera leitura", () => {
 });
 
 // --------------------------------------------------- normalização de país
+
+test("número do CSV: ponto decimal do regen e vírgula do Excel pt-BR", () => {
+  assert.equal(numeroDoCsv("249600.00"), 249600); // regen: antes lia 24.960.000
+  assert.equal(numeroDoCsv("80400.50"), 80400.5);
+  assert.equal(numeroDoCsv("0.00"), 0);
+  assert.equal(numeroDoCsv("14"), 14);
+  assert.equal(numeroDoCsv("249.600,00"), 249600);
+  assert.equal(numeroDoCsv("1.250"), 1250);
+  assert.equal(numeroDoCsv("lixo"), 0);
+});
 
 test("país declarado casa com o de-para, com e sem acento", () => {
   const mocambique = normalizarLocal({ country: "Moçambique" }, indice);
@@ -1684,4 +1695,38 @@ test("sessão: assinatura, vencimento, adulteração e lista fechada", async () 
     "/\n/evil.com",
   ])
     assert.equal(destinoSeguro(ruim), "/", ruim);
+});
+
+test("decisão de contingência: valor em pt-BR e situação validada", () => {
+  assert.equal(lerValor("R$ 1.234,56"), 1234.56);
+  assert.equal(lerValor("45.000"), 45000);
+  assert.equal(lerValor("1234.5"), 1234.5);
+  assert.ok(Number.isNaN(lerValor("abc")));
+  assert.ok(Number.isNaN(lerValor("-5")));
+
+  assert.deepEqual(
+    validarDecisao({ situacao: "", valor: "", observacao: "" }),
+    { apagar: true },
+  );
+  assert.ok(
+    "erro" in
+      validarDecisao({ situacao: "hackeado", valor: "", observacao: "" }),
+  );
+  assert.ok(
+    "erro" in
+      validarDecisao({ situacao: "aprovado", valor: "", observacao: "" }),
+  );
+  assert.deepEqual(
+    validarDecisao({
+      situacao: "aprovado",
+      valor: "45.000,00",
+      observacao: " ok ",
+    }),
+    { situacao: "aprovado", valorAprovado: 45000, observacao: "ok" },
+  );
+  // Reprovado não carrega valor, mesmo que alguém digite um.
+  assert.deepEqual(
+    validarDecisao({ situacao: "reprovado", valor: "10", observacao: "" }),
+    { situacao: "reprovado", valorAprovado: null, observacao: "" },
+  );
 });

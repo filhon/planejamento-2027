@@ -49,6 +49,7 @@ operacional e ganharia do `.env.local`.
 | `DB_USER`         | `postgres.yhauleemahxvbrdkdwju` (e `bi_readonly.yhauleemahxvbrdkdwju` quando existir)                                     |
 | `DB_PASSWORD`     | a senha                                                                                                                   |
 | `PAINEL_USUARIOS` | os 3 ids, separados por vírgula (os mesmos do `.env.local`)                                                               |
+| `FIREBASE_SERVICE_ACCOUNT` | o JSON da conta de serviço do Firebase (cru ou em base64) — ver “Banco do painel” abaixo |
 | `SESSAO_SEGREDO`  | **um segredo novo**, diferente do local: `node -e "console.log(require('crypto').randomBytes(48).toString('base64url'))"` |
 
 Na Vercel, faça também estes três ajustes:
@@ -67,7 +68,37 @@ Na Vercel, faça também estes três ajustes:
    A equipe roda o script e troca `DB_USER`/`DB_PASSWORD`.
 2. **Os anexos são públicos nos buckets**: quem tem a URL abre, com ou sem
    login. Fechar isso é mexer no outro sistema.
-3. **O link do Drive e a ★ de candidato não persistem na Vercel.** O disco
-   de lá não guarda o que é gravado, então os dois CSVs somem a cada
-   deploy ou instância nova. Até existir um armazenamento de fora
-   (Vercel Blob), essas duas funções só valem no `npm start` local.
+3. **Avaliações e votos ficam recolhidos** na pasta do projeto, mas quem
+   abre o `<details>` vê. É proteção contra o relance na TV, não controle de
+   acesso: os três usuários do painel enxergam tudo.
+
+## Banco do painel (Firestore)
+
+Tudo o que o painel **grava** fica no Firestore, nunca na origem:
+
+| Coleção                  | Documento                       | Campos                                                                                  |
+| ------------------------ | ------------------------------- | --------------------------------------------------------------------------------------- |
+| `prestacao_links`        | automático                      | `projectId`, `ano`, `titulo`, `rotulo`, `link`, `adicionadoEm`, `adicionadoPor`       |
+| `parcerias_candidatos`   | `encodeURIComponent(chave)`     | `chave`, `rotulo`, `nota`, `marcadoEm`, `marcadoPor`                                    |
+| `decisoes`               | `projectId` (uuid da origem)    | `ano`, `titulo`, `situacao`, `valorAprovado`, `observacao`, `atualizadoEm`, `atualizadoPor` |
+| `decisoes/{id}/historico` | automático                     | cópia de cada gravação (inclusive a que apaga a decisão)                                 |
+
+A **decisão de contingência** (situação + valor aprovado, na pasta do projeto)
+não volta para o sistema de submissão nem entra nos KPIs/Orçamento: é um
+registro da mesa para quando o sistema não dá conta no dia.
+
+Para criar:
+
+1. Console do Firebase → criar projeto → **Firestore Database** → modo
+   produção, região `nam5` (ou `us-east1`, perto da Vercel `iad1`).
+2. `firebase deploy --only firestore:rules --project <id>` — publica
+   [firestore.rules](../firestore.rules), que nega todo acesso de navegador
+   (o painel só fala com o Firestore pelo servidor, com o Admin SDK).
+3. Configurações do projeto → Contas de serviço → **Gerar nova chave
+   privada**. Cole o JSON (ou ele em base64:
+   `node -e "console.log(Buffer.from(require(fs).readFileSync(chave.json)).toString(base64))"`)
+   em `FIREBASE_SERVICE_ACCOUNT`, na Vercel e no `.env.local`. Apague o
+   arquivo `chave.json` depois.
+
+Sem a variável, o painel abre normalmente: links, candidatos e decisões
+aparecem vazios e o botão de salvar devolve erro.

@@ -53,7 +53,7 @@ export function loadEnvLocal(): Record<string, string> {
   return vars;
 }
 
-function pick(...keys: string[]): string | undefined {
+export function pick(...keys: string[]): string | undefined {
   const env = loadEnvLocal();
   for (const key of keys) {
     // process.env tem prioridade (CI, overrides de shell).

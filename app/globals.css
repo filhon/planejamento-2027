@@ -65,6 +65,11 @@
   --texto-numero: 1.875rem; /* 30px */
   --texto-numero-grande: 2.375rem; /* 38px */
 
+  /* Altura da barra grudada da pasta do projeto: o que gruda embaixo dela (a
+     ficha de "O projeto") e o que uma âncora leva para o topo (▶ Vídeo)
+     precisam do mesmo número, senão um some debaixo da barra. */
+  --altura-barra: 60px;
+
   --espaco-xs: 4px;
   --espaco-sm: 8px;
   --espaco-md: 12px;
@@ -266,6 +271,12 @@ main {
 }
 
 /* -------------------------------------------------------------- filtros */
+
+/* `display: flex` de uma classe vence o `[hidden]` do navegador: os filtros
+   dados como escondidos na pasta do projeto apareciam por cima do dossiê. */
+[hidden] {
+  display: none !important;
+}
 
 .filtros {
   display: flex;
@@ -996,7 +1007,7 @@ button.ficha:hover {
   min-width: 0;
   /* A barra da pasta é grudada: sem isto o ▶ Vídeo levava o título do bloco
      para debaixo dela. */
-  scroll-margin-top: 58px;
+  scroll-margin-top: var(--altura-barra);
 }
 
 .bloco.cheia {
@@ -1486,7 +1497,14 @@ button.ficha:hover {
   font-variant-numeric: tabular-nums;
 }
 
+/* Alvo de 36px: quem anda de projeto em projeto é o apresentador, em pé, num
+   notebook. */
 .pasta-passo a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 36px;
+  min-height: 36px;
   padding: 0 8px;
   border: 1px solid var(--borda);
   border-radius: 8px;
@@ -1537,30 +1555,35 @@ button.ficha:hover {
   color: var(--tinta-fraca);
 }
 
-/* Título de faixa: divide a página em camadas de decisão sem virar cartão. */
+/* Título de faixa: divide a página em camadas de decisão sem virar cartão.
+   Pesa mais que o título dos cartões que ele agrupa (22px contra 19px, mais o
+   filete de 2px): em 14px de caixa alta a camada de cima lia mais fraca que a
+   de baixo. */
 .faixa-titulo {
-  font-size: var(--texto-ui);
-  text-transform: uppercase;
-  letter-spacing: 0.07em;
-  color: var(--tinta-fraca);
+  font-size: var(--texto-destaque);
+  color: var(--azul);
   margin: 0 0 8px;
+  padding-bottom: 6px;
+  border-bottom: 2px solid var(--azul);
 }
 
 /* A maior separação da pasta do projeto: daqui para baixo não se decide nada.
-   O filete sozinho dizia isso; o vão é que faltava. */
+   O filete da faixa já diz isso; o vão é que faltava. */
 .faixa-registro {
   margin-top: var(--espaco-2xl);
-  padding-top: var(--espaco-lg);
-  border-top: 1px solid var(--borda);
 }
 
-/* Alerta em filete, não em tarja: sobrevive à fotocópia em preto e branco, e
-   a frase carrega o aviso sozinha (nunca só cor). */
+/* Entre a ficha de valores e o mérito: a faixa só anuncia a camada. */
+.faixa-analise {
+  margin-top: var(--espaco-xl);
+}
+
+/* Alerta em borda inteira, não em tarja lateral: sobrevive à fotocópia em
+   preto e branco, e a frase carrega o aviso sozinha (nunca só cor). */
 .aviso {
   margin: 10px 0 0;
   padding: 10px 12px;
-  border: 1px solid var(--laranja-escuro);
-  border-left-width: 4px;
+  border: 2px solid var(--laranja-escuro);
   border-radius: 10px;
   background: var(--fundo);
 }
@@ -1573,14 +1596,58 @@ button.ficha:hover {
 }
 
 .cabecalho-projeto h1 {
-  margin: 0 0 12px;
+  margin: 0 0 14px;
   font-size: var(--texto-pagina);
-  max-width: 60ch;
+  max-width: 80ch;
 }
 
-.cabecalho-projeto .fichas {
-  gap: 6px;
-  margin-bottom: 8px;
+/* A classificação do projeto como pares rótulo : valor, em vez de oito
+   pastilhas em três estilos. O rótulo diz o que cada fato é ("Outros" sozinho
+   não dizia que era a categoria), e o laranja volta a significar só alerta. */
+.classificacao {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 8px 32px;
+  margin: 0 0 14px;
+}
+
+.classificacao > div {
+  display: grid;
+  gap: 1px;
+}
+
+.classificacao dt {
+  font-size: var(--texto-micro);
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  font-weight: 600;
+  color: var(--tinta-fraca);
+}
+
+.classificacao dd {
+  margin: 0;
+  font-size: var(--texto-corpo);
+  font-weight: 600;
+  color: var(--tinta);
+}
+
+.classificacao dd small {
+  font-weight: 400;
+  font-size: var(--texto-nota);
+  color: var(--tinta-fraca);
+}
+
+/* Quem pede é identificação, não nota de rodapé: tamanho de corpo, cor de tinta. */
+.proponente {
+  margin: 0;
+  font-size: var(--texto-corpo);
+  color: var(--tinta);
+}
+
+.proponente .sub::before {
+  content: "·";
+  margin: 0 6px;
 }
 
 /*
@@ -1663,6 +1730,18 @@ button.ficha:hover {
 .identificacao dd {
   margin: 0;
   font-variant-numeric: tabular-nums;
+  /* E-mail não tem onde quebrar e empurrava o cartão para rolagem lateral. */
+  overflow-wrap: anywhere;
+}
+
+.tabela td.contato {
+  overflow-wrap: anywhere;
+}
+
+/* No registro cada cartão termina onde acaba: a equipe de uma linha não se
+   estica até a altura dos seis indicadores ao lado. */
+.grade-registro {
+  align-items: start;
 }
 
 /* A ausência é frase, não número: cinza e sem tabular, para não fingir dado. */
@@ -1689,37 +1768,54 @@ button.ficha:hover {
   color: var(--papel);
 }
 
+/* Dentro do cartão do cabeçalho: filete, não outra caixa. */
 .observacao {
-  margin: 8px 0 0;
-  padding: 8px 12px;
-  border: 1px solid var(--azul-claro);
-  border-radius: 10px;
-  background: var(--fundo);
+  margin: 12px 0 0;
+  padding-top: 10px;
+  border-top: 1px solid var(--borda);
   font-size: var(--texto-ui);
 }
 
 .videos {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
   gap: var(--espaco-lg);
 }
 
+/* Imagem e legenda lado a lado: o vídeo vertical ocupava ~230px de um cartão
+   de largura cheia, e o resto ficava em branco. */
 .videos figure {
   margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--espaco-md) var(--espaco-xl);
 }
 
-/* 38vh, e depois do mérito no DOM: o vídeo não pode ser a maior coisa de uma
-   página cujo destino também é o papel e a TV a três metros. */
+.videos figcaption {
+  display: grid;
+  gap: 2px;
+  flex: 1 1 14rem;
+}
+
+/* O vídeo vale pela proporção que tem: com `width: 100%` um vídeo vertical
+   virava um selo no meio de uma tarja preta da largura do painel. Largura e
+   altura automáticas com teto nos dois eixos mantêm a razão do arquivo.
+   Teto de 52vh (70vh na TV) e depois do mérito no DOM: não pode ser a maior
+   coisa de uma página cujo destino também é o papel. */
 .videos video {
-  width: 100%;
-  max-height: 38vh;
+  display: block;
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  max-height: 52vh;
   border-radius: var(--raio);
   background: var(--tinta);
 }
 
-.videos figcaption {
-  margin-top: 6px;
+body.apresentacao .videos video {
+  max-height: 70vh;
 }
+
 
 .anexos {
   list-style: none;
@@ -1729,14 +1825,19 @@ button.ficha:hover {
   gap: 6px;
 }
 
+/* Lista com filete entre os itens: caixa com borda dentro de um cartão era
+   cartão dentro de cartão. */
 .anexos li {
   display: flex;
   justify-content: space-between;
   gap: 12px;
   align-items: baseline;
-  padding: 7px 10px;
-  border: 1px solid var(--borda);
-  border-radius: 10px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--borda);
+}
+
+.anexos li:last-child {
+  border-bottom: 0;
 }
 
 .anexos a,
@@ -1798,6 +1899,39 @@ button.ficha:hover {
 
 .form-link .sub {
   flex: 1 1 100%;
+}
+
+.form-link select {
+  padding: 7px 10px;
+  border: 1px solid var(--borda);
+  border-radius: 10px;
+  font: inherit;
+  color: var(--tinta);
+  background: var(--papel);
+}
+
+/* Recolhidos por padrão: avaliações e votos (o voto de cada diretor não vai
+   para a TV de relance) e o formulário da decisão de contingência. */
+.recolhido > summary,
+.form-decisao > summary {
+  cursor: pointer;
+  width: fit-content;
+  font-weight: 600;
+  color: var(--azul);
+}
+
+.form-decisao > summary {
+  margin-top: 6px;
+  font-size: var(--texto-nota);
+}
+
+.recolhido[open] > summary {
+  margin-bottom: 12px;
+}
+
+/* Diferente do link do Drive, a decisão é tomada na mesa — com a TV ligada. */
+body.apresentacao .form-decisao .form-link {
+  display: flex;
 }
 
 /* ----------------------------------------------- visor de anexo (<dialog>) */
@@ -1948,14 +2082,30 @@ button.ficha:hover {
   }
 }
 
-/* Filete estrutural, não tarja: separa as duas leituras sem virar enfeite. */
+/* Filete estrutural, não tarja: separa as duas leituras sem virar enfeite.
+   A ficha acompanha a leitura (grudada logo abaixo da barra da pasta): o
+   mérito corre por quatro telas e os prazos e o orçamento ficavam lá em cima,
+   com uma coluna morta ao lado. */
 .projeto-ficha {
   border-left: 1px solid var(--borda);
   padding-left: 28px;
+  position: sticky;
+  top: calc(var(--altura-barra) + var(--espaco-sm));
+  /* Ficha mais alta que a tela (muitos documentos, notebook de 768px) rola por
+     dentro; sem o teto, o fim dela só aparecia quando o mérito acabava. */
+  max-height: calc(100dvh - var(--altura-barra) - var(--espaco-lg));
+  overflow-y: auto;
+}
+
+/* `overflow-x: auto` do `Secao` transforma o pai num contêiner de rolagem, e
+   o `sticky` passaria a valer contra ele (que não rola) e não contra a página. */
+.rolagem-x:has(> .projeto-corpo) {
+  overflow: visible;
 }
 
 @media (max-width: 1000px) {
   .projeto-ficha {
+    position: static;
     border-left: 0;
     border-top: 1px solid var(--borda);
     padding: 16px 0 0;
@@ -2050,11 +2200,15 @@ button.ficha:hover {
   gap: var(--espaco-md);
 }
 
+/* Um relatório por trimestre, separados por filete: não é cartão dentro do cartão. */
 .relatorio {
-  padding: var(--espaco-md);
-  border: 1px solid var(--borda);
-  border-radius: var(--raio);
-  background: var(--fundo);
+  padding: var(--espaco-md) 0 0;
+  border-top: 1px solid var(--borda);
+}
+
+.relatorio:first-child {
+  padding-top: 0;
+  border-top: 0;
 }
 
 .relatorio h3 {
@@ -2067,12 +2221,18 @@ button.ficha:hover {
   flex-wrap: wrap;
 }
 
+/* Lista de cima para baixo: é uma sequência no tempo, e em grade ela virava
+   um quadro de duas dimensões. */
 .historico {
   list-style: none;
   margin: 0;
   padding: 0;
   display: grid;
-  gap: 6px;
+  gap: 8px;
+}
+
+.historico-registro {
+  margin: var(--espaco-md) 0 0;
 }
 
 .historico li {
@@ -2144,8 +2304,8 @@ body.apresentacao .pasta-titulo {
   font-size: 1.25rem; /* 20px */
 }
 
-body.apresentacao .bloco {
-  scroll-margin-top: 76px;
+body.apresentacao {
+  --altura-barra: 76px;
 }
 
 /* Um painel por vez: nada de rolar duas listas dentro da mesma tela.
@@ -2210,6 +2370,7 @@ body.apresentacao .rolagem {
   .filtros,
   .bloco-acoes,
   .form-link,
+  .form-decisao > summary,
   .limpar,
   .voltar,
   .pasta-barra,
@@ -2268,6 +2429,43 @@ body.apresentacao .rolagem {
     break-inside: avoid;
   }
 
+  /* Na pasta do projeto o papel vira documento: seção separada por filete, sem
+     caixa de canto arredondado (o "print da tela" que o PRODUCT.md recusa). */
+  .pasta-projeto .cartao {
+    border: 0;
+    border-top: 1px solid var(--tinta-fraca);
+    border-radius: 0;
+  }
+
+  /* O dossiê se lê de cima para baixo: em três colunas o registro saía com
+     indicadores e equipe lado a lado e um buraco ao lado da instituição. A
+     ficha de "O projeto" também deixa de grudar e de rolar por dentro. */
+  .pasta-projeto .grade {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .pasta-projeto .bloco.dupla {
+    grid-column: 1 / -1;
+  }
+
+  .projeto-ficha {
+    position: static;
+    max-height: none;
+    overflow: visible;
+  }
+
+  /* AAA no papel (7:1): o cinza da tela dá ~5,6:1 e é nele que moram os
+     rótulos de 7pt e as frases de ausência, que em 2026 SÃO a informação. */
+  body,
+  body.apresentacao {
+    --tinta-fraca: #3d4766;
+  }
+
+  .anexos .so-impressao-inline {
+    font-size: var(--texto-micro);
+    word-break: break-all;
+  }
+
   /*
    * `break-inside: avoid` só funciona no que cabe numa página. Num bloco de
    * mérito — mais alto que o A4 — o navegador empurra o cartão inteiro para a
@@ -2308,9 +2506,9 @@ body.apresentacao .rolagem {
     display: table-header-group;
   }
 
-  /* Um link impresso sem destino é um beco sem saída: o anexo e o projeto do
-     ciclo anterior precisam do endereço ao lado do rótulo. */
-  .anexos a[href]::after,
+  /* Um link impresso sem destino é um beco sem saída: o projeto do ciclo
+     anterior precisa do endereço ao lado do rótulo. (Os anexos são botões que
+     abrem o visor, e imprimem a URL pelo `.so-impressao-inline` da lista.) */
   .link-projeto[href]::after {
     content: " <" attr(href) ">";
     font-weight: 400;

@@ -1,9 +1,8 @@
 import Link from "next/link";
-import type { CSSProperties } from "react";
+import type { Decisao } from "@/lib/decisao";
 import { ehHtmlRico, sanitizarHtml } from "@/lib/html";
 import type { Anexo, ProjetoDetalhe, RelatorioDetalhe } from "@/lib/types";
 import {
-  COR_STATUS,
   fmtMoeda,
   num,
   plural,
@@ -13,9 +12,9 @@ import {
   variacaoPedido,
 } from "../../formato";
 import { Secao } from "../../ui";
-import { Analise } from "../analise";
-import { ROTULO_TIPO, Tipo } from "../tipo";
+import { procedencia, ROTULO_TIPO } from "../tipo";
 import Barra from "./barra";
+import DecisaoPainel from "./decisao";
 import LinkPrestacao from "./link-prestacao";
 import ListaAnexos from "./visor";
 
@@ -46,7 +45,11 @@ import ListaAnexos from "./visor";
 
 const fmtData = new Intl.DateTimeFormat("pt-BR", { dateStyle: "short" });
 
-const data = (d: Date | null) => (d ? fmtData.format(new Date(d)) : "—");
+const data = (d: Date | null) => (d ? fmtData.format(new Date(d)) : "sem data");
+
+/** Célula vazia é frase, como na ficha de valores: um "—" não diz se é zero,
+    se não se aplica ou se a origem não tem. */
+const NI = "não informado";
 
 /**
  * Campo de texto longo — some quando a origem não tem o dado.
@@ -120,7 +123,13 @@ function Relatorios({ relatorios }: { relatorios: RelatorioDetalhe[] }) {
   );
 }
 
-export default function Detalhe({ d }: { d: ProjetoDetalhe }) {
+export default function Detalhe({
+  d,
+  decisao,
+}: {
+  d: ProjetoDetalhe;
+  decisao: Decisao | null;
+}) {
   const p = d.projeto;
   const videos = d.anexos.filter((a) => a.ehVideo);
   const arquivos = d.anexos.filter((a) => !a.ehVideo);
@@ -128,8 +137,21 @@ export default function Detalhe({ d }: { d: ProjetoDetalhe }) {
   // "Quanto recebeu no ano passado": o valor do projeto casado é o certo; sem
   // vínculo, sobra o total da instituição — e a tela precisa dizer qual é qual.
   const recebido = p.revisao.recebidoAnterior;
-  const recebidoInstituicao = p.enriquecimento.valorAprovado2025;
+  const anoAnterior = d.anterior?.ano ?? p.ano - 1;
+  // O total da instituição vem de `valorAprovado2025` (enriquecimento): só é
+  // "o ciclo anterior" na remessa 2026. Numa pasta de 2025 ele é o ciclo
+  // corrente e soma o próprio projeto, então ali não entra.
+  const recebidoInstituicao =
+    p.ano === 2026 ? p.enriquecimento.valorAprovado2025 : null;
   const variacao = variacaoPedido(p.solicitado, recebido);
+  const ressalvaTriagem = procedencia(p.revisao);
+  // Sem vínculo de valor, quem diz se o projeto é novo é a triagem, não a
+  // ausência do número: 54 projetos de 2026 estão "a revisar".
+  const clausulaTriagem = {
+    novo: "Este projeto é novo.",
+    revisar: `Vínculo deste projeto com ${anoAnterior} a revisar.`,
+    renovacao: "Renovação sem valor vinculado.",
+  }[p.revisao.tipo];
 
   const temParecer =
     !!d.parecerTexto || !!d.notasDoRevisor || d.parecerTags.length > 0;
@@ -140,7 +162,7 @@ export default function Detalhe({ d }: { d: ProjetoDetalhe }) {
     (d.anterior?.liberado ?? d.anterior?.aprovado ?? 0) > 0;
 
   return (
-    <>
+    <div className="pasta-projeto">
       <Barra
         id={p.id}
         titulo={p.titulo}
@@ -164,39 +186,61 @@ export default function Detalhe({ d }: { d: ProjetoDetalhe }) {
 
       <div className="cabecalho-projeto cartao">
         <h1 className="titulo">{p.titulo}</h1>
-        <div className="fichas">
-          {/* Onde a análise prévia parou neste projeto — a mesma pastilha da
-              lista. Vale para quem navega de ‹ › em ‹ › preparando a reunião. */}
-          <Analise a={p.analise} />
-          <Tipo revisao={p.revisao} detalhado />
-          <span
-            className="pastilha-tipo"
-            style={{ "--cor": COR_STATUS[p.statusGrupo] } as CSSProperties}
-          >
-            {rotuloStatus(p.status)}
-          </span>
+        {/* Cada fato com o seu rótulo, no lugar de oito pastilhas. A triagem e
+            a análise prévia são o que a equipe decidiu antes da reunião; a
+            ressalva do casamento de título vai escrita (ninguém passa o mouse
+            na TV, e tooltip não existe no papel). A remessa já está no seletor
+            do topo e no timbre impresso. */}
+        <dl className="classificacao">
+          <div>
+            <dt>Triagem</dt>
+            <dd>
+              {ROTULO_TIPO[p.revisao.tipo]}
+              {ressalvaTriagem && <small> · {ressalvaTriagem}</small>}
+            </dd>
+          </div>
+          <div>
+            <dt>Status</dt>
+            <dd>{rotuloStatus(p.status)}</dd>
+          </div>
+          {/* A análise prévia não entra aqui: com parecer ou tags, o bloco
+              "Parecer" logo abaixo é ela; sem, a ficha de valores já diz
+              "Parecer da ASEEC: não registrado". */}
           {p.revisao.responsavel && (
-            <span className="ficha">
-              Pasta de <b>{p.revisao.responsavel}</b>
-            </span>
+            <div>
+              <dt>Pasta de</dt>
+              <dd>{p.revisao.responsavel}</dd>
+            </div>
           )}
+          <div>
+            <dt>Categoria</dt>
+            <dd>{rotuloCategoria(p.categoria)}</dd>
+          </div>
+          <div>
+            <dt>Local</dt>
+            <dd>
+              {p.local.nomePt}
+              {p.cidade ? ` · ${p.cidade}` : ""}
+            </dd>
+          </div>
           {(p.areaSensivel || p.local.sensivel) && (
-            <span className="ficha ficha-alerta">Área sensível</span>
+            <div>
+              <dt>Atenção</dt>
+              <dd>
+                <span className="ficha ficha-alerta">Área sensível</span>
+              </dd>
+            </div>
           )}
-          <span className="ficha ficha-clara">
-            {rotuloCategoria(p.categoria)}
+        </dl>
+        <p className="proponente">
+          <b>{p.instituicaoNome ?? "sem instituição"}</b>
+          {p.conveniada ? " · Conveniada" : ""}
+          <span className="sub">
+            {p.submetidoPor
+              ? `submetido por ${p.submetidoPor} · `
+              : "submetido "}
+            {data(p.submetidoEm)}
           </span>
-          <span className="ficha ficha-clara">
-            {p.local.nomePt}
-            {p.cidade ? ` · ${p.cidade}` : ""}
-          </span>
-          <span className="ficha ficha-clara">Remessa {p.ano}</span>
-        </div>
-        <p className="sub">
-          {p.instituicaoNome ?? "sem instituição"}
-          {p.conveniada ? " · conveniada" : ""}
-          {p.submetidoPor ? ` · submetido por ${p.submetidoPor}` : ""} ·{" "}
-          {data(p.submetidoEm)}
         </p>
         {p.revisao.observacoes && (
           <p className="observacao">{p.revisao.observacoes}</p>
@@ -228,7 +272,7 @@ export default function Detalhe({ d }: { d: ProjetoDetalhe }) {
             <dt>Aprovado</dt>
             <dd className={p.aprovado === null ? "ausente" : undefined}>
               {p.aprovado === null
-                ? "Ainda em avaliação — nada decidido neste ciclo"
+                ? "Ainda em avaliação: nada decidido neste ciclo"
                 : `${fmtMoeda.format(p.aprovado)}${
                     p.liberado
                       ? ` · ${fmtMoeda.format(p.liberado)} liberados`
@@ -236,29 +280,43 @@ export default function Detalhe({ d }: { d: ProjetoDetalhe }) {
                   }`}
             </dd>
           </div>
+          {/* key: trocar de projeto pelas setas não pode herdar o formulário
+              (nem o valor digitado) do projeto anterior. */}
+          <DecisaoPainel
+            key={p.id}
+            alvo={{ id: p.id, ano: p.ano, titulo: p.titulo }}
+            decisao={decisao}
+          />
           <div>
+            {/* Rótulo e valor têm que falar do mesmo sujeito: sem vínculo com
+                o ciclo anterior o número é o da INSTITUIÇÃO, e o rótulo diz. */}
             <dt>
-              Recebeu{" "}
-              {d.anterior ? `em ${d.anterior.ano}` : "no ciclo anterior"}
+              {recebido === null && recebidoInstituicao
+                ? `Instituição recebeu em ${anoAnterior}`
+                : `Recebeu em ${anoAnterior}`}
             </dt>
             <dd className={recebido === null ? "ausente" : undefined}>
               {recebido !== null
                 ? // O salto do pedido é a discussão da renovação; deixar as duas
                   // cifras em linhas separadas obrigava a mesa a fazer a conta.
-                  `${fmtMoeda.format(recebido)} — deste mesmo projeto${
-                    variacao ? `, ${variacao}` : ""
-                  }`
+                  `${fmtMoeda.format(recebido)} (deste mesmo projeto${
+                    variacao ? `; ${variacao}` : ""
+                  })`
                 : recebidoInstituicao
-                  ? `Projeto novo — a instituição recebeu ${fmtMoeda.format(recebidoInstituicao)}`
-                  : "Projeto e instituição sem verba no ciclo anterior"}
+                  ? `${fmtMoeda.format(recebidoInstituicao)} em outros projetos da instituição. ${clausulaTriagem}`
+                  : p.ano === 2026
+                    ? `Projeto e instituição sem verba em ${anoAnterior}. ${clausulaTriagem}`
+                    : "Sem remessa anterior registrada no sistema."}
             </dd>
           </div>
           <div>
-            <dt>Nota mediana</dt>
+            {/* Só a contagem: mediana e "N a favor" já entregam o voto de quem
+                avaliou para a sala inteira. Notas e votos ficam recolhidos. */}
+            <dt>Avaliações</dt>
             <dd className={p.avaliacoes === 0 ? "ausente" : undefined}>
               {p.avaliacoes === 0
                 ? "Chega ao voto sem nenhuma avaliação registrada"
-                : `${num(p.notaMediana)} · ${plural(p.avaliacoes, "avaliação", "avaliações")} · ${p.votosAprovacao} a favor`}
+                : `${plural(p.avaliacoes, "avaliação registrada", "avaliações registradas")}: notas e votos recolhidos, mais abaixo`}
             </dd>
           </div>
           {/* Só a ausência ocupa linha: havendo parecer, ele fala por si na
@@ -267,19 +325,20 @@ export default function Detalhe({ d }: { d: ProjetoDetalhe }) {
             <div>
               <dt>Parecer da ASEEC</dt>
               <dd className="ausente">
-                Não registrado — sem análise prévia da secretaria
+                Não registrado: sem análise prévia da secretaria
               </dd>
             </div>
           )}
         </dl>
       </section>
 
+      <h2 className="titulo faixa-titulo faixa-analise">Análise do projeto</h2>
       <div className="grade">
         {/* Antes do mérito: numa renovação a pergunta da mesa não é "o que ele
             quer fazer", é "o que ele fez com o dinheiro do ano passado". */}
         {d.anterior && (
           <Secao
-            titulo={`Renovação — o que foi a Remessa ${d.anterior.ano}`}
+            titulo={`Renovação: o que foi a Remessa ${d.anterior.ano}`}
             sub="É isto que a equipe ASEEC analisa numa renovação: o que foi aprovado e como foi prestado."
             largura="cheia"
           >
@@ -294,7 +353,7 @@ export default function Detalhe({ d }: { d: ProjetoDetalhe }) {
                 · {rotuloStatus(d.anterior.status)} · solicitou{" "}
                 {fmtMoeda.format(d.anterior.solicitado)} · aprovado{" "}
                 {d.anterior.aprovado === null
-                  ? "—"
+                  ? "sem valor"
                   : fmtMoeda.format(d.anterior.aprovado)}
                 {d.anterior.liberado
                   ? ` · liberado ${fmtMoeda.format(d.anterior.liberado)}`
@@ -309,7 +368,7 @@ export default function Detalhe({ d }: { d: ProjetoDetalhe }) {
               // o relatório —, só muda o que a mesa consegue ler agora.
               <p className="aviso">
                 {d.anterior.linksPrestacao.length > 0
-                  ? `Nada registrado no sistema para a Remessa ${d.anterior.ano} — o que há é o documento abaixo, recebido pela secretaria por fora.`
+                  ? `Nada registrado no sistema para a Remessa ${d.anterior.ano}. O que há é o documento abaixo, recebido pela secretaria por fora.`
                   : `Sem prestação de contas da Remessa ${d.anterior.ano}: a renovação chega à mesa sem relatório do que foi feito com ${fmtMoeda.format(d.anterior.liberado ?? d.anterior.aprovado ?? 0)}.`}
               </p>
             ) : (
@@ -327,25 +386,30 @@ export default function Detalhe({ d }: { d: ProjetoDetalhe }) {
         )}
 
         {temParecer && (
-          <Secao
-            titulo="Parecer da equipe ASEEC"
-            sub="Análise da secretaria, registrada antes da reunião."
-            largura="cheia"
-          >
-            {d.parecerTags.length > 0 && (
-              <div className="campo-texto">
-                <h3>Tags</h3>
-                <div className="fichas">
-                  {d.parecerTags.map((t) => (
-                    <span key={t} className="ficha ficha-clara">
-                      {t}
-                    </span>
-                  ))}
-                </div>
+          <Secao titulo="Parecer da equipe ASEEC" largura="cheia">
+            {/* A mesma duas colunas de "O projeto": o texto corre na medida de
+                leitura e as tags ficam ao lado, em vez de um cartão de 1560px
+                com metade vazia. */}
+            <div className="projeto-corpo">
+              <div className="projeto-merito">
+                <Campo rotulo="Parecer" valor={d.parecerTexto} />
+                <Campo rotulo="Notas do revisor" valor={d.notasDoRevisor} />
               </div>
-            )}
-            <Campo rotulo="Parecer" valor={d.parecerTexto} />
-            <Campo rotulo="Notas do revisor" valor={d.notasDoRevisor} />
+              {d.parecerTags.length > 0 && (
+                <aside className="projeto-ficha">
+                  <div className="campo-texto">
+                    <h3>Tags</h3>
+                    <div className="fichas">
+                      {d.parecerTags.map((t) => (
+                        <span key={t} className="ficha ficha-clara">
+                          {t}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                </aside>
+              )}
+            </div>
           </Secao>
         )}
 
@@ -402,9 +466,6 @@ export default function Detalhe({ d }: { d: ProjetoDetalhe }) {
                 <h3>Documentos</h3>
                 <ListaAnexos anexos={arquivos} />
               </div>
-              <p className="sub">
-                Criado {data(d.criadoEm)} · atualizado {data(d.atualizadoEm)}
-              </p>
             </aside>
           </div>
         </Secao>
@@ -420,11 +481,12 @@ export default function Detalhe({ d }: { d: ProjetoDetalhe }) {
                 ? "Vídeos de apresentação"
                 : "Vídeo de apresentação"
             }
-            sub="Enviado pela instituição junto da proposta."
             largura="cheia"
           >
             <div className="videos">
               {videos.map((v) => (
+                // Legenda ao lado da imagem: o vídeo vertical deixava o resto
+                // da largura do cartão em branco.
                 <figure key={v.id}>
                   {/* preload=metadata: na reunião não dá para baixar 35 MB de
                       cada vídeo da pasta antes de alguém apertar o play.
@@ -434,14 +496,15 @@ export default function Detalhe({ d }: { d: ProjetoDetalhe }) {
                     controls
                     preload="metadata"
                     src={v.url}
-                    title={`Vídeo de apresentação — ${p.titulo}`}
+                    title={`Vídeo de apresentação: ${p.titulo}`}
                   />
                   <figcaption className="sub">
-                    {v.nome}
-                    {tamanhoArquivo(v.bytes) && ` · ${tamanhoArquivo(v.bytes)}`}
+                    <span>{v.nome}</span>
+                    {tamanhoArquivo(v.bytes) && (
+                      <span>{tamanhoArquivo(v.bytes)}</span>
+                    )}
                     <span className="so-impressao-inline">
-                      {" "}
-                      · vídeo não reproduzível no papel
+                      Vídeo não reproduzível no papel: {v.url}
                     </span>
                   </figcaption>
                 </figure>
@@ -463,84 +526,96 @@ export default function Detalhe({ d }: { d: ProjetoDetalhe }) {
         {d.avaliacoesDetalhe.length > 0 && (
           <Secao
             titulo="Avaliações"
-            sub="Nota e comentário de cada conselheiro. As notas são infladas no histórico — leia o comentário."
+            sub="Recolhidas para preservar o voto de cada diretor: abra só quando a mesa for discutir. As notas são infladas no histórico: leia o comentário."
             largura="cheia"
           >
-            <div className="rolagem">
-              <table className="tabela">
-                <thead>
-                  <tr>
-                    <th>Avaliador</th>
-                    <th className="n">Nota</th>
-                    <th>Aprova?</th>
-                    <th>Comentário</th>
-                    <th>Enviada</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {d.avaliacoesDetalhe.map((a, n) => (
-                    <tr key={n}>
-                      <td>
-                        {a.avaliador}
-                        {a.papel && <span className="sub"> · {a.papel}</span>}
-                      </td>
-                      <td className="n">{num(a.nota)}</td>
-                      <td>
-                        {a.aprovou === null ? "—" : a.aprovou ? "Sim" : "Não"}
-                      </td>
-                      <td>{a.comentario ?? "—"}</td>
-                      <td>{data(a.enviadaEm)}</td>
+            {/* key: o <details> aberto num projeto não pode continuar aberto
+                no próximo quando se troca pelas setas. */}
+            <details key={p.id} className="recolhido">
+              <summary>
+                Mostrar{" "}
+                {plural(d.avaliacoesDetalhe.length, "avaliação", "avaliações")}
+              </summary>
+              <div className="rolagem">
+                <table className="tabela">
+                  <thead>
+                    <tr>
+                      <th>Avaliador</th>
+                      <th className="n">Nota</th>
+                      <th>Aprova?</th>
+                      <th>Comentário</th>
+                      <th>Enviada</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody>
+                    {d.avaliacoesDetalhe.map((a, n) => (
+                      <tr key={n}>
+                        <td>
+                          {a.avaliador}
+                          {a.papel && <span className="sub"> · {a.papel}</span>}
+                        </td>
+                        <td className="n">{num(a.nota)}</td>
+                        <td>
+                          {a.aprovou === null ? NI : a.aprovou ? "Sim" : "Não"}
+                        </td>
+                        <td>{a.comentario ?? NI}</td>
+                        <td>{data(a.enviadaEm)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </details>
           </Secao>
         )}
 
         {d.votos.length > 0 && (
           <Secao
-            titulo={`Votos por critério — ${plural(d.votos.length, "voto", "votos")}`}
+            titulo={`Votos por critério: ${plural(d.votos.length, "voto", "votos")}`}
+            sub="Recolhidos para preservar o voto de cada diretor."
             largura="cheia"
           >
-            <div className="rolagem">
-              <table className="tabela">
-                <thead>
-                  <tr>
-                    <th>Critério</th>
-                    <th>Tipo</th>
-                    <th>Avaliador</th>
-                    <th>Voto</th>
-                    <th className="n">Pontos</th>
-                    <th>Comentário</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {d.votos.map((v, n) => (
-                    <tr key={n}>
-                      {/* `criterioChave` é chave de máquina: quando é tudo o
+            <details key={p.id} className="recolhido">
+              <summary>Mostrar votos</summary>
+              <div className="rolagem">
+                <table className="tabela">
+                  <thead>
+                    <tr>
+                      <th>Critério</th>
+                      <th>Tipo</th>
+                      <th>Avaliador</th>
+                      <th>Voto</th>
+                      <th className="n">Pontos</th>
+                      <th>Comentário</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {d.votos.map((v, n) => (
+                      <tr key={n}>
+                        {/* `criterioChave` é chave de máquina: quando é tudo o
                           que a origem tem, sai marcada como tal em vez de
                           passar por nome de critério. */}
-                      <td>
-                        {v.criterio ??
-                          (v.criterioChave ? (
-                            <span className="sub">
-                              sem nome no sistema ({v.criterioChave})
-                            </span>
-                          ) : (
-                            "—"
-                          ))}
-                      </td>
-                      <td>{v.tipo}</td>
-                      <td>{v.avaliador}</td>
-                      <td>{v.valor ?? "—"}</td>
-                      <td className="n">{v.pontuacao ?? "—"}</td>
-                      <td>{v.comentario ?? "—"}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                        <td>
+                          {v.criterio ??
+                            (v.criterioChave ? (
+                              <span className="sub">
+                                sem nome no sistema ({v.criterioChave})
+                              </span>
+                            ) : (
+                              NI
+                            ))}
+                        </td>
+                        <td>{v.tipo}</td>
+                        <td>{v.avaliador}</td>
+                        <td>{v.valor ?? NI}</td>
+                        <td className="n">{v.pontuacao ?? NI}</td>
+                        <td>{v.comentario ?? NI}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </details>
           </Secao>
         )}
       </div>
@@ -551,7 +626,10 @@ export default function Detalhe({ d }: { d: ProjetoDetalhe }) {
       <h2 className="titulo faixa-titulo faixa-registro">
         Registro e cadastro
       </h2>
-      <div className="grade">
+      {/* Indicadores (1) + Equipe (2), Instituição (2) + Histórico (1): as
+          colunas largas vão para o que tem e-mail e telefone, que a um terço
+          da largura rolavam de lado. */}
+      <div className="grade grade-registro">
         {d.indicadores.length > 0 && (
           <Secao titulo="Indicadores">
             <table className="tabela">
@@ -564,8 +642,8 @@ export default function Detalhe({ d }: { d: ProjetoDetalhe }) {
               <tbody>
                 {d.indicadores.map((i, n) => (
                   <tr key={n}>
-                    <td>{i.nome ?? "—"}</td>
-                    <td>{i.meta ?? "—"}</td>
+                    <td>{i.nome ?? NI}</td>
+                    <td>{i.meta ?? NI}</td>
                   </tr>
                 ))}
               </tbody>
@@ -574,7 +652,7 @@ export default function Detalhe({ d }: { d: ProjetoDetalhe }) {
         )}
 
         {d.equipe.length > 0 && (
-          <Secao titulo="Equipe">
+          <Secao titulo="Equipe" largura="dupla">
             <table className="tabela">
               <thead>
                 <tr>
@@ -586,9 +664,9 @@ export default function Detalhe({ d }: { d: ProjetoDetalhe }) {
               <tbody>
                 {d.equipe.map((m, n) => (
                   <tr key={n}>
-                    <td>{m.nome ?? "—"}</td>
-                    <td>{m.funcao ?? "—"}</td>
-                    <td>{m.contato ?? "—"}</td>
+                    <td>{m.nome ?? NI}</td>
+                    <td>{m.funcao ?? NI}</td>
+                    <td className="contato">{m.contato ?? NI}</td>
                   </tr>
                 ))}
               </tbody>
@@ -597,7 +675,7 @@ export default function Detalhe({ d }: { d: ProjetoDetalhe }) {
         )}
 
         {d.instituicao && (
-          <Secao titulo="Instituição">
+          <Secao titulo="Instituição" largura="dupla">
             {/* <dl>, não <table>: são pares rótulo–valor, e como tabela isto
                 usava <th> dentro do <tbody> sem `scope`. */}
             <dl className="identificacao">
@@ -607,7 +685,7 @@ export default function Detalhe({ d }: { d: ProjetoDetalhe }) {
               </div>
               <div>
                 <dt>CNPJ</dt>
-                <dd>{d.instituicao.cnpj ?? "—"}</dd>
+                <dd>{d.instituicao.cnpj ?? NI}</dd>
               </div>
               <div>
                 <dt>Conveniada</dt>
@@ -615,41 +693,49 @@ export default function Detalhe({ d }: { d: ProjetoDetalhe }) {
               </div>
               <div>
                 <dt>Responsável</dt>
-                <dd>{d.instituicao.contato ?? "—"}</dd>
+                <dd>{d.instituicao.contato ?? NI}</dd>
               </div>
               <div>
                 <dt>Contato</dt>
                 <dd>
                   {[d.instituicao.email, d.instituicao.telefone]
                     .filter(Boolean)
-                    .join(" · ") || "—"}
+                    .join(" · ") || NI}
                 </dd>
               </div>
               <div>
                 <dt>Situação cadastral</dt>
-                <dd>{p.enriquecimento.situacaoNoSistema ?? "—"}</dd>
+                <dd>{p.enriquecimento.situacaoNoSistema ?? NI}</dd>
               </div>
             </dl>
           </Secao>
         )}
 
-        {d.historico.length > 0 && (
-          <Secao titulo="Histórico de status">
+        {/* O registro do registro: as datas de criação e de alteração moram
+            aqui, e não na ficha de leitura do mérito. "Alterado", como na
+            lista: `updated_at` também se mexe quando o proponente edita. */}
+        <Secao titulo="Histórico">
+          {d.historico.length > 0 && (
             <ul className="historico">
               {d.historico.map((h, n) => (
                 <li key={n}>
-                  <b>{rotuloStatus(h.para)}</b>
+                  <span>
+                    {h.de ? `${rotuloStatus(h.de)} → ` : ""}
+                    <b>{rotuloStatus(h.para)}</b>
+                  </span>
                   <span className="sub">
-                    {h.de ? `de ${rotuloStatus(h.de)} · ` : ""}
                     {data(h.em)}
                     {h.por ? ` · ${h.por}` : ""}
                   </span>
                 </li>
               ))}
             </ul>
-          </Secao>
-        )}
+          )}
+          <p className="sub historico-registro">
+            Registro criado {data(d.criadoEm)} · alterado {data(d.atualizadoEm)}
+          </p>
+        </Secao>
       </div>
-    </>
+    </div>
   );
 }

@@ -16,12 +16,12 @@ export const COR_TIPO: Record<TipoRevisao, string> = {
 };
 
 /** De onde veio a triagem. `null` = a equipe decidiu no CSV, não há o que ressalvar. */
-function procedencia(revisao: RevisaoProjeto): string | null {
+export function procedencia(revisao: RevisaoProjeto): string | null {
   const { tipo, curado, similaridade } = revisao;
   if (curado || tipo === "novo") return null;
   return similaridade === null
     ? "sem candidato na remessa anterior"
-    : `casamento automático de título: ${(similaridade * 100).toFixed(0)}% — a revisar`;
+    : `casamento automático de título: ${(similaridade * 100).toFixed(0)}%, a revisar`;
 }
 
 /**

@@ -9,7 +9,7 @@ import { salvarLinkPrestacao, type EstadoLink } from "../../../actions";
  * Quem usa isto é a secretaria/o diretor, não o parceiro: o painel é a tela da
  * reunião. O caso real é o relatório que chegou por e-mail ou WhatsApp e nunca
  * entrou no sistema de submissão — em 2025, 198 dos 223 projetos aprovados
- * ficaram assim. O link vai para `data/prestacao_links.csv` (FORA da origem) e
+ * ficaram assim. O link vai para o Firestore do painel (FORA da origem) e
  * o arquivo passa a abrir no mesmo visor dos anexos do projeto.
  */
 export default function LinkPrestacao({

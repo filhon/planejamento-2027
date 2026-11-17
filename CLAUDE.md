@@ -318,6 +318,17 @@ do sistema de submissão**: `extensions.crypt` (pgcrypto) confere o bcrypt de
 Server Action. CSP/HSTS/noindex em `next.config.ts`. Variáveis da Vercel,
 rate limit e o que segue aberto: [`docs/publicacao.md`](docs/publicacao.md).
 
+**Fase 14 (banco do painel no Firestore + decisão de contingência)** — o que o
+painel grava saiu dos CSVs (que a Vercel apagava) para o **Firestore**
+(`src/lib/firestore.ts` + `painel-db.ts`, Admin SDK só no servidor, regras
+negando todo cliente): `prestacao_links`, `parcerias_candidatos` e `decisoes`
+(com `historico`). A pasta do projeto ganhou a **decisão registrada no painel**
+(situação + valor aprovado, `src/lib/decisao.ts`, testada) — não volta para a
+origem nem entra em KPI. **Avaliações e votos vêm recolhidos** (`<details>` com
+`key={p.id}`, para não herdar o aberto ao trocar de projeto) e a ficha de
+valores deixou de mostrar mediana e "N a favor". Variável nova:
+`FIREBASE_SERVICE_ACCOUNT` — ver [`docs/publicacao.md`](docs/publicacao.md).
+
 **Próximo passo:** nada obrigatório. Em aberto, só se a equipe pedir: exportar PNG
 (hoje é PDF pela impressão), zoom/pan no mapa e ler .docx no visor (o
 descompactador já está lá; falta extrair o texto de `word/document.xml`).
@@ -328,7 +339,7 @@ descompactador já está lá; falta extrair o texto de `word/document.xml`).
 - Plano do dashboard → [`docs/plano-dashboard.md`](docs/plano-dashboard.md)
 - Normalização de país (de-para ISO) → [`docs/normalizacao-paises.md`](docs/normalizacao-paises.md)
 - **Enriquecimento sem tocar na origem** → [`docs/enriquecimento-dados.md`](docs/enriquecimento-dados.md)
-- Dados do enriquecimento (fonte de verdade): [`data/country_map.csv`](data/country_map.csv), [`data/institution_enrichment.csv`](data/institution_enrichment.csv), [`data/projetos_avaliacao.csv`](data/projetos_avaliacao.csv), [`data/avaliadores.csv`](data/avaliadores.csv), [`data/prestacao_links.csv`](data/prestacao_links.csv), [`data/parcerias_candidatos.csv`](data/parcerias_candidatos.csv)
+- Dados do enriquecimento (fonte de verdade): [`data/country_map.csv`](data/country_map.csv), [`data/institution_enrichment.csv`](data/institution_enrichment.csv), [`data/projetos_avaliacao.csv`](data/projetos_avaliacao.csv), [`data/avaliadores.csv`](data/avaliadores.csv) (o que o painel grava mora no Firestore — Fase 14)
 - Esquema opcional de banco próprio do dashboard → [`docs/country_map.sql`](docs/country_map.sql) (NUNCA na origem)
 - Script do papel de leitura, **para a equipe rodar** → [`docs/bi_readonly.sql`](docs/bi_readonly.sql)
 - Manual de marca (fornecido pelo cliente) → [`.docs/Identidade Visual da Hebron Aseec.md`](.docs/Identidade%20Visual%20da%20Hebron%20Aseec.md)

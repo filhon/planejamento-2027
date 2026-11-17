@@ -86,7 +86,7 @@ function Planilha({ url }: { url: string }) {
       <>
         {abas.length > 1 && <Abas abas={abas} atual={i} escolher={setI} />}
         <p className="visor-aviso">
-          Esta aba não tem células preenchidas — é comum em planilha montada com
+          Esta aba não tem células preenchidas. É comum em planilha montada com
           imagens coladas, que só o original mostra.
         </p>
       </>
@@ -113,8 +113,8 @@ function Planilha({ url }: { url: string }) {
       </div>
       {aba.linhasTotal > aba.linhas.length && (
         <p className="visor-aviso">
-          Mostrando as {aba.linhas.length} primeiras de {aba.linhasTotal} linhas
-          — o original tem o resto.
+          Mostrando as {aba.linhas.length} primeiras de {aba.linhasTotal}{" "}
+          linhas. O original tem o resto.
         </p>
       )}
     </>
@@ -216,6 +216,26 @@ function Visor({ anexo, fechar }: { anexo: Anexo; fechar: () => void }) {
 
 // ------------------------------------------------------------- a listagem
 
+/**
+ * O tipo do anexo é o que se procura ("o orçamento"); o nome do arquivo repete
+ * o título do projeto e quebrava em três linhas sublinhadas na coluna estreita.
+ * O botão leva o tipo, e o nome vai embaixo, em cinza.
+ */
+const ROTULO_TIPO_ANEXO: Record<string, string> = {
+  orcamento: "Orçamento",
+  cronograma: "Cronograma",
+  portfolio: "Portfólio",
+  video: "Vídeo",
+};
+
+function rotuloTipoAnexo(a: Anexo): string {
+  const t = a.tipo?.trim();
+  // O link colado tem rótulo curado pela secretaria; o tipo dele é a origem
+  // ("Drive · fora do sistema"), que vai embaixo.
+  if (!t || a.id.startsWith("link:")) return a.nome;
+  return ROTULO_TIPO_ANEXO[t] ?? t.charAt(0).toUpperCase() + t.slice(1);
+}
+
 export default function ListaAnexos({ anexos }: { anexos: Anexo[] }) {
   const [aberto, setAberto] = useState<Anexo | null>(null);
   if (anexos.length === 0) return <p className="sub">Nenhum anexo.</p>;
@@ -231,19 +251,19 @@ export default function ListaAnexos({ anexos }: { anexos: Anexo[] }) {
                 className="anexo-abrir"
                 onClick={() => setAberto(a)}
               >
-                {a.nome}
+                {rotuloTipoAnexo(a)}
               </button>
             ) : (
-              <span title="Arquivo sem endereço público — falar com a secretaria">
-                {a.nome}
+              <span title="Arquivo sem endereço público: falar com a secretaria">
+                {rotuloTipoAnexo(a)}
               </span>
             )}
             <span className="sub">
-              {a.tipo}
+              {rotuloTipoAnexo(a) !== a.nome ? a.nome : a.tipo}
               {tamanhoArquivo(a.bytes) && ` · ${tamanhoArquivo(a.bytes)}`}
-              {/* No papel o link colado tem que ser digitável: o anexo da
-                  origem tem a pasta impressa para chegar nele, este não. */}
-              {a.id.startsWith("link:") && (
+              {/* No papel o anexo vira botão sem destino: a URL sai por extenso
+                  para ser digitável (a folha esconde o que não for do papel). */}
+              {a.url && (
                 <span className="so-impressao-inline"> · {a.url}</span>
               )}
             </span>

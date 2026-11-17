@@ -1,11 +1,8 @@
-import { readFileSync, existsSync, writeFileSync } from "node:fs";
+import { readFileSync, existsSync } from "node:fs";
 import { resolve } from "node:path";
 import { parse } from "csv-parse/sync";
-import { stringify } from "csv-stringify/sync";
 import { REPO_ROOT } from "./env";
-import { embedDrive, rotuloDrive } from "./drive";
 import type {
-  Anexo,
   Avaliador,
   CountryMapRow,
   InstitutionEnrichmentRow,
@@ -30,7 +27,6 @@ export const PROJETOS_AVALIACAO_CSV = resolve(
   "projetos_avaliacao.csv",
 );
 export const AVALIADORES_CSV = resolve(DATA_DIR, "avaliadores.csv");
-export const PRESTACAO_LINKS_CSV = resolve(DATA_DIR, "prestacao_links.csv");
 
 export function lerCsv(caminho: string): Record<string, string>[] {
   if (!existsSync(caminho)) {
@@ -59,7 +55,20 @@ function texto(valor: string | undefined): string | null {
 function numero(valor: string | undefined): number {
   const t = texto(valor);
   if (!t) return 0;
-  const n = Number(t.replace(/\./g, "").replace(",", "."));
+  return numeroDoCsv(t);
+}
+
+/**
+ * O CSV tem dois donos: as colunas derivadas saem do `enrich:regen` com ponto
+ * decimal ("249600.00"), e quem edita no Excel pt-BR digita "249.600,00".
+ * Tirar todo ponto lia o primeiro como 24.960.000. Vírgula manda no formato
+ * brasileiro; ponto só é milhar quando vem em grupos de três ("1.250").
+ */
+export function numeroDoCsv(t: string): number {
+  const s = /,/.test(t) || /^\d{1,3}(\.\d{3})+$/.test(t)
+    ? t.replace(/\./g, "").replace(",", ".")
+    : t;
+  const n = Number(s);
   return Number.isFinite(n) ? n : 0;
 }
 
@@ -210,115 +219,12 @@ export function carregarAvaliadores(forcar = false): Avaliador[] {
 
 // ------------------------------------- prestação de contas no Drive (Fase 9)
 
-const COLUNAS_LINKS = [
-  "project_id",
-  "ano",
-  "titulo",
-  "rotulo",
-  "link",
-  "adicionado_em",
-] as const;
-
-let cacheLinks: Map<string, Anexo[]> | null = null;
-
-function dataOuNulo(valor: string | undefined): Date | null {
-  const t = texto(valor);
-  if (!t) return null;
-  const d = new Date(t);
-  return Number.isNaN(d.getTime()) ? null : d;
-}
-
-/**
- * Links do Drive apontando para a prestação de contas de um projeto
- * (data/prestacao_links.csv) — o caso da renovação cujo relatório existe, mas
- * nunca entrou no sistema de submissão.
- *
- * Sai daqui já com a forma de `Anexo` para cair no mesmo `ListaAnexos`/visor
- * dos anexos da origem: um tipo a menos, uma lista a menos, um visor a menos.
- * Só `https` passa — o CSV é editado à mão no Excel, e um `javascript:` colado
- * ali viraria href na página.
- */
-export function carregarLinksPrestacao(forcar = false): Map<string, Anexo[]> {
-  if (cacheLinks && !forcar) return cacheLinks;
-
-  const mapa = new Map<string, Anexo[]>();
-  for (const r of lerCsvOpcional(PRESTACAO_LINKS_CSV)) {
-    const id = (r["project_id"] ?? "").trim();
-    const link = texto(r["link"]);
-    if (!id || !link || !/^https:\/\//i.test(link)) continue;
-
-    const lista = mapa.get(id) ?? [];
-    lista.push({
-      id: `link:${id}:${lista.length}`,
-      nome: texto(r["rotulo"]) ?? rotuloDrive(link),
-      // O rótulo diz de onde veio: isto NÃO é a prestação registrada no
-      // sistema, e a mesa precisa ver a diferença sem abrir o arquivo.
-      tipo: embedDrive(link) ? "Drive · fora do sistema" : "link externo",
-      url: link,
-      bytes: null,
-      enviadoEm: dataOuNulo(r["adicionado_em"]),
-      enviadoPor: null,
-      ehVideo: false,
-    });
-    mapa.set(id, lista);
-  }
-
-  cacheLinks = mapa;
-  return mapa;
-}
-
-/**
- * Acrescenta um link ao CSV. É a única escrita do painel — e é FORA da origem,
- * pela mesma regra que rege todo o enriquecimento (docs/enriquecimento-dados.md).
- * Reescreve o arquivo inteiro: são poucas linhas, e assim o BOM e o cabeçalho
- * saem certos tanto na primeira gravação quanto nas seguintes.
- */
-export function adicionarLinkPrestacao(linha: {
-  projectId: string;
-  ano: number;
-  titulo: string;
-  rotulo: string;
-  link: string;
-}): void {
-  const linhas = lerCsvOpcional(PRESTACAO_LINKS_CSV).map((r) => ({
-    project_id: r["project_id"] ?? "",
-    ano: r["ano"] ?? "",
-    titulo: r["titulo"] ?? "",
-    rotulo: r["rotulo"] ?? "",
-    link: r["link"] ?? "",
-    adicionado_em: r["adicionado_em"] ?? "",
-  }));
-
-  linhas.push({
-    project_id: linha.projectId,
-    ano: String(linha.ano),
-    titulo: linha.titulo,
-    rotulo: linha.rotulo,
-    link: linha.link,
-    adicionado_em: new Date().toISOString().slice(0, 10),
-  });
-
-  // BOM + CRLF como os outros CSVs de data/: a equipe abre e corrige no Excel.
-  writeFileSync(
-    PRESTACAO_LINKS_CSV,
-    "﻿" +
-      stringify(linhas, {
-        header: true,
-        columns: [...COLUNAS_LINKS],
-        record_delimiter: "windows",
-      }),
-    "utf-8",
-  );
-  cacheLinks = null;
-}
-
 /** Esquece os CSVs em memória (usado pelo botão "Atualizar"). */
 export function limparCacheEnriquecimento(): void {
   cacheCountryMap = null;
   cacheEnrichment = null;
   cacheAvaliacao = null;
   cacheAvaliadores = null;
-  cacheLinks = null;
 }
 
 /** Cobertura do enriquecimento — insumo do relatório de sanidade. */

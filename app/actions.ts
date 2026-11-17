@@ -2,8 +2,12 @@
 
 import { revalidatePath } from "next/cache";
 import { atualizar } from "@/lib/cache";
-import { adicionarLinkPrestacao } from "@/lib/enrichment";
-import { alternarCandidato } from "@/lib/parcerias-dados";
+import { validarDecisao } from "@/lib/decisao";
+import {
+  adicionarLinkPrestacao,
+  alternarCandidato,
+  gravarDecisao,
+} from "@/lib/painel-db";
 import { exigirSessao } from "./sessao";
 
 /**
@@ -23,11 +27,17 @@ export interface EstadoLink {
   erro?: string;
 }
 
+/** Falha de rede/credencial vira frase no formulário: a mesa precisa saber que NÃO gravou. */
+function falhaGravacao(e: unknown): string {
+  console.error("Firestore:", e);
+  return "Não gravou no banco do painel. Tente de novo; se persistir, anote à mão.";
+}
+
 /**
  * Guarda o link do Drive com a prestação de contas de um projeto.
  *
- * A única escrita do painel — e é em `data/prestacao_links.csv`, FORA da
- * origem: o banco de submissões continua somente-leitura, e o que se anexa aqui
+ * Grava no banco do painel (Firestore, `prestacao_links`), FORA da origem: o
+ * banco de submissões continua somente-leitura, e o que se anexa aqui
  * é evidência para a reunião, não o relatório oficial do sistema.
  *
  * A validação é aqui e não no `<input type="url">`: só `https` (um
@@ -38,7 +48,7 @@ export async function salvarLinkPrestacao(
   _estado: EstadoLink,
   form: FormData,
 ): Promise<EstadoLink> {
-  await exigirSessao();
+  const sessao = await exigirSessao();
   if (!UUID.test(alvo.id))
     return { erro: "Projeto não reconhecido. Recarregue a página." };
 
@@ -62,43 +72,84 @@ export async function salvarLinkPrestacao(
       erro: "O link precisa começar com https:// — use o botão Compartilhar do Drive.",
     };
 
-  adicionarLinkPrestacao({
-    projectId: alvo.id,
-    ano: alvo.ano,
-    titulo: alvo.titulo,
-    rotulo: String(form.get("rotulo") ?? "")
-      .trim()
-      .slice(0, 120),
-    link: url.toString(),
-  });
+  try {
+    await adicionarLinkPrestacao({
+      projectId: alvo.id,
+      ano: alvo.ano,
+      titulo: alvo.titulo,
+      rotulo: String(form.get("rotulo") ?? "")
+        .trim()
+        .slice(0, 120),
+      link: url.toString(),
+      por: sessao.nome,
+    });
+  } catch (e) {
+    return { erro: falhaGravacao(e) };
+  }
 
-  // O detalhe é memoizado com os links já dentro; `atualizar()` derruba a
-  // entrada, e o revalidate refaz a página da pasta (a do projeto anterior
-  // também, que é onde o mesmo link aparece).
-  atualizar();
+  // Os links são lidos sem cache na página; o revalidate só a refaz.
   revalidatePath("/projetos/[id]", "page");
   return {};
 }
 
 /**
  * Marca/desmarca um missionário como candidato a parceria proativa (Fase 11).
- * Escrita em `data/parcerias_candidatos.csv`, fora da origem, como o link do
- * Drive. A chave vem do servidor (`Missionario.chave`), mas o formulário é
+ * Grava no Firestore (`parcerias_candidatos`), fora da origem, como o link
+ * do Drive. A chave vem do servidor (`Missionario.chave`), mas o formulário é
  * público na rede da reunião — o formato é conferido aqui.
  */
 export async function marcarCandidato(
   alvo: { chave: string; rotulo: string },
   nota: string,
 ): Promise<{ marcado: boolean }> {
-  await exigirSessao();
+  const sessao = await exigirSessao();
   if (!/^(APMT|JMM|JMN-IPB|JMN-CBB|Pioneiros):.{1,200}$/.test(alvo.chave))
     throw new Error("Missionário inválido.");
-  const marcado = alternarCandidato({
+  const marcado = await alternarCandidato({
     chave: alvo.chave,
     rotulo: alvo.rotulo.slice(0, 200),
     nota: nota.trim().slice(0, 300),
+    por: sessao.nome,
   });
   atualizar();
   revalidatePath("/parcerias");
   return { marcado };
+}
+
+/**
+ * Decisão de contingência (valor aprovado + situação) de um projeto. Fica SÓ
+ * no Firestore (`decisoes`): o sistema de submissão não fica sabendo, e o
+ * resto do painel (KPIs, orçamento) continua lendo a origem.
+ */
+export async function salvarDecisao(
+  alvo: { id: string; ano: number; titulo: string },
+  _estado: EstadoLink,
+  form: FormData,
+): Promise<EstadoLink> {
+  const sessao = await exigirSessao();
+  if (!UUID.test(alvo.id))
+    return { erro: "Projeto não reconhecido. Recarregue a página." };
+
+  const v = validarDecisao({
+    situacao: String(form.get("situacao") ?? ""),
+    valor: String(form.get("valor") ?? ""),
+    observacao: String(form.get("observacao") ?? ""),
+  });
+  if ("erro" in v) return v;
+
+  try {
+    await gravarDecisao(
+      {
+        projectId: alvo.id,
+        ano: alvo.ano,
+        titulo: alvo.titulo.slice(0, 300),
+        por: sessao.nome,
+      },
+      "apagar" in v ? null : v,
+    );
+  } catch (e) {
+    return { erro: falhaGravacao(e) };
+  }
+  revalidatePath("/projetos/[id]", "page");
+  return {};
 }

@@ -119,5 +119,5 @@ export const dados = {
 
   /** Missionários das agências + municípios + candidatos marcados (Fase 11). */
   parcerias: (): Promise<DadosParcerias> =>
-    memo("parcerias", async () => carregarParcerias()),
+    memo("parcerias", carregarParcerias),
 };

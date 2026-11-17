@@ -3,7 +3,7 @@
  *
  * Por que existe: a prestação de contas de 2025 quase nunca subiu no sistema de
  * submissão (25 de 223 projetos aprovados), mas a secretaria tem os arquivos no
- * Drive. O link colado no painel (data/prestacao_links.csv) abre no MESMO visor
+ * Drive. O link colado no painel (Firestore do painel, `prestacao_links`) abre no MESMO visor
  * dos anexos do projeto — e é o Drive que renderiza, então PDF, planilha, .docx
  * e imagem funcionam sem nada disso passar pelo painel.
  *

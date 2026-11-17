@@ -317,7 +317,7 @@ export interface ProjetoAnterior {
   aprovado: number | null;
   liberado: number | null;
   relatorios: RelatorioDetalhe[];
-  /** Prestação que existe só no Drive (data/prestacao_links.csv). */
+  /** Prestação que existe só no Drive (Firestore do painel, `prestacao_links`). */
   linksPrestacao: Anexo[];
 }
 
@@ -352,7 +352,7 @@ export interface ProjetoDetalhe {
   historico: MudancaStatus[];
   /** Prestação de contas DESTE projeto (existe quando o ciclo já executou). */
   relatorios: RelatorioDetalhe[];
-  /** Prestação deste projeto que existe só no Drive (data/prestacao_links.csv). */
+  /** Prestação deste projeto que existe só no Drive (Firestore do painel, `prestacao_links`). */
   linksPrestacao: Anexo[];
   /** Prestação de contas do projeto anterior — o que a equipe cobra na renovação. */
   anterior: ProjetoAnterior | null;

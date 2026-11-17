@@ -39,7 +39,7 @@ import { Kpi, Secao } from "../ui";
  * sumiu (retomar); azul = já atendido. Brasil: UF laranja = nenhum projeto;
  * ponto = cidade com missionário da JMN, verde quando está no top-100 de
  * demanda por produtos Hebron. Marcar candidato grava em
- * `data/parcerias_candidatos.csv` — a única escrita, fora da origem.
+ * o Firestore do painel (`parcerias_candidatos`), fora da origem.
  */
 
 type Modo = "mundo" | "brasil";
@@ -315,7 +315,7 @@ export default function Parcerias({
           <Kpi
             rotulo="Candidatos marcados"
             valor={fmtInt.format(mundo.candidatos)}
-            nota="Gravados em data/parcerias_candidatos.csv"
+            nota="Gravados no banco do painel (Firestore)"
             tom={mundo.candidatos ? "bom" : undefined}
           />
         </div>
@@ -355,7 +355,7 @@ export default function Parcerias({
           <Kpi
             rotulo="Candidatos marcados"
             valor={fmtInt.format(brasil.candidatos)}
-            nota="Gravados em data/parcerias_candidatos.csv"
+            nota="Gravados no banco do painel (Firestore)"
             tom={brasil.candidatos ? "bom" : undefined}
           />
         </div>

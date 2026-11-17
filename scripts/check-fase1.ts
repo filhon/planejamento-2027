@@ -231,7 +231,7 @@ async function checarEnriquecimento(): Promise<void> {
  * depois do último `avaliacao:regen` fica sem triagem e sem dono.
  */
 async function checarTriagem(ano: number): Promise<void> {
-  titulo(`4b. Triagem da reunião ${ano} (data/projetos_avaliacao.csv)`);
+  titulo(`4b. Triagem da reunião ${ano} (Firestore/triagem)`);
 
   const projetos = await dados.projetos(ano);
   const avaliadores = await dados.avaliadores();
@@ -268,7 +268,7 @@ async function checarTriagem(ano: number): Promise<void> {
 
   if (rejeitadoEmPasta.length > 0) {
     aviso(
-      `ciclo ${ano}: ${rejeitadoEmPasta.length} projeto(s) fora da avaliação ainda com responsável no CSV — rodar \`npm run avaliacao:regen\` para devolver as vagas`,
+      `ciclo ${ano}: ${rejeitadoEmPasta.length} projeto(s) fora da avaliação ainda com responsável na triagem — rodar \`npm run avaliacao:regen\` para devolver as vagas`,
     );
   }
 
@@ -304,7 +304,7 @@ async function checarTriagem(ano: number): Promise<void> {
   const disputados = [...porAnterior.values()].filter((n) => n > 1).length;
   if (disputados > 0) {
     aviso(
-      `ciclo ${ano}: ${disputados} projeto(s) da remessa anterior vinculados por mais de um projeto desta — conferir no CSV`,
+      `ciclo ${ano}: ${disputados} projeto(s) da remessa anterior vinculados por mais de um projeto desta — conferir na pasta do projeto`,
     );
   }
 

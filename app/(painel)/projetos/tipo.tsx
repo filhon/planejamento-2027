@@ -15,7 +15,7 @@ export const COR_TIPO: Record<TipoRevisao, string> = {
   revisar: "var(--azul-claro)",
 };
 
-/** De onde veio a triagem. `null` = a equipe decidiu no CSV, não há o que ressalvar. */
+/** De onde veio a triagem. `null` = a equipe decidiu na triagem, não há o que ressalvar. */
 export function procedencia(revisao: RevisaoProjeto): string | null {
   const { tipo, curado, similaridade } = revisao;
   if (curado || tipo === "novo") return null;
@@ -44,7 +44,7 @@ export function Tipo({
       <span
         className="pastilha-tipo"
         style={{ "--cor": COR_TIPO[revisao.tipo] } as CSSProperties}
-        title={ressalva ?? "Decidido pela equipe no CSV"}
+        title={ressalva ?? "Decidido pela equipe na triagem"}
       >
         {ROTULO_TIPO[revisao.tipo]}
         {ressalva && !detalhado ? " ~" : ""}

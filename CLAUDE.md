@@ -326,7 +326,12 @@ negando todo cliente): `prestacao_links`, `parcerias_candidatos` e `decisoes`
 (situação + valor aprovado, `src/lib/decisao.ts`, testada) — não volta para a
 origem nem entra em KPI. **Avaliações e votos vêm recolhidos** (`<details>` com
 `key={p.id}`, para não herdar o aberto ao trocar de projeto) e a ficha de
-valores deixou de mostrar mediana e "N a favor". Variável nova:
+valores deixou de mostrar mediana e "N a favor". A **triagem** (novo ×
+renovação, vínculo, pasta, observações) saiu de `data/projetos_avaliacao.csv`
+para a coleção `triagem` e é **editável na pasta do projeto** ("Editar
+triagem", com `historico`); o `avaliacao:regen` grava lá com `merge` e nunca
+toca tipo/vínculo/observações. `backups/` está no `.gitignore` (votos
+individuais). Variável nova:
 `FIREBASE_SERVICE_ACCOUNT` — ver [`docs/publicacao.md`](docs/publicacao.md).
 
 **Próximo passo:** nada obrigatório. Em aberto, só se a equipe pedir: exportar PNG
@@ -339,7 +344,7 @@ descompactador já está lá; falta extrair o texto de `word/document.xml`).
 - Plano do dashboard → [`docs/plano-dashboard.md`](docs/plano-dashboard.md)
 - Normalização de país (de-para ISO) → [`docs/normalizacao-paises.md`](docs/normalizacao-paises.md)
 - **Enriquecimento sem tocar na origem** → [`docs/enriquecimento-dados.md`](docs/enriquecimento-dados.md)
-- Dados do enriquecimento (fonte de verdade): [`data/country_map.csv`](data/country_map.csv), [`data/institution_enrichment.csv`](data/institution_enrichment.csv), [`data/projetos_avaliacao.csv`](data/projetos_avaliacao.csv), [`data/avaliadores.csv`](data/avaliadores.csv) (o que o painel grava mora no Firestore — Fase 14)
+- Dados do enriquecimento (fonte de verdade): [`data/country_map.csv`](data/country_map.csv), [`data/institution_enrichment.csv`](data/institution_enrichment.csv), [`data/avaliadores.csv`](data/avaliadores.csv) (a triagem e o que o painel grava moram no Firestore — Fase 14)
 - Esquema opcional de banco próprio do dashboard → [`docs/country_map.sql`](docs/country_map.sql) (NUNCA na origem)
 - Script do papel de leitura, **para a equipe rodar** → [`docs/bi_readonly.sql`](docs/bi_readonly.sql)
 - Manual de marca (fornecido pelo cliente) → [`.docs/Identidade Visual da Hebron Aseec.md`](.docs/Identidade%20Visual%20da%20Hebron%20Aseec.md)
@@ -377,8 +382,8 @@ Levantadas na Fase 4:
 Levantadas na Fase 5 (ver [`docs/fase5-projetos.md`](docs/fase5-projetos.md)):
 
 8. **54 projetos de 2026 na faixa "a revisar":** o casamento com 2025 é plausível
-   mas não conclusivo. A equipe decide na coluna `tipo` de
-   `data/projetos_avaliacao.csv`; até lá contam como novos e ocupam pasta.
+   mas não conclusivo. A equipe decide em "Editar triagem",
+   na pasta do projeto; até lá contam como novos e ocupam pasta.
 9. **9 projetos de 2025 vinculados por mais de um de 2026** — inclui duas
    submissões duplicadas em 2026 (`Projeto Timoteo`, `Missão Vida Internacional`).
 

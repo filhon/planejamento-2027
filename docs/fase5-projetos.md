@@ -169,7 +169,11 @@ aviso só dispara com alguém em zero ou com buraco maior que 2.
 
 ## Os arquivos
 
-### `data/projetos_avaliacao.csv` — uma linha por projeto da remessa
+### Triagem — uma linha por projeto da remessa
+
+> **Desde a Fase 14** isto não é mais um CSV: é a coleção `triagem` do
+> Firestore (doc = uuid do projeto, campos em camelCase), editada pela pasta
+> do projeto em "Editar triagem". As colunas abaixo valem como dicionário.
 
 | Colunas **derivadas** (regeradas a cada rodada)                                                                                                                                                                | Colunas **curadas** (nunca sobrescritas)                 |
 | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------- |

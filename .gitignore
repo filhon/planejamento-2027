@@ -13,3 +13,6 @@ dist/
 
 # artefatos do TypeScript/Next
 *.tsbuildinfo
+
+# backups locais (votos individuais etc.) — nunca commitar
+backups/

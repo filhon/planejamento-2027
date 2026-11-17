@@ -1,8 +1,8 @@
 /**
- * Triagem da reunião: gera/atualiza `data/avaliadores.csv` e
- * `data/projetos_avaliacao.csv` a partir da origem (só SELECT).
+ * Triagem da reunião: gera/atualiza `data/avaliadores.csv` e a coleção
+ * `triagem` do Firestore (banco do painel) a partir da origem (só SELECT).
  *
- *   npm run avaliacao:regen                   → grava os dois CSVs
+ *   npm run avaliacao:regen                   → grava o CSV e o Firestore
  *   npm run avaliacao:regen -- --dry          → só mostra o que mudaria
  *   npm run avaliacao:regen -- --ano=2026     → outra remessa (padrão: a mais recente)
  *   npm run avaliacao:regen -- --reequilibrar → nivela as pastas (move o mínimo)
@@ -16,8 +16,9 @@
  *
  * **Nada é reatribuído.** Projeto que já tem responsável fica com ele — rodar de
  * novo quando chegarem projetos novos só distribui os que faltam, e a pasta de
- * quem já se preparou não muda. Idem para as colunas curadas (`tipo`,
- * `projeto_anterior_id`, `observacoes`): o script nunca as sobrescreve.
+ * quem já se preparou não muda. Idem para os campos curados (`tipo`,
+ * `projetoAnteriorId`, `observacoes`), editados na pasta do projeto: o script
+ * nunca os grava (merge no Firestore).
  *
  * O que devolve a vaga para a fila (limpando `responsavel`, sempre reportado): o
  * projeto **saiu da avaliação** depois de distribuído — vira renovação na
@@ -36,12 +37,9 @@ import { writeFileSync } from "node:fs";
 import { stringify } from "csv-stringify/sync";
 import { closePool, query } from "../src/lib/db";
 import { fetchAvaliadores, fetchProjetosChave } from "../src/lib/queries";
-import {
-  AVALIADORES_CSV,
-  PROJETOS_AVALIACAO_CSV,
-  carregarAvaliacaoProjetos,
-  carregarAvaliadores,
-} from "../src/lib/enrichment";
+import { AVALIADORES_CSV, carregarAvaliadores } from "../src/lib/enrichment";
+import { carregarTriagem, gravarTriagemGerada } from "../src/lib/painel-db";
+import type { TipoRevisao } from "../src/lib/types";
 import { avaliavel } from "../src/lib/agregar";
 import {
   distribuir,
@@ -51,27 +49,6 @@ import {
 import type { CandidatoAnterior } from "../src/lib/recorrencia";
 
 const COLUNAS_AVALIADORES = ["user_id", "nome", "papel", "ativo"] as const;
-
-const COLUNAS_PROJETOS = [
-  // derivadas — regeneradas a cada rodada
-  "project_id",
-  "ano",
-  "titulo",
-  "instituicao",
-  "instituicao_id",
-  "status",
-  "solicitado",
-  "sugestao_tipo",
-  "similaridade",
-  "sugestao_projeto_anterior_id",
-  "sugestao_projeto_anterior_titulo",
-  "sugestao_recebido_anterior",
-  // curadas — preservadas intactas
-  "tipo",
-  "projeto_anterior_id",
-  "responsavel",
-  "observacoes",
-] as const;
 
 function gravar(caminho: string, linhas: object[], colunas: readonly string[]) {
   // BOM + CRLF: os outros CSVs de data/ já são assim, e a equipe abre no Excel.
@@ -121,7 +98,7 @@ async function main(): Promise<void> {
     );
   }
 
-  // ------------------------------------------------ projetos_avaliacao.csv
+  // ------------------------------------------------- Firestore/triagem
   const anos = [...new Set(todos.map((p) => p.year))].sort((a, b) => b - a);
   const ano = anoArg ? Number(anoArg) : anos[0];
   if (!ano || !anos.includes(ano)) {
@@ -141,7 +118,7 @@ async function main(): Promise<void> {
       aprovado: p.approved_amount,
     }));
 
-  const existentes = carregarAvaliacaoProjetos(true);
+  const existentes = await carregarTriagem();
 
   const linhas = daRemessa.map((p) => {
     const s = sugerirVinculo(
@@ -261,7 +238,7 @@ async function main(): Promise<void> {
   console.log(`  renovação:   ${conta("renovacao")}`);
   console.log(`  novo:        ${conta("novo")}`);
   console.log(
-    `  a revisar:   ${conta("revisar")}  ← vínculo plausível, decidir no CSV`,
+    `  a revisar:   ${conta("revisar")}  ← vínculo plausível, decidir na pasta do projeto`,
   );
   console.log(
     `Fora das pastas:      ${linhas.filter((l) => !paraPasta(l) && tipoEfetivo(l) !== "renovacao").length} (rejeitado/rascunho/cancelado)`,
@@ -325,7 +302,7 @@ async function main(): Promise<void> {
       console.log(`  - ${titulos.join(" | ")}`);
     }
     console.log(
-      "  Confira o vínculo no CSV: dois projetos não renovam o mesmo.",
+      "  Confira o vínculo na pasta do projeto: dois projetos não renovam o mesmo.",
     );
   }
 
@@ -337,7 +314,25 @@ async function main(): Promise<void> {
 
   console.log("");
   gravar(AVALIADORES_CSV, avaliadores, COLUNAS_AVALIADORES);
-  gravar(PROJETOS_AVALIACAO_CSV, linhas, COLUNAS_PROJETOS);
+  const num = (v: string) => (v === "" ? null : Number(v));
+  await gravarTriagemGerada(
+    linhas.map((l) => ({
+      projectId: l.project_id,
+      ano: l.ano,
+      titulo: l.titulo,
+      instituicao: l.instituicao,
+      instituicaoId: l.instituicao_id || null,
+      status: l.status,
+      solicitado: Number(l.solicitado),
+      sugestaoTipo: l.sugestao_tipo as TipoRevisao,
+      similaridade: num(l.similaridade),
+      sugestaoProjetoAnteriorId: l.sugestao_projeto_anterior_id || null,
+      sugestaoProjetoAnteriorTitulo: l.sugestao_projeto_anterior_titulo || null,
+      sugestaoRecebidoAnterior: num(l.sugestao_recebido_anterior),
+      responsavel: l.responsavel || null,
+    })),
+  );
+  console.log(`Gravado: Firestore/triagem (${linhas.length} projetos)`);
   await closePool();
 }
 

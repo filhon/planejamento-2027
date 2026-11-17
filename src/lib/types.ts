@@ -72,7 +72,7 @@ export interface EnriquecimentoProjeto {
  *  - `novo` — vai para a pasta de um diretor/conselheiro, que avalia a fundo e
  *    apresenta; todos votam.
  *  - `revisar` — o casamento automático achou um candidato plausível mas não
- *    conclusivo. Pendência da equipe: decidir no CSV.
+ *    conclusivo. Pendência da equipe: decidir na pasta do projeto.
  */
 export type TipoRevisao = "novo" | "renovacao" | "revisar";
 
@@ -84,10 +84,10 @@ export interface Avaliador {
   ativo: boolean;
 }
 
-/** Uma linha de data/projetos_avaliacao.csv, já com o curado sobrepondo. */
+/** Um doc da coleção `triagem` (Firestore), já com o curado sobrepondo. */
 export interface RevisaoProjeto {
   /**
-   * false = o projeto não tem linha no CSV. Acontece com quem foi submetido
+   * false = o projeto não tem doc na triagem. Acontece com quem foi submetido
    * depois do último `avaliacao:regen` — e é diferente de "analisado e
    * classificado como novo", que é o que `tipo` diz.
    */
@@ -96,7 +96,7 @@ export interface RevisaoProjeto {
   tipo: TipoRevisao;
   /** O que o casamento automático propôs (auditoria). */
   sugestao: TipoRevisao;
-  /** true quando a equipe decidiu na mão, no CSV. */
+  /** true quando a equipe decidiu na mão (Editar triagem). */
   curado: boolean;
   /**
    * Exatamente o que a equipe escreveu nas colunas curadas — null quando a

@@ -7,7 +7,9 @@ import {
   adicionarLinkPrestacao,
   alternarCandidato,
   gravarDecisao,
+  gravarTriagemCurada,
 } from "@/lib/painel-db";
+import type { TipoRevisao } from "@/lib/types";
 import { exigirSessao } from "./sessao";
 
 /**
@@ -151,5 +153,48 @@ export async function salvarDecisao(
     return { erro: falhaGravacao(e) };
   }
   revalidatePath("/projetos/[id]", "page");
+  return {};
+}
+
+/**
+ * Triagem do projeto (novo × renovação, vínculo, dono da pasta, observações),
+ * editada na pasta. Grava no Firestore (`triagem`); o `avaliacao:regen` nunca
+ * sobrescreve tipo, vínculo nem observações. Campo vazio = seguir a sugestão
+ * automática.
+ */
+export async function salvarTriagem(
+  alvo: { id: string },
+  _estado: EstadoLink,
+  form: FormData,
+): Promise<EstadoLink> {
+  const sessao = await exigirSessao();
+  if (!UUID.test(alvo.id))
+    return { erro: "Projeto não reconhecido. Recarregue a página." };
+
+  const campo = (k: string) => String(form.get(k) ?? "").trim();
+  const tipo = campo("tipo");
+  if (tipo && !["novo", "renovacao", "revisar"].includes(tipo))
+    return { erro: "Tipo desconhecido." };
+  const anterior = campo("anterior");
+  if (anterior && !UUID.test(anterior))
+    return { erro: "Projeto anterior não reconhecido." };
+
+  try {
+    await gravarTriagemCurada(
+      { projectId: alvo.id, por: sessao.nome },
+      {
+        tipo: (tipo || null) as TipoRevisao | null,
+        projetoAnteriorId: anterior || null,
+        responsavel: campo("responsavel").slice(0, 120) || null,
+        observacoes: campo("observacoes").slice(0, 500) || null,
+      },
+    );
+  } catch (e) {
+    return { erro: falhaGravacao(e) };
+  }
+  // A triagem entra em toda página (filtros, pastas, KPIs): derruba o cache da
+  // origem nesta instância e refaz tudo.
+  atualizar();
+  revalidatePath("/", "layout");
   return {};
 }

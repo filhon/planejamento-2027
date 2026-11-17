@@ -82,6 +82,8 @@ Tudo o que o painel **grava** fica no Firestore, nunca na origem:
 | `parcerias_candidatos`   | `encodeURIComponent(chave)`     | `chave`, `rotulo`, `nota`, `marcadoEm`, `marcadoPor`                                    |
 | `decisoes`               | `projectId` (uuid da origem)    | `ano`, `titulo`, `situacao`, `valorAprovado`, `observacao`, `atualizadoEm`, `atualizadoPor` |
 | `decisoes/{id}/historico` | automático                     | cópia de cada gravação (inclusive a que apaga a decisão)                                 |
+| `triagem`                | `projectId`                     | derivados do `avaliacao:regen` (`sugestaoTipo`, `similaridade`, `sugestaoProjetoAnterior*`, `status`, `solicitado`…) + curados `tipo`, `projetoAnteriorId`, `responsavel`, `observacoes` |
+| `triagem/{id}/historico` | automático                      | cópia de cada edição feita na pasta do projeto                                          |
 
 A **decisão de contingência** (situação + valor aprovado, na pasta do projeto)
 não volta para o sistema de submissão nem entra nos KPIs/Orçamento: é um

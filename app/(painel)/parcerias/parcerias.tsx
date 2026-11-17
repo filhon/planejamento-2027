@@ -693,7 +693,7 @@ export default function Parcerias({
               ? `${plural(linhas.length, "missionário", "missionários")} em países sem pedido ou a retomar`
               : `${plural(linhas.length, "missionário", "missionários")} nas UFs sem projeto`
         }
-        sub="★ marca o candidato a parceria proativa; clique de novo para desmarcar. A nota pode ser escrita no CSV."
+        sub="★ marca o candidato a parceria proativa; clique de novo para desmarcar."
         largura="cheia"
         acoes={
           sel ? (

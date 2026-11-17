@@ -15,6 +15,7 @@ import { Secao } from "../../ui";
 import { procedencia, ROTULO_TIPO } from "../tipo";
 import Barra from "./barra";
 import DecisaoPainel from "./decisao";
+import EditarTriagem from "./triagem";
 import LinkPrestacao from "./link-prestacao";
 import ListaAnexos from "./visor";
 
@@ -126,9 +127,11 @@ function Relatorios({ relatorios }: { relatorios: RelatorioDetalhe[] }) {
 export default function Detalhe({
   d,
   decisao,
+  triagem,
 }: {
   d: ProjetoDetalhe;
   decisao: Decisao | null;
+  triagem: { avaliadores: string[]; anteriores: { id: string; titulo: string }[] };
 }) {
   const p = d.projeto;
   const videos = d.anexos.filter((a) => a.ehVideo);
@@ -245,6 +248,12 @@ export default function Detalhe({
         {p.revisao.observacoes && (
           <p className="observacao">{p.revisao.observacoes}</p>
         )}
+        <EditarTriagem
+          key={p.id}
+          id={p.id}
+          revisao={p.revisao}
+          {...triagem}
+        />
       </div>
 
       {/*

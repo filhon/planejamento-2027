@@ -28,12 +28,9 @@ import {
   grupoDeStatus,
   montarResumo,
 } from "./agregar";
-import {
-  carregarAvaliacaoProjetos,
-  carregarCountryMap,
-  indexarEnrichment,
-} from "./enrichment";
+import { carregarCountryMap, indexarEnrichment } from "./enrichment";
 import { getStorageBaseUrl } from "./env";
+import { carregarTriagem } from "./painel-db";
 import { construirIndicePaises, normalizarLocal } from "./geo";
 import { SEM_REVISAO } from "./types";
 import type {
@@ -102,7 +99,7 @@ async function contextoJuncao(): Promise<ContextoJuncao> {
   return {
     indice: construirIndicePaises(carregarCountryMap()),
     enriquecimento: indexarEnrichment(),
-    revisoes: carregarAvaliacaoProjetos(),
+    revisoes: await carregarTriagem(),
     chaves: new Map((await fetchProjetosChave()).map((p) => [p.id, p])),
   };
 }

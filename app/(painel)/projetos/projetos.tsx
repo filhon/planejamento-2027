@@ -33,7 +33,8 @@ import { ROTULO_TIPO, Tipo } from "./tipo";
  * pasta é "abrir a pasta do Fulano": filtra a tabela abaixo para os projetos
  * dele, na ordem em que ele vai apresentar.
  *
- * A triagem sai de data/projetos_avaliacao.csv (`npm run avaliacao:regen`) —
+ * A triagem sai do Firestore (`triagem`, gerada por `npm run avaliacao:regen`
+ * e editada na pasta do projeto) —
  * a origem não liga um projeto de uma remessa ao da anterior.
  */
 
@@ -312,8 +313,8 @@ export default function Projetos({
         o mesmo projeto na remessa anterior, {ROTULO_TIPO.novo} quando não achou
         e &quot;{ROTULO_TIPO.revisar}&quot; quando o casamento é plausível mas
         não conclusivo. O sistema de submissão não liga uma remessa à outra: a
-        decisão final é da equipe, na planilha{" "}
-        <code>data/projetos_avaliacao.csv</code>, e o painel obedece a ela.
+        decisão final é da equipe, em &quot;Editar triagem&quot; na pasta de
+        cada projeto, e o painel obedece a ela.
       </p>
     </>
   );

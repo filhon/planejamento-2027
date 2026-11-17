@@ -11,7 +11,7 @@ import type { TipoRevisao } from "./types";
  * com o título reescrito ("Venha o Teu Reino" → "VENHA A TEU REINO").
  *
  * Por isso aqui é SUGESTÃO, não veredito: o casamento propõe, a equipe confirma
- * em data/projetos_avaliacao.csv. O que fica no meio vira "revisar" — e o painel
+ * na triagem (Firestore, editada na pasta do projeto). O que fica no meio vira "revisar" — e o painel
  * cobra essas pendências em vez de fingir que decidiu.
  *
  * Ver docs/fase5-projetos.md.

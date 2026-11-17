@@ -25,10 +25,25 @@ export default async function Page({
   if (!detalhe) notFound();
 
   const anterior = detalhe.anterior;
-  const [links, decisao] = await Promise.all([
+  const p = detalhe.projeto;
+  const [links, decisao, avaliadores, remessaAnterior] = await Promise.all([
     linksPrestacao(anterior ? [id, anterior.id] : [id]),
     lerDecisao(id),
+    dados.avaliadores(),
+    dados.projetos(p.ano - 1),
   ]);
+
+  // Opções de vínculo da triagem: os projetos da mesma instituição na remessa
+  // anterior, mais o vínculo já gravado (que pode ser de outra instituição) —
+  // fora da lista, o select o apagaria ao salvar outro campo.
+  const curado = p.revisao.projetoAnteriorIdCurado;
+  const anteriores = remessaAnterior
+    .filter(
+      (a) =>
+        (p.instituicaoId && a.instituicaoId === p.instituicaoId) ||
+        a.id === curado,
+    )
+    .map((a) => ({ id: a.id, titulo: a.titulo }));
 
   return (
     <Detalhe
@@ -41,6 +56,10 @@ export default async function Page({
         },
       }}
       decisao={decisao}
+      triagem={{
+        avaliadores: avaliadores.filter((a) => a.ativo).map((a) => a.nome),
+        anteriores,
+      }}
     />
   );
 }

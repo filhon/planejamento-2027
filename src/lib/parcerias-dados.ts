@@ -2,11 +2,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { parse } from "csv-parse/sync";
 import { carregarCandidatos } from "./painel-db";
-import {
-  carregarCountryMap,
-  DATA_DIR,
-  lerCsv,
-} from "./enrichment";
+import { carregarCountryMap, DATA_DIR, lerCsv } from "./enrichment";
 import { construirIndicePaises, dobrar, normalizarLocal } from "./geo";
 import {
   chaveMunicipio,

@@ -4,8 +4,15 @@ import Link from "next/link";
 import { useMemo } from "react";
 import { avaliavel, ehRenovacao } from "@/lib/agregar";
 import {
+  atribuir,
+  ENVELOPE,
+  montarCaixaAno,
+  receitaDoSistema,
+  type ChaveEnvelope,
+} from "@/lib/envelopes";
+import {
+  FORA_DA_DIRETRIZ,
   montarDiretriz,
-  rotuloRubrica,
   type LinhaDiretriz,
 } from "@/lib/rubricas";
 import type { OrcamentoCiclo, ProjetoCiclo } from "@/lib/types";
@@ -17,16 +24,15 @@ import {
   num,
   pct,
   plural,
-  rotuloCategoria,
   setaVariacao,
 } from "./formato";
-import { Secao } from "./ui";
+import { Regua, Secao } from "./ui";
 
 /**
  * Resumo Executivo: a tela de abertura da reunião (Fase 12).
  *
  * Responde, nesta ordem, as três perguntas da diretriz orçamentária do
- * presidente: **cabe no teto?**, **a divisão por rubrica bate?** e **o que é
+ * presidente: **cabe no teto?**, **a divisão por envelope bate?** e **o que é
  * renovação e o que é projeto novo** (com nome, para a mesa poder cobrar).
  *
  * Base: os projetos **avaliáveis da remessa inteira**. Rejeitado, rascunho e
@@ -42,28 +48,6 @@ const somar = (ps: ProjetoCiclo[], f: (p: ProjetoCiclo) => number | null) =>
 
 /** Quantos nomes cada lista curta mostra; o resto está em Projetos & Pastas. */
 const LIMITE = 10;
-
-/**
- * Régua de desvio: barra divergente com o zero no meio. À direita (laranja) a
- * rubrica pede ACIMA do envelope da diretriz, à esquerda (azul) fica abaixo.
- *
- * O mesmo dado está codificado três vezes (lado, cor e a palavra na célula ao
- * lado) porque esta página sai em fotocópia preto e branco e é lida a três
- * metros na TV. A escala é comum a todas as linhas (o maior desvio ocupa a
- * meia-largura), com piso de 5 p.p. para desvio pequeno não parecer grande.
- */
-function Regua({ pp, escala }: { pp: number; escala: number }) {
-  const largura = Math.min(50, (Math.abs(pp) / escala) * 50);
-  if (largura < 0.5) return <span className="regua" aria-hidden="true" />;
-  return (
-    <span className="regua" aria-hidden="true">
-      <i
-        className={pp > 0 ? "acima" : "abaixo"}
-        style={{ width: `${largura}%` }}
-      />
-    </span>
-  );
-}
 
 /**
  * "R$ 591.122 acima do seu envelope": a conta que a mesa faria de cabeça.
@@ -83,8 +67,21 @@ function excedente(linha: LinhaDiretriz, curto = false): string {
 
 export default function Resumo({
   orcamentos,
+  envelopes,
+  caixas,
 }: {
   orcamentos: Record<number, OrcamentoCiclo>;
+  /** Envelope escolhido pela mesa, por projeto (Firestore, tela Envelopes). */
+  envelopes: Record<string, ChaveEnvelope | null>;
+  /** O que a mesa digitou no caixa da tela Envelopes, por ano. */
+  caixas: Record<
+    number,
+    {
+      receita: (number | null)[] | null;
+      admin: (number | null)[] | null;
+      saldoInicial: number | null;
+    }
+  >;
 }) {
   const { ano, anoAnterior, ciclos, todos, projetos, filtroAtivo, aplicar } =
     usePainel();
@@ -110,8 +107,35 @@ export default function Resumo({
   );
 
   const orcamento = orcamentos[ano];
-  const teto = orcamento?.tetoTotal ?? null;
-  const diretriz = useMemo(() => montarDiretriz(naMesa, teto), [naMesa, teto]);
+  /**
+   * A base dos percentuais é a RECEITA (a mesma do caixa da tela Envelopes), não
+   * o teto do sistema, que já vem sem o administrativo: com a fatia de 9,4% na
+   * diretriz, aplicar sobre o teto descontava o administrativo duas vezes.
+   */
+  const caixa = useMemo(
+    () =>
+      montarCaixaAno(
+        receitaDoSistema(orcamento),
+        caixas[ano] ?? { receita: null, admin: null, saldoInicial: null },
+      ),
+    [orcamento, caixas, ano],
+  );
+  const teto = caixa.receita;
+  /** O mesmo envelope da tela Envelopes: mesa › avaliação › categoria. */
+  const chaveDe = useMemo(
+    () => (p: ProjetoCiclo) => atribuir(p, envelopes[p.id]).chave,
+    [envelopes],
+  );
+  const rotuloEnvelope = (p: ProjetoCiclo) => {
+    const c = chaveDe(p);
+    return c ? ENVELOPE[c].rotulo : "Sem envelope";
+  };
+  // Nada digitado = reserva (montarDiretriz marca como "estimado").
+  const adminDigitado = caixa.adminDigitado.some(Boolean) ? caixa.admin : null;
+  const diretriz = useMemo(
+    () => montarDiretriz(naMesa, teto, chaveDe, adminDigitado),
+    [naMesa, teto, chaveDe, adminDigitado],
+  );
 
   /**
    * Régua histórica: quanto o conselho APROVOU em cada rubrica na remessa
@@ -119,20 +143,23 @@ export default function Resumo({
    * repete a prática ou a corrige. (Em 2026 não há um único aprovado; sem esta
    * coluna a tabela não teria nenhuma referência de realização.)
    */
-  const antes = useMemo(() => montarDiretriz(naMesaAntes, null), [naMesaAntes]);
+  const antes = useMemo(
+    () => montarDiretriz(naMesaAntes, null, chaveDe),
+    [naMesaAntes, chaveDe],
+  );
   const aprovadoAntes = useMemo(() => {
     const total = somar(naMesaAntes, (p) => p.aprovado);
     const porChave = new Map(
       antes.linhas.map((l) => [
         l.chave,
         somar(
-          naMesaAntes.filter((p) => l.categorias.includes(p.categoria)),
+          naMesaAntes.filter((p) => chaveDe(p) === l.chave),
           (p) => p.aprovado,
         ),
       ]),
     );
     return { total, porChave };
-  }, [antes, naMesaAntes]);
+  }, [antes, naMesaAntes, chaveDe]);
 
   const renovacoes = useMemo(() => naMesa.filter(ehRenovacao), [naMesa]);
   const novos = useMemo(
@@ -150,21 +177,21 @@ export default function Resumo({
    */
   const porRubrica = useMemo(
     () =>
-      diretriz.linhas.map((l) => {
-        const ren = renovacoes.filter((p) =>
-          l.categorias.includes(p.categoria),
-        );
-        const comBase = ren.filter(
-          (p) => (p.revisao.recebidoAnterior ?? 0) > 0,
-        );
-        return {
-          linha: l,
-          recebido: somar(ren, (p) => p.revisao.recebidoAnterior),
-          pedidoComBase: somar(comBase, (p) => p.solicitado),
-          recebidoComBase: somar(comBase, (p) => p.revisao.recebidoAnterior),
-        };
-      }),
-    [diretriz, renovacoes],
+      diretriz.linhas
+        .filter((l) => !l.semProjetos)
+        .map((l) => {
+          const ren = renovacoes.filter((p) => chaveDe(p) === l.chave);
+          const comBase = ren.filter(
+            (p) => (p.revisao.recebidoAnterior ?? 0) > 0,
+          );
+          return {
+            linha: l,
+            recebido: somar(ren, (p) => p.revisao.recebidoAnterior),
+            pedidoComBase: somar(comBase, (p) => p.solicitado),
+            recebidoComBase: somar(comBase, (p) => p.revisao.recebidoAnterior),
+          };
+        }),
+    [diretriz, renovacoes, chaveDe],
   );
   const totalRen = {
     pedido: somar(renovacoes, (p) => p.solicitado),
@@ -198,13 +225,17 @@ export default function Resumo({
   /** Sem ciclo anterior (ou sem nada aprovado nele) a coluna histórica sai. */
   const temAntes = anoAnterior !== undefined && aprovadoAntes.total > 0;
 
+  // O pedido da diretriz inclui os custos administrativos (digitados ou a
+  // reserva); a frase "N projetos pedem" e a variação anual são só dos projetos.
+  const pedidoProjetos = somar(naMesa, (p) => p.solicitado);
+  const admin = diretriz.linhas.find((l) => l.semProjetos);
   const vao = teto === null ? null : diretriz.pedido - teto;
   const escala = Math.max(
     0.05,
     ...diretriz.linhas.map((l) => Math.abs(l.desvioPp)),
   );
-  const variacaoAno =
-    antes.pedido > 0 ? diretriz.pedido / antes.pedido - 1 : null;
+  const pedidoAntes = somar(naMesaAntes, (p) => p.solicitado);
+  const variacaoAno = pedidoAntes > 0 ? pedidoProjetos / pedidoAntes - 1 : null;
 
   if (naMesa.length === 0) {
     return (
@@ -223,18 +254,19 @@ export default function Resumo({
       <div className="veredito">
         <h1>
           <b>{plural(diretriz.projetos, "projeto", "projetos")}</b> na mesa
-          pedem <b>{fmtMoeda.format(diretriz.pedido)}</b>
+          pedem <b>{fmtMoeda.format(pedidoProjetos)}</b>
           {vao === null ? (
-            <> (a remessa não tem teto confiável para comparar).</>
-          ) : vao > 0 ? (
-            <>
-              , <b>{fmtMoeda.format(vao)} acima</b> do teto de{" "}
-              {fmtMoeda.format(teto ?? 0)}.
-            </>
+            <> (a remessa não tem receita conhecida para comparar).</>
           ) : (
             <>
-              , {fmtMoeda.format(-vao)} abaixo do teto de{" "}
-              {fmtMoeda.format(teto ?? 0)}, que cobre o pedido inteiro.
+              ; com os custos administrativos
+              {admin?.estimado ? " (reserva)" : ""}, a conta fica{" "}
+              {vao > 0 ? (
+                <b>{fmtMoeda.format(vao)} acima</b>
+              ) : (
+                <>{fmtMoeda.format(-vao)} abaixo</>
+              )}{" "}
+              da receita de {fmtMoeda.format(teto ?? 0)}.
             </>
           )}
         </h1>
@@ -242,7 +274,7 @@ export default function Resumo({
           São {plural(renovacoes.length, "renovação", "renovações")} e{" "}
           {plural(novos.length, "projeto novo", "projetos novos")}.{" "}
           {diretriz.acima === null ? (
-            <>Na divisão da diretriz, todas as rubricas estão na faixa.</>
+            <>Na divisão da diretriz, todos os envelopes estão na faixa.</>
           ) : (
             <>
               Na divisão da diretriz, <b>{diretriz.acima.rotulo}</b> pede{" "}
@@ -271,7 +303,7 @@ export default function Resumo({
                 {diretriz.remanejar > 0 && (
                   <>
                     <b>remanejar {fmtMoeda.format(diretriz.remanejar)}</b> entre
-                    rubricas
+                    envelopes
                   </>
                 )}
                 .
@@ -291,18 +323,23 @@ export default function Resumo({
 
       <div className="grade">
         <Secao
-          titulo="Rubricas da diretriz"
-          sub="Envelope = a diretriz aplicada ao teto da remessa. Desvio = pedido menos envelope; a régua mostra o mesmo desvio, em pontos do teto: à esquerda abaixo do envelope, à direita acima."
+          titulo="Envelopes da diretriz"
+          sub="Limite = a diretriz aplicada à receita da remessa (o administrativo é uma das seis fatias). Desvio = pedido menos limite; a régua mostra o mesmo desvio, em pontos da receita: à esquerda abaixo do limite, à direita acima. Caixa mês a mês, envelope por projeto e ajustes ficam na tela Envelopes."
           largura="cheia"
+          acoes={
+            <Link className="botao-claro" href="/envelopes">
+              Abrir Envelopes →
+            </Link>
+          }
         >
           <table className="tabela">
             <thead>
               <tr>
-                <th>Rubrica</th>
+                <th>Envelope</th>
                 <th className="n">Projetos</th>
                 <th className="n">Pedido</th>
                 <th className="n">Diretriz</th>
-                <th className="n">Envelope do teto</th>
+                <th className="n">Limite</th>
                 <th className="n">Desvio</th>
                 <th>Abaixo ◂ ▸ Acima</th>
                 {temAntes && <th className="n">Aprovado em {anoAnterior}</th>}
@@ -315,29 +352,33 @@ export default function Resumo({
                   <tr key={l.chave}>
                     <td>
                       <b>{l.rotulo}</b>
-                      <span className="celula-sub">
-                        {l.categorias.map(rotuloCategoria).join(" · ")}
-                        {l.nota && `. ${l.nota}`}
-                      </span>
+                      <span className="celula-sub">{l.criterio}</span>
                     </td>
                     <td className="n">
-                      <Link
-                        className="link-projeto"
-                        href="/projetos"
-                        title="Abrir estes projetos em Projetos & Pastas"
-                        onClick={irPara({ categoria: l.categorias })}
-                      >
-                        {fmtInt.format(l.projetos)}
-                      </Link>
-                      <span className="celula-sub">
-                        {fmtInt.format(l.renovacoes)} renov. ·{" "}
-                        {fmtInt.format(l.novos)} novos
-                      </span>
+                      {l.semProjetos ? (
+                        "—"
+                      ) : (
+                        <>
+                          <Link
+                            className="link-projeto"
+                            href={`/envelopes?envelope=${l.chave === FORA_DA_DIRETRIZ ? "sem" : l.chave}`}
+                            title="Abrir estes projetos na tela Envelopes"
+                          >
+                            {fmtInt.format(l.projetos)}
+                          </Link>
+                          <span className="celula-sub">
+                            {fmtInt.format(l.renovacoes)} renov. ·{" "}
+                            {fmtInt.format(l.novos)} novos
+                          </span>
+                        </>
+                      )}
                     </td>
                     <td className="n">
                       {fmtMoeda.format(l.pedido)}
                       <span className="celula-sub">
-                        {pct(l.fracao)} do pedido
+                        {l.estimado
+                          ? "reserva: não preenchido"
+                          : `${pct(l.fracao)} do pedido`}
                       </span>
                     </td>
                     <td className="n">{pct(l.alvo)}</td>
@@ -380,7 +421,8 @@ export default function Resumo({
                   {variacaoAno !== null && (
                     <span className="celula-sub">
                       {variacaoAno >= 0 ? "▲" : "▼"}{" "}
-                      {pct(Math.abs(variacaoAno))} sobre {anoAnterior}
+                      {pct(Math.abs(variacaoAno))} nos projetos sobre{" "}
+                      {anoAnterior}
                     </span>
                   )}
                 </td>
@@ -411,10 +453,12 @@ export default function Resumo({
             da Remessa {ano}. Rejeitado, rascunho e cancelado ficam fora porque
             não disputam o teto.{" "}
             {teto !== null &&
-              `O teto vem da linha de orçamento marcada como "${orcamento?.fonteOrcamento.status ?? "sem status"}" (${orcamento?.fonteOrcamento.criterio}).`}{" "}
-            Os percentuais são a diretriz do presidente; o de-para rubrica →
-            categoria é leitura nossa das categorias do sistema de submissão,
-            que não tem o conceito de rubrica.
+              `A receita vem da linha de orçamento marcada como "${orcamento?.fonteOrcamento.status ?? "sem status"}" (${orcamento?.fonteOrcamento.criterio}): faturamento × doação × margem, antes do administrativo${caixa.receitaDigitada.some(Boolean) ? ", com os meses digitados na tela Envelopes" : ""}.`}{" "}
+            Os percentuais são a diretriz definida na reunião. O envelope de
+            cada projeto é o escolhido pela mesa na tela Envelopes; sem escolha,
+            a sugestão pelo conteúdo ou pela categoria do sistema de submissão.
+            Os custos administrativos, enquanto não digitados, reservam o
+            próprio limite.
           </p>
 
           {(orcamento?.fonteOrcamento.alertas.length ?? 0) > 0 && (
@@ -427,7 +471,7 @@ export default function Resumo({
         </Secao>
 
         <Secao
-          titulo="Renovações e projetos novos, por rubrica"
+          titulo="Renovações e projetos novos, por envelope"
           sub={`As ${plural(renovacoes.length, "renovação", "renovações")} pedem ${fmtMoeda.format(totalRen.pedido)} tendo recebido ${fmtMoeda.format(totalRen.recebido)} na remessa anterior. O vínculo com a remessa anterior é derivado fora do sistema de submissão, que não liga um ciclo ao outro.`}
           largura="cheia"
           acoes={
@@ -456,7 +500,7 @@ export default function Resumo({
           <table className="tabela">
             <thead>
               <tr>
-                <th>Rubrica</th>
+                <th>Envelope</th>
                 <th className="n">Renovações</th>
                 <th className="n">Pedem</th>
                 <th className="n">Receberam antes</th>
@@ -520,7 +564,7 @@ export default function Resumo({
                 <tr>
                   <th>Projeto</th>
                   <th>Instituição</th>
-                  <th>Rubrica</th>
+                  <th>Envelope</th>
                   <th className="n">Recebeu antes</th>
                   <th className="n">Pede agora</th>
                   <th className="n">Variação</th>
@@ -535,7 +579,7 @@ export default function Resumo({
                       </Link>
                     </td>
                     <td>{p.instituicaoNome ?? "—"}</td>
-                    <td className="rotulo">{rotuloRubrica(p.categoria)}</td>
+                    <td className="rotulo">{rotuloEnvelope(p)}</td>
                     <td className="n">
                       {fmtMoeda.format(p.revisao.recebidoAnterior ?? 0)}
                     </td>
@@ -574,7 +618,7 @@ export default function Resumo({
                 <tr>
                   <th>Projeto</th>
                   <th>Instituição</th>
-                  <th>Rubrica</th>
+                  <th>Envelope</th>
                   <th>País</th>
                   <th>Pasta</th>
                   <th className="n">Pede</th>
@@ -589,7 +633,7 @@ export default function Resumo({
                       </Link>
                     </td>
                     <td>{p.instituicaoNome ?? "—"}</td>
-                    <td className="rotulo">{rotuloRubrica(p.categoria)}</td>
+                    <td className="rotulo">{rotuloEnvelope(p)}</td>
                     <td>{p.local.nomePt}</td>
                     <td>{p.revisao.responsavel ?? "—"}</td>
                     <td className="n">{fmtMoeda.format(p.solicitado)}</td>

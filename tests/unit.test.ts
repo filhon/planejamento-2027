@@ -57,11 +57,30 @@ import {
   similaridadeTitulo,
   sugerirVinculo,
 } from "../src/lib/recorrencia";
+import { FORA_DA_DIRETRIZ, montarDiretriz } from "../src/lib/rubricas";
 import {
-  FORA_DA_DIRETRIZ,
-  montarDiretriz,
-  rotuloRubrica,
-} from "../src/lib/rubricas";
+  atribuir,
+  AVALIACAO,
+  compararNaLista,
+  grupoNaLista,
+  distribuir as distribuirMeses,
+  ehChaveDeProjeto,
+  ENVELOPES,
+  linhaProjeto,
+  mesesDaParcela,
+  mesesValidos,
+  montarQuadro,
+  PADRAO_CATEGORIA,
+  somaMeses,
+  ZERO_MESES,
+  fluxo,
+  montarCaixaAno,
+  mesesComVazio,
+  mesesParaTotal,
+  posicoes,
+  receitaDoSistema,
+  tirarDoMes,
+} from "../src/lib/envelopes";
 import { crc32, planilha } from "../src/lib/xlsx";
 import { lerXlsx } from "../src/lib/xlsx-ler";
 import { deflateRawSync } from "node:zlib";
@@ -1532,7 +1551,7 @@ test("geometria do Brasil: 27 UFs com path e projeção dentro do viewBox", asyn
   );
 });
 
-// ------------------------------ diretriz orçamentária por rubrica (Fase 12)
+// ------------------------------ envelopes da diretriz (Fases 12 e 15)
 
 const pedido = (
   id: string,
@@ -1541,107 +1560,319 @@ const pedido = (
   tipo: "novo" | "renovacao" = "novo",
 ) => triado(id, { tipo }, { categoria, solicitado });
 
-test("rubricas: envelope vem do teto, desvio sai em reais e em pontos", () => {
+test("envelopes: os seis somam 100% e misericórdia nunca é padrão", () => {
+  assert.ok(Math.abs(ENVELOPES.reduce((s, e) => s + e.alvo, 0) - 1) < 1e-9);
+  assert.ok(!Object.values(PADRAO_CATEGORIA).includes("misericordia"));
+  assert.ok(!Object.values(AVALIACAO).some(([c]) => c === "misericordia"));
+  assert.equal(PADRAO_CATEGORIA["saude"], "missoes");
+  assert.equal(PADRAO_CATEGORIA["outros"], "missoes");
+});
+
+test("envelopes: mesa › avaliação pelo conteúdo › categoria", () => {
+  const avaliado = Object.keys(AVALIACAO)[0]!;
+  const [chave, motivo] = AVALIACAO[avaliado]!;
+  assert.deepEqual(atribuir({ id: avaliado, categoria: "educacao" }), {
+    chave,
+    origem: "avaliacao",
+    motivo,
+  });
+  assert.equal(
+    atribuir({ id: avaliado, categoria: "educacao" }, "misericordia").origem,
+    "mesa",
+  );
+  assert.equal(atribuir({ id: "x", categoria: "saude" }).chave, "missoes");
+  assert.deepEqual(atribuir({ id: "x", categoria: "capelania" }), {
+    chave: null,
+    origem: "sem",
+    motivo: null,
+  });
+});
+
+test("envelopes: a divisão em centavos fecha a soma, e mês não informado vira 12", () => {
+  assert.deepEqual(
+    distribuirMeses(100, [1, 2, 3]).slice(0, 4),
+    [33.34, 33.33, 33.33, 0],
+  );
+  assert.equal(somaMeses(distribuirMeses(1000.01, [2, 5, 7])), 1000.01);
+  assert.ok(distribuirMeses(1200, []).every((v) => v === 100));
+  assert.deepEqual(mesesDaParcela(["01", "03", "03", "13", "x"]), [1, 3]);
+  assert.deepEqual(mesesDaParcela(null), []);
+});
+
+test("envelopes: precedência da proposta (pasta negativa › mesa › pasta › sistema › pedido)", () => {
+  const p = {
+    solicitado: 1200,
+    aprovado: 600,
+    status: "aprovado",
+    mesesParcelas: ["01", "02"],
+  };
+  const ajuste = ZERO_MESES();
+  ajuste[0] = 50;
+
+  assert.equal(
+    linhaProjeto(p, ajuste, { situacao: "reprovado", valorAprovado: null })
+      .fonte,
+    "zerado",
+  );
+  assert.equal(
+    somaMeses(
+      linhaProjeto(p, ajuste, { situacao: "adiado", valorAprovado: null })
+        .propostaMeses,
+    ),
+    0,
+  );
+  assert.equal(linhaProjeto(p, ajuste, null).fonte, "ajuste");
+  const decisao = linhaProjeto(p, null, {
+    situacao: "aprovado",
+    valorAprovado: 800,
+  });
+  assert.equal(decisao.fonte, "decisao");
+  assert.deepEqual(decisao.propostaMeses.slice(0, 3), [400, 400, 0]);
+  assert.equal(linhaProjeto(p, null, null).fonte, "sistema");
+  const pedidoSo = linhaProjeto({ ...p, status: "em-validacao" }, null, null);
+  assert.equal(pedidoSo.fonte, "pedido");
+  assert.deepEqual(pedidoSo.pedidoMeses.slice(0, 3), [600, 600, 0]);
+  assert.equal(pedidoSo.mesesInformados, true);
+});
+
+test("lista: aprovados › votados › sem voto › fora da proposta, e a nota ordena dentro", () => {
+  const base = {
+    status: "em-validacao",
+    avaliacoes: 0,
+    notaMedia: null as number | null,
+    notaMediana: null as number | null,
+    solicitado: 0,
+  };
+  const com = (
+    id: string,
+    p: Partial<typeof base>,
+    pasta: string | null = null,
+  ) => {
+    const x = { ...base, ...p, id };
+    return { ...x, grupo: grupoNaLista(x, pasta) };
+  };
+  const lista = [
+    com("grande", { solicitado: 900 }),
+    com("nota4", { avaliacoes: 6, notaMedia: 4, solicitado: 10 }),
+    com("aprovSemNota", { status: "aprovado", solicitado: 50 }),
+    com("nota5", { avaliacoes: 3, notaMedia: 5, solicitado: 10 }),
+    com("pastaAprovou", { avaliacoes: 2, notaMedia: 3 }, "aprovado-ressalvas"),
+    com(
+      "adiado",
+      { status: "aprovado", avaliacoes: 7, notaMedia: 5 },
+      "adiado",
+    ),
+    com("pequeno", { solicitado: 100 }),
+  ].sort(compararNaLista);
+  assert.deepEqual(
+    lista.map((l) => l.id),
+    [
+      "pastaAprovou",
+      "aprovSemNota",
+      "nota5",
+      "nota4",
+      "grande",
+      "pequeno",
+      "adiado",
+    ],
+  );
+  assert.deepEqual(
+    lista.map((l) => l.grupo),
+    [0, 0, 1, 1, 2, 2, 3],
+  );
+});
+
+test("envelopes: quadro soma por envelope, administrativo e projeto sem envelope", () => {
+  const m = (v: number) => distribuirMeses(v, []);
+  const q = montarQuadro(
+    [
+      { chave: "missoes", pedido: 600, propostaMeses: m(600) },
+      { chave: "construcao", pedido: 400, propostaMeses: m(360) },
+      { chave: null, pedido: 120, propostaMeses: m(120) },
+    ],
+    m(94),
+    1000,
+  );
+  const por = new Map(q.linhas.map((l) => [l.chave, l]));
+  assert.equal(por.get("missoes")!.saldo, -100);
+  assert.equal(por.get("construcao")!.proposta, 360);
+  assert.equal(por.get("construcao")!.pedido, 400);
+  assert.equal(por.get("administrativo")!.proposta, 94);
+  assert.equal(por.get(null)!.rotulo, "Sem envelope");
+  assert.equal(por.get(null)!.limite, null);
+  assert.equal(q.total.proposta, 1174);
+  assert.equal(q.total.saldo, -174);
+  assert.equal(q.total.projetos, 3);
+});
+
+test("envelopes: mês a mês vindo do cliente é validado", () => {
+  const onze = ZERO_MESES().slice(1);
+  assert.equal(mesesValidos([1, 2]), null);
+  assert.equal(mesesValidos([...onze, -1]), null);
+  assert.equal(mesesValidos([...onze, "abc"]), null);
+  assert.equal(mesesValidos([...onze, "10.005"])!.at(-1), 10.01);
+  assert.ok(ehChaveDeProjeto("misericordia"));
+  assert.ok(!ehChaveDeProjeto("administrativo"));
+});
+
+test("diretriz: limite vem do teto, administrativo não digitado reserva o próprio limite", () => {
   const d = montarDiretriz(
     [
       pedido("a", "missoes-transculturais", 400, "renovacao"),
-      pedido("b", "missoes-nacionais", 100),
-      pedido("c", "construcao-reforma", 300),
-      pedido("d", "educacao", 50),
-      pedido("e", "projetos-sociais-cristaos", 150),
+      pedido("b", "saude", 100),
+      pedido("c", "construcao-reforma", 250),
+      pedido("d", "educacao", 68),
+      pedido("e", "projetos-sociais-cristaos", 100),
     ],
     1000,
   );
-
-  assert.equal(d.pedido, 1000);
-  assert.equal(d.projetos, 5);
-
   const por = new Map(d.linhas.map((l) => [l.chave, l]));
 
-  // Missões bate a diretriz na mosca: 50% do pedido para um alvo de 50%.
   const missoes = por.get("missoes")!;
   assert.equal(missoes.pedido, 500);
-  assert.equal(missoes.envelope, 500);
   assert.equal(missoes.desvio, 0);
-  assert.equal(missoes.desvioPp, 0);
-  assert.equal(missoes.projetos, 2);
   assert.equal(missoes.renovacoes, 1);
-  assert.equal(missoes.novos, 1);
-  assert.equal(missoes.pedidoRenovacoes, 400);
   assert.equal(missoes.pedidoNovos, 100);
 
-  // Social pede o triplo do que a diretriz reserva.
-  const social = por.get("social")!;
-  assert.equal(social.envelope, 50);
-  assert.equal(social.desvio, 100);
-  assert.ok(Math.abs(social.desvioPp - 0.1) < 1e-9);
+  const admin = por.get("administrativo")!;
+  assert.equal(admin.estimado, true);
+  assert.ok(Math.abs(admin.pedido - 94) < 1e-9);
+  assert.ok(Math.abs(d.pedido - 1012) < 1e-9);
+  assert.ok(Math.abs(d.cortar! - 12) < 1e-9);
 
-  // Outros fica abaixo — o desvio negativo não entra no remanejamento.
-  assert.equal(por.get("outros")!.desvio, -150);
-  assert.equal(d.remanejar, 150); // 100 do social + 50 da construção
-
-  assert.equal(d.acima?.chave, "social");
-  assert.equal(d.abaixo?.chave, "outros");
-
-  // Sem "fora das rubricas" quando toda categoria está mapeada.
-  assert.equal(d.linhas.length, 4);
+  // Sociais pede 32 acima; misericórdia tem 20 de folga; a reserva não entra.
+  assert.ok(Math.abs(d.remanejar! - 20) < 1e-9);
+  assert.equal(d.acima?.chave, "sociais");
+  assert.equal(d.abaixo?.chave, "misericordia");
+  for (const l of d.linhas)
+    assert.equal(
+      Math.sign(Math.round(l.desvioPp * 1e9)),
+      Math.sign(Math.round((l.desvio ?? 0) * 1e9)),
+      l.chave,
+    );
+  assert.equal(d.linhas.length, 6);
 });
 
-test("rubricas: pedido acima do teto separa cortar de remanejar, e a régua nunca contradiz o desvio", () => {
-  // Pedido 1100 para um teto de 1000: vão de 100. Envelopes: 500 · 250 · 200 · 50.
+test("diretriz: administrativo digitado conta como pedido; envelope vem do chamador", () => {
   const d = montarDiretriz(
-    [
-      pedido("a", "missoes-nacionais", 495), // 45,0% do pedido, mas 495 < 500: abaixo
-      pedido("b", "construcao-reforma", 255), // 255 > 250: acima do envelope
-      pedido("c", "educacao", 300), // 300 > 200: acima
-      pedido("d", "projetos-sociais-cristaos", 50), // 50 = 50
-    ],
+    [pedido("a", "educacao", 300), pedido("b", "capelania", 50)],
     1000,
+    (p) => (p.id === "a" ? "missoes" : (PADRAO_CATEGORIA[p.categoria] ?? null)),
+    120,
   );
   const por = new Map(d.linhas.map((l) => [l.chave, l]));
-
-  assert.equal(d.cortar, 100);
-  // Excesso 5 + 100 = 105; folga 5 (Missões). Mover só cabe o que há de folga.
-  assert.equal(d.remanejar, 5);
-
-  // O sinal do desvio em pontos é sempre o do desvio em reais: com teto, os dois
-  // saem da mesma conta (pedido − teto × alvo).
-  for (const l of d.linhas) {
-    assert.equal(Math.sign(l.desvioPp), Math.sign(l.desvio ?? 0), l.chave);
-  }
-  assert.ok(Math.abs(por.get("outros")!.desvioPp - 0.1) < 1e-9);
+  assert.equal(por.get("missoes")!.pedido, 300);
+  assert.equal(por.get("educacao")!.pedido, 0);
+  assert.equal(por.get("administrativo")!.estimado, false);
+  assert.equal(por.get("administrativo")!.pedido, 120);
+  const fora = por.get(FORA_DA_DIRETRIZ)!;
+  assert.equal(fora.pedido, 50);
+  assert.equal(fora.desvio, 50);
+  assert.equal(d.pedido, 470);
 });
 
-test("rubricas: cabendo no teto não há o que cortar, só remanejar", () => {
-  const d = montarDiretriz(
-    [pedido("a", "missoes-nacionais", 300), pedido("b", "educacao", 400)],
-    1000,
+test("caixa: receita vem do sistema antes do administrativo (sem descontar duas vezes)", () => {
+  const sistema = {
+    faturamento: 385_000_000,
+    porcentagemDoacao: 5,
+    margemSeguranca: 90,
+    custosAdministrativos: 1_750_000,
+    tetoTotal: 15_575_000,
+  };
+  assert.equal(receitaDoSistema(sistema), 17_325_000);
+  assert.equal(
+    receitaDoSistema({ ...sistema, faturamento: null }),
+    15_575_000 + 1_750_000,
   );
-  assert.equal(d.cortar, 0);
-  // Outros pede 400 para um envelope de 200: 200 de excesso, e sobra folga de sobra.
-  assert.equal(d.remanejar, 200);
+  assert.equal(receitaDoSistema(null), null);
 });
 
-test("categoria que a diretriz não nomeia soma numa linha própria", () => {
-  const d = montarDiretriz(
-    [pedido("a", "missoes-nacionais", 500), pedido("b", "capelania", 500)],
-    1000,
+test("caixa: mês não digitado vale o padrão, e digitar um não apaga a reserva dos outros", () => {
+  const admin: (number | null)[] = Array(12).fill(null);
+  admin[0] = 137_210;
+  const receita: (number | null)[] = Array(12).fill(null);
+  receita[2] = 0;
+  const c = montarCaixaAno(1200, { receita, admin, saldoInicial: null });
+  assert.equal(c.receitaMeses[0], 100);
+  assert.equal(c.receitaMeses[2], 0);
+  assert.equal(c.receitaDigitada[2], true);
+  assert.equal(c.receita, 1100);
+  assert.equal(c.adminMeses[0], 137_210);
+  assert.equal(c.adminDigitado[0], true);
+  // A reserva é 9,4% da receita de cada mês, inclusive do que foi digitado.
+  assert.equal(c.adminMeses[1], 9.4);
+  assert.equal(c.adminMeses[2], 0);
+  assert.equal(c.saldoInicial, 0);
+  assert.equal(
+    montarCaixaAno(null, { receita: null, admin: null, saldoInicial: 5 })
+      .receita,
+    null,
   );
-  const fora = d.linhas.find((l) => l.chave === FORA_DA_DIRETRIZ)!;
-  assert.equal(fora.pedido, 500);
-  assert.equal(fora.alvo, 0);
-  assert.deepEqual(fora.categorias, ["capelania"]);
-  // A diretriz não reserva nada para ela: o pedido inteiro é excesso.
-  assert.equal(fora.desvio, 500);
-  assert.equal(d.acima?.chave, FORA_DA_DIRETRIZ);
+});
+
+test("caixa: fluxo mês a mês leva o acumulado adiante", () => {
+  const f = fluxo(
+    50,
+    [100, 100, 100, ...ZERO_MESES().slice(3)],
+    [
+      [80, 150, 20, ...ZERO_MESES().slice(3)],
+      [10, 10, 10, ...ZERO_MESES().slice(3)],
+    ],
+  );
+  assert.deepEqual(f.saida.slice(0, 3), [90, 160, 30]);
+  assert.deepEqual(f.saldoMes.slice(0, 3), [10, -60, 70]);
+  assert.deepEqual(f.inicial.slice(0, 3), [50, 60, 0]);
+  assert.deepEqual(f.acumulado.slice(0, 3), [60, 0, 70]);
+});
+
+test("parcelas: adiar, redistribuir e cortar a diferença de um mês", () => {
+  const m = [0, 0, 4000, 0, 4000, 0, 4000, 0, 0, 0, 0, 0];
+  assert.deepEqual(
+    tirarDoMes(m, 2, 0, "adiar"),
+    [0, 0, 0, 4000, 4000, 0, 4000, 0, 0, 0, 0, 0],
+  );
+  assert.deepEqual(
+    tirarDoMes(m, 2, 1000, "redistribuir"),
+    [0, 0, 1000, 0, 5500, 0, 5500, 0, 0, 0, 0, 0],
+  );
+  assert.deepEqual(
+    tirarDoMes(m, 2, 0, "cortar"),
+    [0, 0, 0, 0, 4000, 0, 4000, 0, 0, 0, 0, 0],
+  );
+  // Dezembro não tem mês seguinte.
+  assert.equal(
+    tirarDoMes([...ZERO_MESES().slice(1), 10], 11, 0, "adiar"),
+    null,
+  );
+  // Único mês com parcela: redistribui em todos os outros, e o total fecha.
+  const so = tirarDoMes(
+    [1100, ...ZERO_MESES().slice(1)],
+    0,
+    0,
+    "redistribuir",
+  )!;
+  assert.equal(somaMeses(so), 1100);
+  assert.equal(so[0], 0);
+  assert.equal(so[1], 100);
+});
+
+test("parcelas: total vai para os meses que já têm parcela; posições empatam", () => {
+  assert.deepEqual(
+    mesesParaTotal([0, 5, 0, 5, ...ZERO_MESES().slice(4)], [1, 2, 3]),
+    [2, 4],
+  );
+  assert.deepEqual(mesesParaTotal(ZERO_MESES(), [1, 2, 3]), [1, 2, 3]);
+  assert.deepEqual(posicoes([5, 5, 5, 4.8, 4.8, 4]), [1, 1, 1, 4, 4, 6]);
+  assert.deepEqual(posicoes([null, null]), [1, 2]);
+  assert.deepEqual(mesesComVazio([null, ...ZERO_MESES().slice(1)])?.[0], null);
+  assert.equal(mesesComVazio([-1, ...ZERO_MESES().slice(1)]), null);
 });
 
 test("recorte vazio e ciclo sem teto não inventam desvio", () => {
   const vazio = montarDiretriz([], 1000);
-  assert.equal(vazio.pedido, 0);
-  assert.ok(vazio.linhas.every((l) => l.desvioPp === 0));
-  assert.equal(vazio.acima, null);
-  assert.equal(vazio.abaixo, null);
+  assert.ok(
+    vazio.linhas.filter((l) => !l.estimado).every((l) => l.pedido === 0),
+  );
 
   const semTeto = montarDiretriz(
     [pedido("a", "projetos-sociais-cristaos", 100)],
@@ -1650,11 +1881,7 @@ test("recorte vazio e ciclo sem teto não inventam desvio", () => {
   assert.equal(semTeto.remanejar, null);
   assert.equal(semTeto.cortar, null);
   assert.ok(semTeto.linhas.every((l) => l.envelope === null));
-  assert.ok(semTeto.linhas.every((l) => l.desvio === null));
-  // A aderência em pontos não depende do teto — é o que sobra quando ele falta.
-  assert.equal(semTeto.acima?.chave, "social");
-  assert.equal(rotuloRubrica("projetos-sociais-cristaos"), "Social");
-  assert.equal(rotuloRubrica("capelania"), "Fora das rubricas");
+  assert.equal(semTeto.acima?.chave, "sociais");
 });
 
 test("sessão: assinatura, vencimento, adulteração e lista fechada", async () => {

@@ -334,6 +334,41 @@ toca tipo/vínculo/observações. `backups/` está no `.gitignore` (votos
 individuais). Variável nova:
 `FIREBASE_SERVICE_ACCOUNT` — ver [`docs/publicacao.md`](docs/publicacao.md).
 
+**Fase 15 (envelopes da diretriz)** — `/envelopes`: a divisão do teto definida
+na reunião (**Missões 50 · Construção e reforma de igrejas 25 · Educação 6,8 ·
+Projetos sociais cristãos 6,8 · Social/misericórdia 2 · Custos administrativos
+9,4**) contra a remessa, com a lista dos projetos mês a mês (`meses_parcelas`),
+envelope e valores **editáveis** e gravados no Firestore (`envelopes`,
+`envelopes_admin`, com `historico`). Envelope = mesa › avaliação do conteúdo
+(`AVALIACAO`, com motivo) › categoria; saúde e "outros" vão para Missões;
+**misericórdia nunca é automática** (só não cristãos, sem evangelização).
+Proposta = decisão negativa na pasta (zera) › ajuste da mesa › valor da decisão
+› aprovado no sistema › pedido; o valor aprovado da pasta passa a ser a soma do
+mês a mês quando ele existe. Votados (aprovado ou com nota) sobem na lista pela
+nota média. Administrativo não digitado **reserva o próprio limite**. O
+**Resumo Executivo** passou a usar os mesmos envelopes; Parcerias desceu para
+"Mais". Regras puras em `src/lib/envelopes.ts` (testadas). Envio ao banco de
+projetos após a consolidação: ainda não feito. Manual:
+[`docs/fase15-envelopes.md`](docs/fase15-envelopes.md).
+
+**Fase 15b (caixa)** — os percentuais valem sobre a **receita** (faturamento ×
+doação × margem = R$ 17.325.000 em 2026), não sobre o teto do sistema, que já
+desconta o administrativo (descontava duas vezes). A tela abre com o **caixa
+mês a mês** (saldo inicial, receita e administrativo editáveis por mês, projetos
+por envelope, saldo do mês e acumulado; `envelopes_caixa/{ano}`), e baixar uma
+parcela pergunta na célula se a diferença vai para o mês seguinte, para os
+outros meses ou é cortada. Mês negativo oferece adiar em lote as parcelas dos
+projetos sem nota. Setas andam na grade; o ranking diz empate.
+
+**Fase 15c** — na lista de Envelopes o seletor de envelope foi para baixo do
+nome (rótulo curto), há coluna **Clas.**, a classificação é aprovados ›
+votados › sem voto › fora da proposta (decisão da pasta) e todo cabeçalho
+ordena (projeto A–Z, valores, cada mês, com "só com parcela no mês").
+⚠️ **Leituras do Firestore são tolerantes** (`tolerante`/`falhaDoBanco` em
+`painel-db.ts`): cota estourada ou banco fora não derrubam mais o painel;
+aparece um aviso e Envelopes fica só leitura. Cada carga de Envelopes/Resumo lê
+as coleções inteiras: cuidado com testes em loop no plano gratuito.
+
 **Próximo passo:** nada obrigatório. Em aberto, só se a equipe pedir: exportar PNG
 (hoje é PDF pela impressão), zoom/pan no mapa e ler .docx no visor (o
 descompactador já está lá; falta extrair o texto de `word/document.xml`).

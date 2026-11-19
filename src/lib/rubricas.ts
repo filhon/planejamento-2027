@@ -1,86 +1,49 @@
 import { agrupar, ehRenovacao } from "./agregar";
+import {
+  ENVELOPES,
+  PADRAO_CATEGORIA,
+  type ChaveEnvelope,
+  type Envelope,
+} from "./envelopes";
 import type { ProjetoCiclo } from "./types";
 
 /**
- * A DIRETRIZ ORÇAMENTÁRIA do presidente da associação (Fase 12).
+ * A DIRETRIZ ORÇAMENTÁRIA aplicada ao pedido (Resumo Executivo).
  *
- * O teto da remessa se divide em quatro rubricas, e a pergunta que abre a
- * reunião é uma só: **o que foi submetido cabe nessa divisão, e onde não cabe?**
- *
- * Duas coisas diferentes vivem aqui, e a tela diz qual é qual:
- *  - os **percentuais** são a diretriz, recebida pronta (25 · 50 · 20 · 5);
- *  - o **de-para rubrica → categoria** é leitura nossa das sete categorias de
- *    `cycle_projects.category`, porque a origem não conhece o conceito de
- *    rubrica. Mudar a divisão (ou o de-para) é editar esta tabela; a página
- *    mostra quais categorias compõem cada rubrica para a mesa poder contestar o
- *    de-para em voz alta, que é o único lugar onde isso se decide.
+ * Desde a Fase 15 a divisão é a dos ENVELOPES (`envelopes.ts`), e o envelope de
+ * cada projeto vem de quem chama (`chaveDe`): mesa › avaliação › categoria. O
+ * padrão, sem chamador, é só a categoria — serve à remessa anterior e aos testes.
  *
  * Regras puras, como `agregar.ts` e pela mesma razão: o cliente reagrega isto
  * quando o recorte muda.
  */
 
-export interface Rubrica {
-  chave: string;
-  rotulo: string;
-  /** Fração do teto que a diretriz destina à rubrica (as quatro somam 1). */
-  alvo: number;
-  /** Slugs de `cycle_projects.category` que compõem a rubrica. */
-  categorias: string[];
-  /** Ressalva do de-para, quando o rótulo promete mais do que a origem entrega. */
-  nota?: string;
-}
-
-/** Na ordem da diretriz — da maior fatia para a menor. */
-export const RUBRICAS: Rubrica[] = [
-  {
-    chave: "missoes",
-    rotulo: "Missões",
-    alvo: 0.5,
-    categorias: ["missoes-transculturais", "missoes-nacionais"],
-  },
-  {
-    chave: "construcao-igrejas",
-    rotulo: "Construção de igrejas",
-    alvo: 0.25,
-    categorias: ["construcao-reforma"],
-    nota: "A origem tem uma categoria só para construção E reforma; reforma de prédio que não é templo cai aqui.",
-  },
-  {
-    chave: "outros",
-    rotulo: "Outros",
-    alvo: 0.2,
-    categorias: ["educacao", "saude", "outros"],
-  },
-  {
-    chave: "social",
-    rotulo: "Social",
-    alvo: 0.05,
-    categorias: ["projetos-sociais-cristaos"],
-  },
-];
-
-/**
- * Categoria que a diretriz não nomeia. Não existe hoje (as sete categorias da
- * origem estão todas mapeadas) e é justamente por isso que precisa de linha
- * própria: categoria nova na origem tem de aparecer somando fora da divisão, e
- * não desaparecer da conta.
- */
+/** Projeto cujo envelope não se resolve (categoria nova na origem). */
 export const FORA_DA_DIRETRIZ = "__fora";
 
-export const rubricaDe = (categoria: string): Rubrica | null =>
-  RUBRICAS.find((r) => r.categorias.includes(categoria)) ?? null;
+const porCategoria = (p: ProjetoCiclo): ChaveEnvelope | null =>
+  PADRAO_CATEGORIA[p.categoria] ?? null;
 
-export const rotuloRubrica = (categoria: string): string =>
-  rubricaDe(categoria)?.rotulo ?? "Fora das rubricas";
-
-export interface LinhaDiretriz extends Rubrica {
+export interface LinhaDiretriz {
+  chave: string;
+  rotulo: string;
+  alvo: number;
+  criterio: string;
+  /** Linha sem projetos (custos administrativos): o pedido é o valor digitado. */
+  semProjetos: boolean;
+  /**
+   * Custos administrativos ainda não digitados: a linha reserva o próprio
+   * envelope, senão o veredito diria que o teto "cobre tudo" esquecendo o custo
+   * que vai existir. A tela escreve "reserva, não preenchido".
+   */
+  estimado: boolean;
   projetos: number;
   renovacoes: number;
   novos: number;
   pedido: number;
   pedidoRenovacoes: number;
   pedidoNovos: number;
-  /** pedido da rubrica / pedido total do recorte. */
+  /** pedido do envelope / pedido total. */
   fracao: number;
   /** teto × alvo — o que a diretriz reserva em reais (null sem teto confiável). */
   envelope: number | null;
@@ -88,9 +51,7 @@ export interface LinhaDiretriz extends Rubrica {
   desvio: number | null;
   /**
    * O MESMO desvio, em pontos (0,044 = 4,4 p.p. acima): `desvio / teto` com teto,
-   * `fracao − alvo` sem ele. Com teto o sinal é sempre o do desvio em reais — duas
-   * contas diferentes na mesma linha (pedido ÷ teto contra pedido ÷ pedido)
-   * faziam a coluna dizer "acima" e a régua "abaixo" para a mesma rubrica.
+   * `fracao − alvo` sem ele. Com teto o sinal é sempre o do desvio em reais.
    */
   desvioPp: number;
 }
@@ -100,19 +61,14 @@ export interface Diretriz {
   linhas: LinhaDiretriz[];
   projetos: number;
   pedido: number;
-  /**
-   * A CORTAR: quanto o pedido passa do teto (0 quando cabe). É dinheiro que
-   * não existe, não se move para lugar nenhum.
-   */
+  /** A CORTAR: quanto o pedido passa do teto (0 quando cabe). */
   cortar: number | null;
   /**
-   * A REMANEJAR: quanto das rubricas acima do envelope pode ir para a folga das
-   * que ficaram abaixo. Excesso total = remanejar + cortar (a folga absorve o
-   * que cabe; o resto é corte). Antes o KPI somava os dois e chamava de
-   * "remanejar".
+   * A REMANEJAR: quanto dos envelopes acima do limite pode ir para a folga dos
+   * que ficaram abaixo. Excesso total = remanejar + cortar.
    */
   remanejar: number | null;
-  /** A rubrica que mais passou do envelope, e a que mais ficou abaixo. */
+  /** O envelope que mais passou do limite, e o que mais ficou abaixo. */
   acima: LinhaDiretriz | null;
   abaixo: LinhaDiretriz | null;
 }
@@ -121,36 +77,38 @@ export interface Diretriz {
 const EMPATE = 0.001;
 
 /**
- * Compara o pedido do recorte com a divisão da diretriz.
+ * Compara o pedido com a divisão da diretriz.
  *
- * Quem escolhe a base é o chamador: a página passa só os projetos **avaliáveis**
- * (rejeitado, rascunho e cancelado não disputam o teto — incluí-los inflava o
- * pedido de 2026 em R$ 7 mi e mentia sobre toda a aderência).
+ * A base é do chamador: a página passa só os projetos **avaliáveis** (rejeitado,
+ * rascunho e cancelado não disputam o teto). `administrativo` é o total digitado
+ * na linha de custos administrativos, que conta como pedido daquele envelope;
+ * `null` (ainda não digitado) reserva o envelope inteiro — ver `estimado`.
  */
 export function montarDiretriz(
   projetos: ProjetoCiclo[],
   teto: number | null,
+  chaveDe: (p: ProjetoCiclo) => ChaveEnvelope | null = porCategoria,
+  administrativo: number | null = null,
 ): Diretriz {
-  const chaveDaCategoria = new Map(
-    RUBRICAS.flatMap((r) => r.categorias.map((c) => [c, r.chave] as const)),
-  );
-  const grupos = agrupar(
-    projetos,
-    (p) => chaveDaCategoria.get(p.categoria) ?? FORA_DA_DIRETRIZ,
-  );
-  const pedido = projetos.reduce((s, p) => s + p.solicitado, 0);
+  const grupos = agrupar(projetos, (p) => chaveDe(p) ?? FORA_DA_DIRETRIZ);
+  const estimado = !administrativo;
+  const admin = estimado
+    ? (teto ?? 0) * (ENVELOPES.find((e) => e.semProjetos)?.alvo ?? 0)
+    : administrativo;
+  const pedido = projetos.reduce((s, p) => s + p.solicitado, 0) + admin;
 
   const fora = grupos.get(FORA_DA_DIRETRIZ) ?? [];
-  const definicoes: Rubrica[] = [
-    ...RUBRICAS,
+  const definicoes: Envelope[] = [
+    ...ENVELOPES,
     ...(fora.length > 0
       ? [
           {
-            chave: FORA_DA_DIRETRIZ,
-            rotulo: "Fora das rubricas",
+            chave: FORA_DA_DIRETRIZ as ChaveEnvelope,
+            rotulo: "Sem envelope",
+            curto: "Sem envelope",
             alvo: 0,
-            categorias: [...new Set(fora.map((p) => p.categoria))].sort(),
-            nota: "Categoria da origem que a diretriz não nomeia; a divisão não reserva nada para ela.",
+            criterio:
+              "Categoria da origem sem envelope; a divisão não reserva nada para ela.",
           },
         ]
       : []),
@@ -162,35 +120,48 @@ export function montarDiretriz(
     const lista = grupos.get(r.chave) ?? [];
     const renovacoes = lista.filter(ehRenovacao);
     const novos = lista.filter((p) => !ehRenovacao(p));
-    const pedidoRubrica = soma(lista);
-    const fracao = pedido ? pedidoRubrica / pedido : 0;
+    const pedidoLinha = r.semProjetos ? admin : soma(lista);
+    const fracao = pedido ? pedidoLinha / pedido : 0;
     const envelope = teto === null ? null : teto * r.alvo;
 
     return {
-      ...r,
+      chave: r.chave,
+      rotulo: r.rotulo,
+      alvo: r.alvo,
+      criterio: r.criterio,
+      semProjetos: !!r.semProjetos,
+      estimado: !!r.semProjetos && estimado,
       projetos: lista.length,
       renovacoes: renovacoes.length,
       novos: novos.length,
-      pedido: pedidoRubrica,
+      pedido: pedidoLinha,
       pedidoRenovacoes: soma(renovacoes),
       pedidoNovos: soma(novos),
       fracao,
       envelope,
-      desvio: envelope === null ? null : pedidoRubrica - envelope,
-      // Sem pedido nenhum no recorte, toda rubrica ficaria "abaixo" da diretriz
-      // por construção, e isso não é um desvio, é um recorte vazio.
+      desvio: envelope === null ? null : pedidoLinha - envelope,
+      // Sem pedido nenhum, todo envelope ficaria "abaixo" por construção, e isso
+      // não é um desvio, é um recorte vazio.
       desvioPp: !pedido
         ? 0
         : teto
-          ? (pedidoRubrica - teto * r.alvo) / teto
+          ? (pedidoLinha - teto * r.alvo) / teto
           : fracao - r.alvo,
     };
   });
 
-  const excesso = linhas.reduce((s, l) => s + Math.max(0, l.desvio ?? 0), 0);
-  const folga = linhas.reduce((s, l) => s + Math.max(0, -(l.desvio ?? 0)), 0);
+  // A reserva do administrativo não é folga nem excesso: é custo que vai existir.
+  const comparaveis = linhas.filter((l) => !l.estimado);
+  const excesso = comparaveis.reduce(
+    (s, l) => s + Math.max(0, l.desvio ?? 0),
+    0,
+  );
+  const folga = comparaveis.reduce(
+    (s, l) => s + Math.max(0, -(l.desvio ?? 0)),
+    0,
+  );
 
-  const porDesvio = [...linhas].sort((a, b) => b.desvioPp - a.desvioPp);
+  const porDesvio = [...comparaveis].sort((a, b) => b.desvioPp - a.desvioPp);
   const maior = porDesvio[0];
   const menor = porDesvio[porDesvio.length - 1];
 

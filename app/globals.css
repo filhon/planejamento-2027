@@ -2843,3 +2843,752 @@ body.apresentacao .rolagem {
 .login-form .botao-atualizar {
   padding: 11px 18px;
 }
+
+/* ------------------------------------------- envelopes da diretriz (Fase 15) */
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* Os meses são a parte densa da tela: corpo menor, alinhados à direita e com a
+   mesma largura, para a coluna de um mês ler como coluna de planilha. */
+.tabela th.mes,
+.tabela td.mes {
+  min-width: 3.4em;
+  padding-left: 4px;
+  padding-right: 4px;
+  font-size: var(--texto-nota);
+}
+
+.tabela th.mes {
+  text-transform: none;
+}
+
+/* O nome do envelope é o filtro da lista: botão com cara de texto, e a ficha
+   neutra quando ligado (o mesmo `aria-pressed` dos outros filtros). */
+.link-envelope {
+  border: 0;
+  background: transparent;
+  padding: 2px 6px;
+  margin-left: -6px;
+  border-radius: 6px;
+  font: inherit;
+  font-weight: 700;
+  color: var(--azul);
+  cursor: pointer;
+  text-align: left;
+}
+
+.link-envelope:hover {
+  text-decoration: underline;
+}
+
+.link-envelope[aria-pressed="true"] {
+  background: var(--neutro);
+}
+
+.tabela-envelopes td:first-child {
+  min-width: 15rem;
+  max-width: 24rem;
+}
+
+/* Custos administrativos: no quadro anual é só leitura (digita-se no caixa).
+   Fundo de 4% do azul, não um filete lateral. */
+.tabela-envelopes .linha-admin td {
+  background: color-mix(in srgb, var(--azul) 4%, var(--papel));
+}
+
+/* Valor padrão, ainda não digitado (receita ÷ 12, reserva do administrativo):
+   itálico e cinza, que sobrevivem à fotocópia sem depender de cor. */
+.padrao,
+.padrao button {
+  font-style: italic;
+  color: var(--tinta-fraca);
+}
+
+/* ---- caixa mês a mês (Fase 15b) */
+
+.tabela-caixa tbody th,
+.tabela-caixa tfoot th {
+  font-size: var(--texto-ui);
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--tinta);
+  font-weight: 600;
+  min-width: 13rem;
+}
+
+.tabela-caixa .sub-linha th {
+  padding-left: 22px;
+  font-weight: 400;
+  color: var(--tinta-fraca);
+}
+
+.tabela-caixa .sub-linha td {
+  color: var(--tinta-fraca);
+}
+
+.tabela-caixa .linha-entrada th,
+.tabela-caixa .linha-entrada td {
+  background: color-mix(in srgb, var(--verde) 7%, var(--papel));
+}
+
+.tabela-caixa .linha-saldo th,
+.tabela-caixa .linha-saldo td {
+  font-weight: 700;
+  border-top: 1px solid var(--neutro-forte);
+}
+
+.tabela-caixa td.calculado {
+  color: var(--tinta-fraca);
+}
+
+/* Mês que falta dinheiro: sinal de menos, negrito, a palavra "falta" e o tom
+   de alerta da casa. Nunca só a cor. */
+.tabela td.falta {
+  color: var(--laranja-escuro);
+  font-weight: 700;
+}
+
+.tabela td.falta .celula-sub {
+  color: var(--laranja-escuro);
+  font-weight: 600;
+}
+
+.acoes-caixa {
+  margin-top: var(--espaco-md);
+  font-size: var(--texto-ui);
+}
+
+.acoes-caixa p {
+  margin: 0 0 var(--espaco-sm);
+}
+
+.confirma-lote {
+  padding: var(--espaco-sm) var(--espaco-md);
+  border: 1px solid var(--laranja-escuro);
+  border-radius: 8px;
+  max-width: 90ch;
+}
+
+/* ---- a escolha de para onde vai a parcela tirada */
+
+.celula-edita {
+  position: relative;
+}
+
+.escolha {
+  position: absolute;
+  z-index: var(--z-dropdown);
+  top: calc(100% - 4px);
+  right: 0;
+  width: 17rem;
+  padding: var(--espaco-sm);
+  background: var(--papel);
+  border: 1px solid var(--borda);
+  border-radius: 10px;
+  box-shadow: var(--sombra-flutuante);
+  text-align: left;
+  white-space: normal;
+  font-size: var(--texto-ui);
+}
+
+.escolha p {
+  margin: 2px 4px 6px;
+  color: var(--tinta);
+}
+
+.escolha button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 8px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  font: inherit;
+  color: var(--tinta);
+  text-align: left;
+  cursor: pointer;
+}
+
+.escolha button:hover:not(:disabled),
+.escolha button:focus-visible {
+  background: var(--neutro);
+}
+
+.escolha button:disabled {
+  color: var(--neutro-forte);
+  cursor: not-allowed;
+}
+
+.escolha kbd {
+  display: inline-grid;
+  place-items: center;
+  min-width: 1.4em;
+  height: 1.4em;
+  border: 1px solid var(--borda);
+  border-radius: 4px;
+  font: inherit;
+  font-size: var(--texto-nota);
+  font-weight: 700;
+  color: var(--azul);
+}
+
+.escolha .escolha-desistir {
+  margin-top: 4px;
+  font-size: var(--texto-nota);
+  color: var(--tinta-fraca);
+}
+
+.chips-envelope {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--espaco-sm);
+  margin-bottom: var(--espaco-lg);
+}
+
+.chips-envelope .botao-modo {
+  padding: 5px 12px;
+}
+
+.chip-n {
+  margin-left: 4px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 400;
+  opacity: 0.8;
+}
+
+.env-estado {
+  margin-left: auto;
+  font-size: var(--texto-nota);
+  color: var(--tinta-fraca);
+}
+
+.erro-linha {
+  color: var(--vermelho);
+  font-weight: 600;
+}
+
+.env-recorte {
+  margin: calc(-1 * var(--espaco-sm)) 0 var(--espaco-md);
+}
+
+/*
+ * A lista rola por dentro, com o cabeçalho, a coluna do projeto e a soma
+ * grudados: são 250 linhas por 17 colunas, e o mês só se lê sabendo de quem é.
+ * O `Secao` já é um contêiner de rolagem horizontal; este é o vertical.
+ */
+.env-rolagem {
+  max-height: calc(100dvh - 200px);
+  overflow: auto;
+}
+
+.tabela-projetos-env thead th,
+.tabela-projetos-env tfoot td {
+  position: sticky;
+  z-index: var(--z-conteudo);
+  background: var(--papel);
+}
+
+.tabela-projetos-env thead th {
+  top: 0;
+  box-shadow: inset 0 -1px 0 var(--borda);
+}
+
+.tabela-projetos-env tfoot td {
+  bottom: 0;
+}
+
+.tabela-projetos-env .col-projeto {
+  position: sticky;
+  left: 0;
+  z-index: var(--z-conteudo);
+  min-width: 17rem;
+  max-width: 22rem;
+  background: var(--papel);
+  font-weight: 400;
+  box-shadow: inset -1px 0 0 var(--borda);
+}
+
+.tabela-projetos-env thead .col-projeto,
+.tabela-projetos-env tfoot .col-projeto {
+  z-index: calc(var(--z-conteudo) + 1);
+}
+
+.tabela-projetos-env tbody tr:hover .col-projeto {
+  background: var(--fundo);
+}
+
+.tabela-projetos-env tfoot .col-projeto {
+  font-weight: 700;
+}
+
+/* O nome do projeto é cabeçalho de linha (th scope=row) para o leitor de tela,
+   mas não pode herdar a caixa alta miúda dos cabeçalhos de coluna. */
+.tabela-projetos-env tbody th.col-projeto {
+  font-size: var(--texto-ui);
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--tinta);
+  white-space: normal;
+}
+
+.tabela td.col-proposta {
+  min-width: 8.5rem;
+  vertical-align: middle;
+}
+
+.titulo-curto {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* A posição fica na mesma linha do título curto. */
+.col-projeto .posicao {
+  float: left;
+  margin-right: 4px;
+}
+
+.posicao {
+  display: inline-block;
+  min-width: 2.2em;
+  font-weight: 700;
+  color: var(--azul);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Onde acabam os votados (ranqueados pela nota) e começa o resto. */
+.linha-separa > * {
+  border-top: 2px solid var(--neutro-forte);
+}
+
+.linha-zerada td,
+.linha-zerada .link-projeto {
+  color: var(--tinta-fraca);
+}
+
+.col-envelope select {
+  font: inherit;
+  font-size: var(--texto-nota);
+  max-width: 15rem;
+  padding: 3px 6px;
+  border: 1px solid var(--borda);
+  border-radius: 6px;
+  background: var(--papel);
+  color: var(--tinta);
+}
+
+.col-envelope .celula-sub {
+  max-width: 16rem;
+}
+
+.rotulo-impresso {
+  display: none;
+}
+
+.origem-mesa {
+  color: var(--azul);
+  font-weight: 600;
+}
+
+/* Célula editável: texto até o clique, campo enquanto edita. O botão ocupa a
+   célula inteira para o alvo de clique ser a célula, não o número. */
+.celula-edita button {
+  display: block;
+  width: 100%;
+  min-height: 1.8em;
+  padding: 2px 4px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  font: inherit;
+  color: inherit;
+  text-align: right;
+  cursor: text;
+}
+
+.celula-edita button:hover {
+  background: var(--neutro);
+}
+
+.celula-edita input {
+  width: 100%;
+  min-width: 5em;
+  box-sizing: border-box;
+  padding: 2px 4px;
+  border: 1px solid var(--azul);
+  border-radius: 4px;
+  font: inherit;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Ajustado na mesa: peso, cor e um sublinhado pontilhado — este último é o que
+   sobra na fotocópia preto e branco. */
+.tabela td.mudou,
+.mudou-legenda {
+  font-weight: 700;
+  color: var(--azul);
+  text-decoration: underline dotted var(--laranja);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
+}
+
+.tabela td.col-proposta {
+  font-weight: 700;
+}
+
+.botao-desfazer {
+  border: 0;
+  background: transparent;
+  padding: 2px 0;
+  font: inherit;
+  font-size: var(--texto-nota);
+  color: var(--laranja-escuro);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+@media print {
+  .chips-envelope,
+  .botao-desfazer,
+  .env-estado {
+    display: none;
+  }
+
+  .env-rolagem {
+    max-height: none;
+    overflow: visible;
+  }
+
+  .tabela-projetos-env thead th,
+  .tabela-projetos-env tfoot td,
+  .tabela-projetos-env .col-projeto {
+    position: static;
+    box-shadow: none;
+  }
+
+  .col-envelope select {
+    display: none;
+  }
+
+  .rotulo-impresso {
+    display: inline;
+  }
+
+  .bloco:has(.tabela-projetos-env),
+  .bloco:has(.tabela-caixa),
+  .bloco:has(.tabela-envelopes) {
+    padding-left: 0;
+    padding-right: 0;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  .escolha,
+  .acoes-caixa {
+    display: none;
+  }
+
+  .so-impressao.doc-campos {
+    font-size: var(--texto-ui);
+    color: var(--tinta);
+  }
+
+  /* Doze meses não cabem em retrato: as duas tabelas saem em folhas paisagem
+     (página nomeada), com corpo menor; o veredito fica na folha retrato. */
+  .bloco:has(.tabela-caixa),
+  .bloco:has(.tabela-projetos-env) {
+    page: paisagem;
+  }
+
+  .tabela-caixa,
+  .tabela-projetos-env {
+    font-size: 7.5pt;
+  }
+
+  .tabela-caixa th,
+  .tabela-caixa td {
+    padding: 3px 2px;
+    font-size: inherit;
+    min-width: 0;
+  }
+
+  .titulo-curto {
+    display: inline;
+    -webkit-line-clamp: none;
+  }
+
+  .tabela-envelopes th,
+  .tabela-envelopes td,
+  .tabela-projetos-env th,
+  .tabela-projetos-env td {
+    padding: 3px 2px;
+  }
+
+  .tabela-envelopes .celula-sub,
+  .tabela-projetos-env .celula-sub {
+    font-size: 6.5pt;
+  }
+
+  .tabela th.mes,
+  .tabela td.mes,
+  .tabela td.col-proposta,
+  .tabela-envelopes td:first-child,
+  .tabela-projetos-env .col-projeto,
+  .col-envelope select,
+  .col-envelope .celula-sub {
+    min-width: 0;
+    max-width: none;
+  }
+
+  .tabela-envelopes .regua {
+    width: 4em;
+  }
+
+  .tabela-projetos-env tbody th.col-projeto,
+  .tabela th.mes,
+  .tabela td.mes {
+    font-size: inherit;
+  }
+}
+
+@page paisagem {
+  size: A4 landscape;
+  margin: 10mm;
+}
+
+/* Campos de documento da ata (só no papel): o responsável assina à mão. */
+.campo-papel {
+  display: inline-block;
+  width: 16em;
+  border-bottom: 1px solid var(--tinta);
+}
+
+/* Na TV os meses sobem para o corpo de interface: é o que se lê a três metros. */
+.apresentacao .tabela td.mes,
+.apresentacao .tabela th.mes {
+  font-size: var(--texto-ui);
+}
+
+/* Célula editável em repouso: um traço discreto embaixo diz "dá para mexer"
+   sem o mouse em cima (na TV e no teclado não existe hover). */
+.celula-edita button {
+  box-shadow: inset 0 -1px 0 var(--borda);
+}
+
+@media print {
+  .celula-edita button {
+    box-shadow: none;
+  }
+}
+
+/* Rótulo de linha no rodapé (o "= Saldo acumulado" do caixa) com o mesmo
+   filete duplo dos totais. */
+.tabela tfoot th {
+  border-top: 2px solid var(--azul);
+  border-bottom: 0;
+  color: var(--azul);
+  text-align: left;
+}
+
+/* A escolha mora dentro da célula editável: os botões dela não herdam o
+   alinhamento à direita nem o traço das células. */
+.celula-edita .escolha button {
+  display: flex;
+  text-align: left;
+  box-shadow: none;
+  min-height: 0;
+  cursor: pointer;
+}
+
+.tabela td.com-escolha > button {
+  color: var(--laranja-escuro);
+  font-weight: 700;
+}
+
+/* Nota e origem da proposta numa linha só: a linha da lista não pode ter
+   quatro andares (cabiam 9 projetos por tela). */
+.tabela-projetos-env td.n .celula-sub {
+  white-space: nowrap;
+}
+
+.tabela-projetos-env .col-proposta .celula-sub {
+  display: flex;
+  gap: 6px;
+  justify-content: flex-end;
+  align-items: baseline;
+}
+
+@media print {
+  /* Na folha a nota e a origem podem quebrar: o que não cabe é a largura. */
+  .tabela-projetos-env td.n .celula-sub,
+  .tabela-projetos-env .col-proposta .celula-sub {
+    white-space: normal;
+    display: block;
+  }
+
+  .col-projeto .posicao {
+    float: none;
+  }
+
+  .tabela-projetos-env tfoot .col-projeto {
+    white-space: normal;
+  }
+}
+
+@media print {
+  .celula-edita .botao-desfazer {
+    display: none;
+  }
+}
+
+.acoes-caixa .botao-desfazer {
+  text-align: left;
+}
+
+/* ---- lista de projetos: classificação, envelope sob o nome, ordenação (15c) */
+
+.tabela-projetos-env .col-clas {
+  position: sticky;
+  left: 0;
+  z-index: var(--z-conteudo);
+  box-sizing: border-box;
+  width: 3.75rem;
+  min-width: 3.75rem;
+  max-width: 3.75rem;
+  background: var(--papel);
+  text-align: right;
+  white-space: nowrap;
+}
+
+/* A coluna do projeto gruda logo depois da classificação. */
+.tabela-projetos-env .col-projeto {
+  left: 3.75rem;
+}
+
+.tabela-projetos-env thead .col-clas,
+.tabela-projetos-env tfoot .col-clas {
+  z-index: calc(var(--z-conteudo) + 1);
+}
+
+.tabela-projetos-env tbody tr:hover .col-clas {
+  background: var(--fundo);
+}
+
+/* Separador de grupo (aprovados, votados, sem voto, fora): só na ordem da
+   classificação. O rótulo gruda à esquerda para não sumir ao rolar de lado. */
+.linha-grupo th {
+  padding: 10px 8px 6px;
+  background: color-mix(in srgb, var(--azul) 6%, var(--papel));
+  border-top: 2px solid var(--azul);
+  text-align: left;
+}
+
+.linha-grupo th span {
+  position: sticky;
+  left: 8px;
+  font-size: var(--texto-ui);
+  font-weight: 700;
+  color: var(--azul);
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+/* Cabeçalho que ordena: o botão É o cabeçalho (mesmo corpo, mesma caixa). */
+.ordenar {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  color: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  cursor: pointer;
+}
+
+.ordenar:hover {
+  color: var(--azul);
+}
+
+.seta-ordem {
+  font-size: 0.85em;
+  opacity: 0.45;
+}
+
+th[aria-sort] .ordenar {
+  color: var(--azul);
+}
+
+th[aria-sort] .seta-ordem {
+  opacity: 1;
+}
+
+/* Seletor no começo da linha da instituição; o texto segue e quebra normal. */
+.linha-envelope .env-compacto {
+  margin-right: 6px;
+  vertical-align: baseline;
+}
+
+.env-compacto {
+  flex: none;
+  max-width: 9.5rem;
+  padding: 1px 4px;
+  border: 1px solid var(--borda);
+  border-radius: 5px;
+  background: var(--papel);
+  font: inherit;
+  font-size: var(--texto-nota);
+  color: var(--tinta);
+}
+
+.col-projeto .origem {
+  font-style: italic;
+}
+
+.linha-envelope .origem-mesa {
+  color: var(--azul);
+  font-weight: 600;
+}
+
+.so-parcela {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--texto-ui);
+}
+
+@media print {
+  .tabela-projetos-env .col-clas {
+    position: static;
+  }
+
+  .env-compacto,
+  .seta-ordem,
+  .so-parcela {
+    display: none;
+  }
+}
+
+.aviso-banco {
+  margin: 0 0 var(--espaco-lg);
+  padding: var(--espaco-sm) var(--espaco-md);
+  border: 1px solid var(--laranja-escuro);
+  border-radius: 8px;
+  font-size: var(--texto-ui);
+  background: var(--papel);
+}

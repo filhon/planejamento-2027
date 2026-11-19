@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { dados } from "@/lib/cache";
-import { lerDecisao, linksPrestacao } from "@/lib/painel-db";
+import { somaMeses } from "@/lib/envelopes";
+import { lerDecisao, lerMesesAjustados, linksPrestacao } from "@/lib/painel-db";
 import Detalhe from "./detalhe";
 
 /**
@@ -26,12 +27,14 @@ export default async function Page({
 
   const anterior = detalhe.anterior;
   const p = detalhe.projeto;
-  const [links, decisao, avaliadores, remessaAnterior] = await Promise.all([
-    linksPrestacao(anterior ? [id, anterior.id] : [id]),
-    lerDecisao(id),
-    dados.avaliadores(),
-    dados.projetos(p.ano - 1),
-  ]);
+  const [links, decisao, meses, avaliadores, remessaAnterior] =
+    await Promise.all([
+      linksPrestacao(anterior ? [id, anterior.id] : [id]),
+      lerDecisao(id),
+      lerMesesAjustados(id),
+      dados.avaliadores(),
+      dados.projetos(p.ano - 1),
+    ]);
 
   // Opções de vínculo da triagem: os projetos da mesma instituição na remessa
   // anterior, mais o vínculo já gravado (que pode ser de outra instituição) —
@@ -56,6 +59,7 @@ export default async function Page({
         },
       }}
       decisao={decisao}
+      totalEnvelopes={meses && somaMeses(meses)}
       triagem={{
         avaliadores: avaliadores.filter((a) => a.ativo).map((a) => a.nome),
         anteriores,

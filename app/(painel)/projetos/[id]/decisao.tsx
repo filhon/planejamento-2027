@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState } from "react";
 import { SITUACOES, type Decisao } from "@/lib/decisao";
 import { salvarDecisao, type EstadoLink } from "../../../actions";
@@ -19,10 +20,18 @@ const fmtData = new Intl.DateTimeFormat("pt-BR", {
 export default function DecisaoPainel({
   alvo,
   decisao,
+  totalEnvelopes,
 }: {
   alvo: { id: string; ano: number; titulo: string };
   decisao: Decisao | null;
+  /**
+   * Com mês a mês ajustado na tela de Envelopes, o valor aprovado É a soma dele:
+   * o campo fica só leitura e o servidor grava a soma (uma fonte só).
+   */
+  totalEnvelopes: number | null;
 }) {
+  const fmtValor = (v: number) =>
+    v.toLocaleString("pt-BR", { minimumFractionDigits: 2 });
   const [estado, acao, enviando] = useActionState<EstadoLink, FormData>(
     salvarDecisao.bind(null, alvo),
     {},
@@ -36,7 +45,7 @@ export default function DecisaoPainel({
           <>
             <b>{SITUACOES[decisao.situacao] ?? decisao.situacao}</b>
             {decisao.valorAprovado !== null &&
-              ` · ${fmtMoeda.format(decisao.valorAprovado)}`}
+              ` · ${fmtMoeda.format(totalEnvelopes ?? decisao.valorAprovado)}`}
             {decisao.observacao && ` · ${decisao.observacao}`}
             <span className="sub">
               {" "}
@@ -68,12 +77,13 @@ export default function DecisaoPainel({
               inputMode="decimal"
               placeholder="Valor aprovado (R$)"
               aria-label="Valor aprovado em reais"
+              readOnly={totalEnvelopes !== null}
               defaultValue={
-                decisao?.valorAprovado != null
-                  ? decisao.valorAprovado.toLocaleString("pt-BR", {
-                      minimumFractionDigits: 2,
-                    })
-                  : ""
+                totalEnvelopes !== null
+                  ? fmtValor(totalEnvelopes)
+                  : decisao?.valorAprovado != null
+                    ? fmtValor(decisao.valorAprovado)
+                    : ""
               }
             />
             <input
@@ -90,6 +100,13 @@ export default function DecisaoPainel({
               {estado.erro ??
                 "Grava só no banco do painel. O valor só vale para Aprovado / Aprovado com ressalvas."}
             </span>
+            {totalEnvelopes !== null && (
+              <span className="sub">
+                O valor é a soma do mês a mês definido na tela{" "}
+                <Link href="/envelopes">Envelopes</Link>; para mudá-lo, ajuste
+                os meses lá.
+              </span>
+            )}
           </form>
         </details>
       </dd>

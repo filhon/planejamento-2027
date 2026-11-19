@@ -48,7 +48,10 @@ const PAGINAS: {
   { href: "/visao-geral", rotulo: "Visão Geral" },
   { href: "/mapa", rotulo: "Mapa-múndi" },
   { href: "/projetos", rotulo: "Projetos & Pastas" },
-  { href: "/parcerias", rotulo: "Parcerias" },
+  { href: "/envelopes", rotulo: "Envelopes", titulo: "Envelopes da diretriz" },
+  // Parcerias desceu para o menu quando Envelopes entrou (Fase 15): mesma
+  // regra do teto da fileira, e é a página que não se usa na mesa de decisão.
+  { href: "/parcerias", rotulo: "Parcerias", menu: "Mais" },
   // Pipeline desceu para o menu quando o Resumo entrou na fileira: a linha do
   // topo é o mesmo teto dos filtros (entra um, sai um), e nesta remessa é a
   // página com menos a dizer — 2026 não tem uma única avaliação registrada.
@@ -204,9 +207,12 @@ function Menu({
 
 export default function Shell({
   ciclos,
+  falhaBanco,
   children,
 }: {
   ciclos: CicloCarregado[];
+  /** Falha de leitura do banco do painel (Firestore); null = normal. */
+  falhaBanco: string | null;
   children: React.ReactNode;
 }) {
   const [ano, setAno] = useState(ciclos[0]?.ano ?? 0);
@@ -432,6 +438,16 @@ export default function Shell({
       </header>
 
       <main>
+        {/* O banco do painel (triagem, decisões, envelopes) pode faltar sem
+            derrubar o painel: a origem continua lendo, e a mesa precisa saber
+            que triagem e ajustes não estão na tela. */}
+        {falhaBanco && (
+          <p className="marca-alerta aviso-banco" role="status">
+            Atenção: {falhaBanco}. Triagem, decisões e ajustes gravados no
+            painel não aparecem e nada grava até o banco voltar; os dados do
+            sistema de submissão estão normais.
+          </p>
+        )}
         {/* Só no PDF: registra o recorte que gerou os números, para a ata.
             Data e URL o próprio navegador carimba no cabeçalho da impressão.
 

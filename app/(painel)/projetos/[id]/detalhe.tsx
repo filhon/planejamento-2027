@@ -127,10 +127,13 @@ function Relatorios({ relatorios }: { relatorios: RelatorioDetalhe[] }) {
 export default function Detalhe({
   d,
   decisao,
+  totalEnvelopes,
   triagem,
 }: {
   d: ProjetoDetalhe;
   decisao: Decisao | null;
+  /** Soma do mês a mês ajustado na tela de Envelopes (null = sem ajuste). */
+  totalEnvelopes: number | null;
   triagem: {
     avaliadores: string[];
     anteriores: { id: string; titulo: string }[];
@@ -293,6 +296,7 @@ export default function Detalhe({
             key={p.id}
             alvo={{ id: p.id, ano: p.ano, titulo: p.titulo }}
             decisao={decisao}
+            totalEnvelopes={totalEnvelopes}
           />
           <div>
             {/* Rótulo e valor têm que falar do mesmo sujeito: sem vínculo com

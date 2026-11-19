@@ -168,3 +168,25 @@ export function Secao({
     </section>
   );
 }
+
+/**
+ * Régua de desvio: barra divergente com o zero no meio. À direita (laranja) a
+ * rubrica pede ACIMA do envelope da diretriz, à esquerda (azul) fica abaixo.
+ *
+ * O mesmo dado está codificado três vezes (lado, cor e a palavra na célula ao
+ * lado) porque esta página sai em fotocópia preto e branco e é lida a três
+ * metros na TV. A escala é comum a todas as linhas (o maior desvio ocupa a
+ * meia-largura), com piso de 5 p.p. para desvio pequeno não parecer grande.
+ */
+export function Regua({ pp, escala }: { pp: number; escala: number }) {
+  const largura = Math.min(50, (Math.abs(pp) / escala) * 50);
+  if (largura < 0.5) return <span className="regua" aria-hidden="true" />;
+  return (
+    <span className="regua" aria-hidden="true">
+      <i
+        className={pp > 0 ? "acima" : "abaixo"}
+        style={{ width: `${largura}%` }}
+      />
+    </span>
+  );
+}

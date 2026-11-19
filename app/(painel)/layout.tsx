@@ -1,4 +1,5 @@
 import { dados } from "@/lib/cache";
+import { falhaDoBanco } from "@/lib/painel-db";
 import Shell from "./shell";
 
 /**
@@ -47,5 +48,9 @@ export default async function LayoutPainel({
     );
   }
 
-  return <Shell ciclos={carregados}>{children}</Shell>;
+  return (
+    <Shell ciclos={carregados} falhaBanco={falhaDoBanco()}>
+      {children}
+    </Shell>
+  );
 }

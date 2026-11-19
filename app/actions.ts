@@ -4,9 +4,21 @@ import { revalidatePath } from "next/cache";
 import { atualizar } from "@/lib/cache";
 import { validarDecisao } from "@/lib/decisao";
 import {
+  ehChaveDeProjeto,
+  mesesComVazio,
+  mesesValidos,
+  somaMeses,
+  type ChaveEnvelope,
+} from "@/lib/envelopes";
+import {
   adicionarLinkPrestacao,
   alternarCandidato,
+  lerMesesAjustados,
+  gravarAdministrativo,
+  gravarCaixa,
+  gravarMesesEmLote,
   gravarDecisao,
+  gravarEnvelope,
   gravarTriagemCurada,
 } from "@/lib/painel-db";
 import type { TipoRevisao } from "@/lib/types";
@@ -139,6 +151,13 @@ export async function salvarDecisao(
   });
   if ("erro" in v) return v;
 
+  // Uma fonte só para o valor aprovado: havendo mês a mês na tela de Envelopes,
+  // o valor da decisão é a soma dele, seja o que for que veio no formulário.
+  if (!("apagar" in v) && v.valorAprovado !== null) {
+    const meses = await lerMesesAjustados(alvo.id);
+    if (meses) v.valorAprovado = somaMeses(meses);
+  }
+
   try {
     await gravarDecisao(
       {
@@ -153,6 +172,126 @@ export async function salvarDecisao(
     return { erro: falhaGravacao(e) };
   }
   revalidatePath("/projetos/[id]", "page");
+  return {};
+}
+
+/**
+ * Tela de Envelopes (Fase 15): o envelope e/ou o mês a mês de um projeto.
+ * `envelope: null` volta à sugestão; `meses: null` volta ao pedido. Grava no
+ * Firestore (`envelopes`), nunca na origem. Sem revalidate: a tela mantém o
+ * estado local, e as outras páginas releem o Firestore ao abrir.
+ */
+export async function salvarEnvelope(
+  alvo: { id: string; ano: number; titulo: string },
+  campos: { envelope?: string | null; meses?: unknown },
+): Promise<EstadoLink> {
+  const sessao = await exigirSessao();
+  if (!UUID.test(alvo.id))
+    return { erro: "Projeto não reconhecido. Recarregue a página." };
+
+  const gravar: { envelope?: ChaveEnvelope | null; meses?: number[] | null } =
+    {};
+  if ("envelope" in campos) {
+    if (campos.envelope !== null && !ehChaveDeProjeto(campos.envelope))
+      return { erro: "Envelope desconhecido." };
+    gravar.envelope = campos.envelope as ChaveEnvelope | null;
+  }
+  if ("meses" in campos) {
+    const meses = campos.meses === null ? null : mesesValidos(campos.meses);
+    if (campos.meses !== null && !meses)
+      return { erro: "Valores do mês a mês inválidos." };
+    gravar.meses = meses;
+  }
+
+  try {
+    await gravarEnvelope(
+      {
+        projectId: alvo.id,
+        ano: alvo.ano,
+        titulo: alvo.titulo.slice(0, 300),
+        por: sessao.nome,
+      },
+      gravar,
+    );
+  } catch (e) {
+    return { erro: falhaGravacao(e) };
+  }
+  return {};
+}
+
+/** Custos administrativos do ano, mês a mês (`envelopes_admin`). */
+export async function salvarAdministrativo(
+  ano: number,
+  meses: unknown,
+): Promise<EstadoLink> {
+  const sessao = await exigirSessao();
+  const validos = mesesComVazio(meses);
+  if (!Number.isInteger(ano) || !validos)
+    return { erro: "Valores do mês a mês inválidos." };
+  try {
+    await gravarAdministrativo(ano, validos, sessao.nome);
+  } catch (e) {
+    return { erro: falhaGravacao(e) };
+  }
+  return {};
+}
+
+/** Receita mês a mês (null = valor do sistema) e saldo inicial do caixa. */
+export async function salvarCaixa(
+  ano: number,
+  campos: { receita?: unknown; saldoInicial?: unknown },
+): Promise<EstadoLink> {
+  const sessao = await exigirSessao();
+  if (!Number.isInteger(ano)) return { erro: "Ano inválido." };
+  const gravar: { receita?: (number | null)[]; saldoInicial?: number | null } =
+    {};
+  if ("receita" in campos) {
+    const receita = mesesComVazio(campos.receita);
+    if (!receita) return { erro: "Valores da receita inválidos." };
+    gravar.receita = receita;
+  }
+  if ("saldoInicial" in campos) {
+    const v = campos.saldoInicial;
+    // Saldo inicial pode ser negativo (o ano começa devendo).
+    if (
+      v !== null &&
+      !(typeof v === "number" && Number.isFinite(v) && Math.abs(v) <= 1e9)
+    )
+      return { erro: "Saldo inicial inválido." };
+    gravar.saldoInicial = v === null ? null : Math.round(v * 100) / 100;
+  }
+  try {
+    await gravarCaixa(ano, gravar, sessao.nome);
+  } catch (e) {
+    return { erro: falhaGravacao(e) };
+  }
+  return {};
+}
+
+/** Adiar em lote: o mês a mês novo de vários projetos, numa ida ao banco. */
+export async function salvarMesesEmLote(
+  itens: { id: string; ano: number; titulo: string; meses: unknown }[],
+): Promise<EstadoLink> {
+  const sessao = await exigirSessao();
+  if (!Array.isArray(itens) || itens.length === 0 || itens.length > 600)
+    return { erro: "Lote vazio ou grande demais." };
+  const validos = [];
+  for (const it of itens) {
+    const meses = mesesValidos(it?.meses);
+    if (!UUID.test(String(it?.id)) || !meses || !Number.isInteger(it.ano))
+      return { erro: "Um dos projetos do lote é inválido. Nada foi gravado." };
+    validos.push({
+      projectId: it.id,
+      ano: it.ano,
+      titulo: String(it.titulo ?? "").slice(0, 300),
+      meses,
+    });
+  }
+  try {
+    await gravarMesesEmLote(validos, sessao.nome);
+  } catch (e) {
+    return { erro: falhaGravacao(e) };
+  }
   return {};
 }
 

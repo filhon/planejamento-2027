@@ -170,6 +170,44 @@ caía**. Agora toda leitura de `painel-db.ts` é tolerante (`tolerante`,
 tela de Envelopes fica só leitura. A origem continua normal. Limite conhecido:
 a triagem lida durante a falha fica no cache de 15 min; "Atualizar" relê.
 
+## Fase 15e — diretriz editável e a planilha .xlsx
+
+- **Percentual por envelope editável** na coluna Diretriz do quadro "Envelopes
+  no ano" (clicar, digitar em pontos: "6,8" ou "6,8%"; vazio volta ao da
+  reunião; Enter desce para o envelope seguinte). Diferente da reunião fica
+  marcado; "Voltar à diretriz da reunião" no rodapé apaga tudo. Grava em
+  `envelopes_caixa/{ano}.alvos` (null = diretriz da reunião), com histórico,
+  sem leitura nova no Firestore. Vale para o limite, para a **reserva do
+  administrativo** e para o **Resumo Executivo** (`montarDiretriz` recebe os
+  alvos).
+- **Soma ≠ 100% avisa, não bloqueia**: mudar 50/25 para 45/30 passa por 95%.
+  O total do quadro fica laranja e uma linha diz quanto da receita ficou fora
+  de envelope (ou quanto os limites passam dela).
+- **Exportar .xlsx** (canto da seção Projetos): `src/lib/envelopes-xlsx.ts`
+  (puro, testado), sobre o escritor `xlsx.ts`, que agora escreve várias abas,
+  estilos, fórmulas, validação, formatação condicional, mesclagem e impressão
+  — ainda sem biblioteca. Quatro abas:
+  - **Leia-me**: situação ao vivo (receita, proposta, saldo, envelopes acima
+    do limite, meses negativos, soma da diretriz), legenda, como usar, regras.
+  - **Caixa**: receita do sistema, saldo inicial, receita e administrativo
+    digitados (em branco = padrão, itálico no fluxo), fluxo mês a mês com os
+    envelopes, saldo do mês e acumulado (negativo em alerta), conferência.
+  - **Envelopes**: Diretriz editável × Diretriz da reunião, limite, projetos,
+    pedido, proposta, % da receita, saldo e situação.
+  - **Projetos**: todos os avaliáveis na classificação da tela (sem o recorte
+    nem o filtro por envelope, porque Caixa e Envelopes somam a remessa
+    inteira), com **Envelope em lista suspensa** e **parcelas jan–dez**
+    editáveis; o pedido mês a mês fica em colunas recolhidas; soma no topo
+    com SUBTOTAL (segue o filtro).
+  - Projetos é a única fonte: Caixa e Envelopes somam por SOMASES na coluna
+    Envelope. Editável = fundo azul-claro, borda e fonte azul (destravada:
+    "Proteger planilha" deixa só as entradas). Fórmulas levam o valor da tela
+    em cache e o Excel recalcula ao abrir. Arial (as fontes da marca faltariam
+    em quem recebe); a marca entra pelas cores.
+  - Validado no Excel (COM): abre sem reparo, e trocar um percentual ou o
+    envelope de um projeto recalcula limite, envelope e caixa.
+  - Nada da planilha volta ao painel: é simulação.
+
 ## Números de 2026 (18/11/2026)
 
 Teto R$ 15,58 mi. Proposta R$ 13,61 mi. **Educação passa R$ 659 mil** do

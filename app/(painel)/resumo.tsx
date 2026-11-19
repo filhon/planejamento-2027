@@ -8,6 +8,7 @@ import {
   ENVELOPE,
   montarCaixaAno,
   receitaDoSistema,
+  type Alvos,
   type ChaveEnvelope,
 } from "@/lib/envelopes";
 import {
@@ -80,6 +81,7 @@ export default function Resumo({
       receita: (number | null)[] | null;
       admin: (number | null)[] | null;
       saldoInicial: number | null;
+      alvos?: Alvos | null;
     }
   >;
 }) {
@@ -133,8 +135,8 @@ export default function Resumo({
   // Nada digitado = reserva (montarDiretriz marca como "estimado").
   const adminDigitado = caixa.adminDigitado.some(Boolean) ? caixa.admin : null;
   const diretriz = useMemo(
-    () => montarDiretriz(naMesa, teto, chaveDe, adminDigitado),
-    [naMesa, teto, chaveDe, adminDigitado],
+    () => montarDiretriz(naMesa, teto, chaveDe, adminDigitado, caixa.alvos),
+    [naMesa, teto, chaveDe, adminDigitado, caixa.alvos],
   );
 
   /**

@@ -2,9 +2,11 @@ import { FieldValue, Timestamp } from "firebase-admin/firestore";
 import type { Decisao, Situacao } from "./decisao";
 import { embedDrive, rotuloDrive } from "./drive";
 import {
+  alvosValidos,
   ehChaveDeProjeto,
   mesesComVazio,
   mesesValidos,
+  type Alvos,
   type ChaveEnvelope,
 } from "./envelopes";
 import { firestore, firestoreObrigatorio } from "./firestore";
@@ -326,27 +328,34 @@ export async function gravarAdministrativo(
 }
 
 /**
- * Receita mês a mês e saldo inicial do ano (`envelopes_caixa/{ano}`), com
- * `null` = não digitado (vale a receita do sistema ÷ 12).
+ * Receita mês a mês, saldo inicial e percentuais dos envelopes do ano
+ * (`envelopes_caixa/{ano}`), com `null` = não digitado (vale a receita do
+ * sistema ÷ 12, e a diretriz da reunião).
  */
 async function lerCaixaBruto(ano: number): Promise<{
   receita: (number | null)[] | null;
   saldoInicial: number | null;
+  alvos: Alvos | null;
 }> {
   const db = firestore();
-  if (!db) return { receita: null, saldoInicial: null };
+  if (!db) return { receita: null, saldoInicial: null, alvos: null };
   const r = (
     await db.collection("envelopes_caixa").doc(String(ano)).get()
   ).data();
   return {
     receita: mesesComVazio(r?.receita),
     saldoInicial: numeroOuNulo(r?.saldoInicial),
+    alvos: alvosValidos(r?.alvos),
   };
 }
 
 export async function gravarCaixa(
   ano: number,
-  campos: { receita?: (number | null)[]; saldoInicial?: number | null },
+  campos: {
+    receita?: (number | null)[];
+    saldoInicial?: number | null;
+    alvos?: Alvos | null;
+  },
   por: string,
 ): Promise<void> {
   const db = firestoreObrigatorio();
@@ -540,6 +549,7 @@ export const lerAdministrativo = tolerante(
 export const lerCaixa = tolerante("lerCaixa", lerCaixaBruto, () => ({
   receita: null,
   saldoInicial: null,
+  alvos: null,
 }));
 
 export const carregarTriagem = tolerante(

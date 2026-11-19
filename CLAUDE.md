@@ -369,6 +369,16 @@ ordena (projeto A–Z, valores, cada mês, com "só com parcela no mês").
 aparece um aviso e Envelopes fica só leitura. Cada carga de Envelopes/Resumo lê
 as coleções inteiras: cuidado com testes em loop no plano gratuito.
 
+**Fase 15e (diretriz editável + planilha)** — o percentual de cada envelope é
+editável no quadro (`envelopes_caixa/{ano}.alvos`, null = o da reunião; soma ≠
+100% avisa, não bloqueia) e vale também no Resumo e na reserva do
+administrativo. "Exportar .xlsx" na seção Projetos gera Leia-me · Caixa ·
+Envelopes · Projetos com fórmulas vivas (SOMASES pela coluna Envelope),
+entradas marcadas, lista suspensa, formatação condicional e impressão
+(`src/lib/envelopes-xlsx.ts`). `xlsx.ts` passou a escrever várias abas,
+estilos e fórmulas — ainda sem biblioteca. Ver
+[`docs/fase15-envelopes.md`](docs/fase15-envelopes.md).
+
 **Fase 15d (Nº de reunião)** — todo projeto tem um **Nº** = ordem de criação na
 remessa (`row_number()` sobre `created_at` em `fetchProjetos`; derivado, nada
 gravado). Aparece na barra da pasta, em coluna ordenável de Projetos & Pastas e

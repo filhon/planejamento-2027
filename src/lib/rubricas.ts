@@ -1,7 +1,9 @@
 import { agrupar, ehRenovacao } from "./agregar";
 import {
+  ALVOS_DIRETRIZ,
   ENVELOPES,
   PADRAO_CATEGORIA,
+  type Alvos,
   type ChaveEnvelope,
   type Envelope,
 } from "./envelopes";
@@ -89,12 +91,13 @@ export function montarDiretriz(
   teto: number | null,
   chaveDe: (p: ProjetoCiclo) => ChaveEnvelope | null = porCategoria,
   administrativo: number | null = null,
+  /** Os percentuais em vigor (os da mesa, na tela Envelopes). */
+  alvos: Alvos = ALVOS_DIRETRIZ,
 ): Diretriz {
   const grupos = agrupar(projetos, (p) => chaveDe(p) ?? FORA_DA_DIRETRIZ);
   const estimado = !administrativo;
-  const admin = estimado
-    ? (teto ?? 0) * (ENVELOPES.find((e) => e.semProjetos)?.alvo ?? 0)
-    : administrativo;
+  const alvoDe = (r: Envelope) => alvos[r.chave] ?? r.alvo;
+  const admin = estimado ? (teto ?? 0) * alvos.administrativo : administrativo;
   const pedido = projetos.reduce((s, p) => s + p.solicitado, 0) + admin;
 
   const fora = grupos.get(FORA_DA_DIRETRIZ) ?? [];
@@ -122,12 +125,13 @@ export function montarDiretriz(
     const novos = lista.filter((p) => !ehRenovacao(p));
     const pedidoLinha = r.semProjetos ? admin : soma(lista);
     const fracao = pedido ? pedidoLinha / pedido : 0;
-    const envelope = teto === null ? null : teto * r.alvo;
+    const alvo = alvoDe(r);
+    const envelope = teto === null ? null : teto * alvo;
 
     return {
       chave: r.chave,
       rotulo: r.rotulo,
-      alvo: r.alvo,
+      alvo,
       criterio: r.criterio,
       semProjetos: !!r.semProjetos,
       estimado: !!r.semProjetos && estimado,
@@ -145,8 +149,8 @@ export function montarDiretriz(
       desvioPp: !pedido
         ? 0
         : teto
-          ? (pedidoLinha - teto * r.alvo) / teto
-          : fracao - r.alvo,
+          ? (pedidoLinha - teto * alvo) / teto
+          : fracao - alvo,
     };
   });
 

@@ -89,7 +89,7 @@ Tudo o que o painel **grava** fica no Firestore, nunca na origem:
 | `triagem/{id}/historico`  | automático                   | cópia de cada edição feita na pasta do projeto                                                                                                                                           |
 | `envelopes`               | `projectId`                  | `ano`, `titulo`, `envelope` (null = sugestão), `meses` (12 valores; null = sem ajuste), `atualizadoEm`, `atualizadoPor` — tela Envelopes (Fase 15)                                       |
 | `envelopes_admin`         | ano (`"2026"`)               | `ano`, `meses` (custos administrativos, 12 valores; `null` = reserva), `versao: 2`, `atualizadoEm`, `atualizadoPor`                                                                      |
-| `envelopes_caixa`         | ano (`"2026"`)               | `ano`, `receita` (12 valores; `null` = sistema ÷ 12), `saldoInicial`, `atualizadoEm`, `atualizadoPor` (Fase 15b)                                                                         |
+| `envelopes_caixa`         | ano (`"2026"`)               | `ano`, `receita` (12 valores; `null` = sistema ÷ 12), `saldoInicial`, `alvos` (null = diretriz da reunião; Fase 15e), `atualizadoEm`, `atualizadoPor` (Fase 15b)                         |
 | `…/historico`             | automático                   | cópia de cada gravação das duas coleções acima                                                                                                                                           |
 
 A **decisão de contingência** (situação + valor aprovado, na pasta do projeto)

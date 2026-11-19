@@ -80,7 +80,10 @@ import {
   posicoes,
   receitaDoSistema,
   tirarDoMes,
+  ALVOS_DIRETRIZ,
+  alvosValidos,
 } from "../src/lib/envelopes";
+import { planilhaEnvelopes } from "../src/lib/envelopes-xlsx";
 import { crc32, planilha } from "../src/lib/xlsx";
 import { lerXlsx } from "../src/lib/xlsx-ler";
 import { deflateRawSync } from "node:zlib";
@@ -1091,7 +1094,8 @@ test("xlsx: zip íntegro, células tipadas e texto escapado", () => {
     { larguras: [56, 38, 20, 26], congelar: 1 },
   );
 
-  // Assinaturas do zip: entrada local, diretório central e o fim (5 partes).
+  // Assinaturas do zip: entrada local, diretório central e o fim (6 partes,
+  // com o styles.xml).
   const cru = new TextDecoder().decode(bytes);
   assert.equal(cru.slice(0, 4), "PK\u0003\u0004");
   const fim = bytes.length - 22;
@@ -1101,7 +1105,7 @@ test("xlsx: zip íntegro, células tipadas e texto escapado", () => {
   );
   assert.equal(
     new DataView(bytes.buffer, bytes.byteOffset).getUint16(fim + 10, true),
-    5,
+    6,
   );
 
   // As partes vão sem compressão, então o XML da aba está legível aqui dentro.
@@ -1131,7 +1135,7 @@ test("xlsx: célula com link vira hiperlink externo da aba", () => {
     cru,
     /<Relationship Id="rIdL1" Type="[^"]+\/hyperlink" Target="https:\/\/exemplo\.org\/p\/1\?a=1&amp;b=2" TargetMode="External"\/>/,
   );
-  // Sem link, nenhuma relação extra (o zip continua com 5 partes).
+  // Sem link, nenhuma relação extra.
   assert.ok(
     !new TextDecoder()
       .decode(planilha("A", [["x"]]))
@@ -1289,6 +1293,122 @@ test("xlsx-ler: lê de volta o que o exportador do painel grava", async () => {
     ["Projeto", "Solicitado"],
     ["Água & Vida <BR>", "45000"],
     ["Sem vínculo", ""],
+  ]);
+});
+
+test("diretriz da mesa muda o limite e a reserva do administrativo", () => {
+  const alvos = { ...ALVOS_DIRETRIZ, administrativo: 0.1, missoes: 0.494 };
+  const c = montarCaixaAno(1200, {
+    receita: null,
+    admin: null,
+    saldoInicial: null,
+    alvos,
+  });
+  assert.equal(c.adminMeses[0], 10);
+  assert.ok(c.alvosDigitados);
+  const q = montarQuadro(
+    [
+      {
+        chave: "missoes",
+        pedido: 100,
+        propostaMeses: distribuirMeses(100, []),
+      },
+    ],
+    c.adminMeses,
+    1200,
+    c.alvos,
+  );
+  const m = q.linhas.find((l) => l.chave === "missoes")!;
+  assert.equal(m.alvo, 0.494);
+  assert.equal(m.limite, 1200 * 0.494);
+  // Sem alvos, vale a diretriz da reunião (os chamadores antigos não mudam).
+  assert.equal(
+    montarCaixaAno(1200, { receita: null, admin: null, saldoInicial: null })
+      .adminMeses[0],
+    9.4,
+  );
+  assert.equal(alvosValidos({ ...ALVOS_DIRETRIZ, missoes: 1.5 }), null);
+  assert.equal(alvosValidos({ ...ALVOS_DIRETRIZ, missoes: NaN }), null);
+  const { educacao: _, ...semUm } = ALVOS_DIRETRIZ;
+  assert.equal(alvosValidos(semUm), null);
+  assert.deepEqual(alvosValidos(ALVOS_DIRETRIZ), ALVOS_DIRETRIZ);
+});
+
+test("xlsx de envelopes: fórmulas vivas, entradas marcadas e XML na ordem", async () => {
+  const caixa = montarCaixaAno(1200, {
+    receita: null,
+    admin: null,
+    saldoInicial: null,
+  });
+  const linhas = [
+    {
+      chave: "missoes" as const,
+      pedido: 120,
+      propostaMeses: distribuirMeses(120, []),
+    },
+  ];
+  const quadro = montarQuadro(linhas, caixa.adminMeses, caixa.receita);
+  const fx = fluxo(0, caixa.receitaMeses, [
+    caixa.adminMeses,
+    quadro.linhas.find((q) => q.chave === "missoes")!.propostaMeses,
+  ]);
+  const bytes = planilhaEnvelopes({
+    ano: 2026,
+    geradoEm: "19/11/2026",
+    caixa,
+    quadro,
+    fx,
+    tetoSistema: 1087.2,
+    projetos: [
+      {
+        numero: 1,
+        titulo: "Água & Vida",
+        link: "https://exemplo.org/1",
+        instituicao: null,
+        chave: "missoes",
+        origem: "categoria",
+        grupo: "Sem voto",
+        nota: null,
+        pedido: 120,
+        pedidoMeses: distribuirMeses(120, []),
+        propostaMeses: distribuirMeses(120, []),
+        fonte: "pedido",
+      },
+    ],
+  });
+  const cru = new TextDecoder().decode(bytes);
+  assert.match(
+    cru,
+    /<f>SUMIFS\('Projetos'!K\$6:K\$206,'Projetos'!\$C\$6:\$C\$206,\$A15\)<\/f><v>10<\/v>/,
+  );
+  assert.match(cru, /fullCalcOnLoad="1"/);
+  assert.match(
+    cru,
+    /<definedName name="ListaEnvelopes">'Envelopes'!\$A\$5:\$A\$9<\/definedName>/,
+  );
+  assert.match(
+    cru,
+    /<dataValidation type="list"[^>]*sqref="C6:C206"><formula1>ListaEnvelopes<\/formula1>/,
+  );
+  assert.match(cru, /<protection locked="0"\/>/);
+  // A ordem dos elementos da aba é do esquema; fora dela o Excel recusa o arquivo.
+  assert.match(
+    cru,
+    /<sheetPr>.*<sheetViews>.*<cols>.*<\/sheetData><autoFilter.*<mergeCells.*<conditionalFormatting.*<dataValidations.*<hyperlinks>.*<pageMargins.*<pageSetup.*<headerFooter>/s,
+  );
+  // O leitor do painel vê os valores calculados (prévia sem recalcular).
+  const abas = await lerXlsx(bytes);
+  assert.deepEqual(
+    abas.map((a) => a.nome),
+    ["Leia-me", "Caixa", "Envelopes", "Projetos"],
+  );
+  const env = abas.find((a) => a.nome === "Envelopes")!;
+  assert.deepEqual(env.linhas[4]!.slice(0, 5), [
+    "Missões",
+    "Missões",
+    "50,0%",
+    "50,0%",
+    "R$ 600,00",
   ]);
 });
 

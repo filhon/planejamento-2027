@@ -27,7 +27,11 @@ export interface Envelope {
   rotulo: string;
   /** Para o seletor compacto da lista de projetos. */
   curto: string;
-  /** Fração do teto (os seis somam 1). */
+  /**
+   * Fração da receita definida na reunião (os seis somam 1). A mesa pode mudar
+   * por ano na tela (`Alvos`, Firestore `envelopes_caixa.alvos`); isto é o
+   * ponto de partida e a referência "da reunião".
+   */
   alvo: number;
   /** O que entra, em uma linha: é o critério que a mesa contesta. */
   criterio: string;
@@ -88,6 +92,36 @@ export const ENVELOPES: Envelope[] = [
 export const ENVELOPE = Object.fromEntries(
   ENVELOPES.map((e) => [e.chave, e]),
 ) as Record<ChaveEnvelope, Envelope>;
+
+/** O percentual de cada envelope (fração da receita). */
+export type Alvos = Record<ChaveEnvelope, number>;
+
+/** A diretriz da reunião, sem ajuste da mesa. */
+export const ALVOS_DIRETRIZ = Object.fromEntries(
+  ENVELOPES.map((e) => [e.chave, e.alvo]),
+) as Alvos;
+
+/**
+ * Valida os percentuais vindos do cliente (ou do banco): os seis envelopes,
+ * cada um entre 0 e 1. A soma NÃO precisa dar 1: a mesa muda uma célula por
+ * vez, e de 50/25 para 45/30 o caminho passa por 95% (a tela avisa).
+ */
+export function alvosValidos(v: unknown): Alvos | null {
+  if (!v || typeof v !== "object") return null;
+  const r = {} as Alvos;
+  for (const e of ENVELOPES) {
+    const x = Number((v as Record<string, unknown>)[e.chave]);
+    if (!Number.isFinite(x) || x < 0 || x > 1) return null;
+    r[e.chave] = Math.round(x * 1e6) / 1e6;
+  }
+  return r;
+}
+
+export const somaAlvos = (a: Alvos) =>
+  Math.round(ENVELOPES.reduce((s, e) => s + a[e.chave], 0) * 1e6) / 1e6;
+
+export const igualADiretriz = (a: Alvos) =>
+  ENVELOPES.every((e) => Math.abs(a[e.chave] - e.alvo) < 1e-7);
 
 /** Os envelopes que um projeto pode receber (o select da tela). */
 export const ENVELOPES_DE_PROJETO = ENVELOPES.filter((e) => !e.semProjetos);
@@ -372,6 +406,8 @@ export interface LinhaQuadro {
   envelope: Envelope | null;
   chave: ChaveEnvelope | null;
   rotulo: string;
+  /** O percentual em vigor (o da mesa, se houver); null sem envelope. */
+  alvo: number | null;
   projetos: number;
   pedido: number;
   proposta: number;
@@ -395,17 +431,19 @@ export function montarQuadro(
   }[],
   administrativo: number[],
   receita: number | null,
+  alvos: Alvos = ALVOS_DIRETRIZ,
 ): { linhas: LinhaQuadro[]; total: LinhaQuadro } {
   const teto = receita;
   const nova = (envelope: Envelope | null, rotulo: string): LinhaQuadro => ({
     envelope,
     chave: envelope?.chave ?? null,
     rotulo,
+    alvo: envelope ? alvos[envelope.chave] : null,
     projetos: 0,
     pedido: 0,
     proposta: 0,
     propostaMeses: ZERO_MESES(),
-    limite: envelope && teto !== null ? teto * envelope.alvo : null,
+    limite: envelope && teto !== null ? teto * alvos[envelope.chave] : null,
     saldo: null,
   });
   const por = new Map<ChaveEnvelope | null, LinhaQuadro>(
@@ -515,6 +553,10 @@ export interface CaixaAno {
   adminDigitado: boolean[];
   admin: number;
   saldoInicial: number;
+  /** Os percentuais em vigor: os da mesa, ou a diretriz da reunião. */
+  alvos: Alvos;
+  /** true = a mesa mudou algum percentual neste ano. */
+  alvosDigitados: boolean;
 }
 
 /**
@@ -529,8 +571,10 @@ export function montarCaixaAno(
     receita: (number | null)[] | null;
     admin: (number | null)[] | null;
     saldoInicial: number | null;
+    alvos?: Alvos | null;
   },
 ): CaixaAno {
+  const alvos = digitado.alvos ?? ALVOS_DIRETRIZ;
   const r = preencher(
     digitado.receita,
     receitaSistema === null ? ZERO_MESES() : distribuir(receitaSistema, []),
@@ -538,7 +582,7 @@ export function montarCaixaAno(
   const conhecida = receitaSistema !== null || r.digitado.some(Boolean);
   const a = preencher(
     digitado.admin,
-    r.valores.map((v) => centavos(v * ENVELOPE.administrativo.alvo)),
+    r.valores.map((v) => centavos(v * alvos.administrativo)),
   );
   return {
     receitaSistema,
@@ -549,6 +593,8 @@ export function montarCaixaAno(
     adminDigitado: a.digitado,
     admin: somaMeses(a.valores),
     saldoInicial: digitado.saldoInicial ?? 0,
+    alvos,
+    alvosDigitados: !!digitado.alvos,
   };
 }
 

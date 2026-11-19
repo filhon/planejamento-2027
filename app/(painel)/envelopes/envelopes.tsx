@@ -12,8 +12,10 @@ import {
   type GrupoLista,
   distribuir,
   ENVELOPE,
+  ENVELOPES,
   ENVELOPES_DE_PROJETO,
   fluxo,
+  igualADiretriz,
   linhaProjeto,
   MESES,
   mesesParaTotal,
@@ -22,14 +24,20 @@ import {
   posicoes,
   ROTULO_DESTINO,
   ROTULO_FONTE,
+  somaAlvos,
   somaMeses,
   tirarDoMes,
+  type Alvos,
   type ChaveEnvelope,
   type DestinoParcela,
   type LinhaQuadro,
 } from "@/lib/envelopes";
+import { planilhaEnvelopes } from "@/lib/envelopes-xlsx";
 import type { AjusteEnvelope } from "@/lib/painel-db";
 import type { ProjetoCiclo } from "@/lib/types";
+import { TIPO_XLSX } from "@/lib/xlsx";
+import { baixar } from "../projetos/exportar";
+import { urlVotacao } from "../projetos/ir-para";
 import {
   salvarAdministrativo,
   salvarCaixa,
@@ -41,7 +49,6 @@ import {
   fmtInt,
   fmtMoeda,
   num,
-  pct,
   plural,
   rotuloCategoria,
   rotuloStatus,
@@ -78,11 +85,19 @@ interface Digitados {
   receita: (number | null)[] | null;
   admin: (number | null)[] | null;
   saldoInicial: number | null;
+  /** Percentuais da mesa; null = diretriz da reunião. */
+  alvos?: Alvos | null;
 }
 
 const RECEITA = "receita";
 const ADMIN = "admin";
 const SALDO = "saldo";
+/** Linha do percentual de um envelope no quadro: "alvo:missoes". */
+const ALVO = "alvo:";
+
+/** Percentual com até duas casas: "6,8%", "6,85%". */
+const fmtPct = (v: number) =>
+  `${(v * 100).toLocaleString("pt-BR", { maximumFractionDigits: 2 })}%`;
 const COL_TOTAL = 12;
 /** Coluna do select de envelope na navegação por setas. */
 const COL_ENVELOPE = -1;
@@ -393,6 +408,7 @@ export default function Envelopes({
         })),
         caixa.adminMeses,
         caixa.receita,
+        caixa.alvos,
       ),
     [linhas, caixa],
   );
@@ -529,7 +545,9 @@ export default function Envelopes({
   useEffect(() => {
     const aberto = editando ?? pendente;
     if (aberto) {
-      editavaProjeto.current = ![RECEITA, ADMIN, SALDO].includes(aberto.linha);
+      editavaProjeto.current =
+        ![RECEITA, ADMIN, SALDO].includes(aberto.linha) &&
+        !aberto.linha.startsWith(ALVO);
       return;
     }
     if (!editavaProjeto.current) return;
@@ -635,6 +653,13 @@ export default function Envelopes({
   /** Para onde o cursor vai depois de gravar: a planilha anda sozinha. */
   function proximo(alvo: Alvo, mover: Mover): Alvo | null {
     if (mover === null) return null;
+    if (alvo.linha.startsWith(ALVO)) {
+      // Percentuais: Enter desce para o envelope de baixo; o resto fecha.
+      if (mover !== "baixo") return null;
+      const i = ENVELOPES.findIndex((e) => ALVO + e.chave === alvo.linha);
+      const prox = ENVELOPES[i + 1];
+      return prox ? { linha: ALVO + prox.chave, col: 0 } : null;
+    }
     const noCaixa = alvo.linha === RECEITA || alvo.linha === ADMIN;
     if (alvo.linha === SALDO) return null;
     const ordem = noCaixa ? [RECEITA, ADMIN] : visiveis.map((l) => l.p.id);
@@ -725,6 +750,73 @@ export default function Envelopes({
     void gravarDigitados(
       linha === RECEITA ? "receita" : "custos administrativos",
       linha === RECEITA ? { receita: meses } : { admin: meses },
+    );
+  }
+
+  /**
+   * Percentual de um envelope, digitado em pontos ("6,8" ou "6,8%"). Vazio
+   * volta à diretriz da reunião. A soma pode sair de 100% no meio do caminho:
+   * a tela avisa, não bloqueia.
+   */
+  function confirmarAlvo(chave: ChaveEnvelope, bruto: string, mover: Mover) {
+    const v = lido(bruto.replace("%", ""), null);
+    if (v === undefined) return;
+    if (v !== null && (v < 0 || v > 100)) {
+      setAviso({
+        erro: true,
+        texto: `"${bruto}" não é um percentual. Use um número de 0 a 100.`,
+      });
+      return;
+    }
+    setEditando(proximo({ linha: ALVO + chave, col: 0 }, mover));
+    const novoValor =
+      v === null ? ENVELOPE[chave].alvo : Math.round(v * 1e4) / 1e6;
+    if (Math.abs(novoValor - caixa.alvos[chave]) < 1e-7) return;
+    const novo = { ...caixa.alvos, [chave]: novoValor };
+    void gravarDigitados(`diretriz de ${ENVELOPE[chave].rotulo}`, {
+      alvos: igualADiretriz(novo) ? null : novo,
+    });
+  }
+
+  /** Planilha da tela inteira, com as contas vivas (Leia-me explica). */
+  function exportar() {
+    const projetos = [...linhas]
+      .sort((a, b) =>
+        compararNaLista({ ...a.p, grupo: a.grupo }, { ...b.p, grupo: b.grupo }),
+      )
+      .map((l) => ({
+        numero: l.p.numero,
+        titulo: l.p.titulo,
+        link: urlVotacao(l.p.id),
+        instituicao: l.p.instituicaoNome,
+        chave: l.atrib.chave,
+        origem:
+          l.atrib.origem === "mesa"
+            ? "mesa"
+            : l.atrib.origem === "avaliacao"
+              ? `avaliação: ${l.atrib.motivo}`
+              : l.atrib.origem === "sem"
+                ? `categoria sem envelope (${rotuloCategoria(l.p.categoria)})`
+                : `categoria (${rotuloCategoria(l.p.categoria)})`,
+        grupo: ROTULO_GRUPO[l.grupo],
+        nota: l.p.notaMedia,
+        pedido: l.p.solicitado,
+        pedidoMeses: l.pedidoMeses,
+        propostaMeses: l.propostaMeses,
+        fonte: l.fonte,
+      }));
+    baixar(
+      `envelopes-${ano}.xlsx`,
+      planilhaEnvelopes({
+        ano,
+        geradoEm,
+        caixa,
+        quadro,
+        fx,
+        tetoSistema: doSistema.teto,
+        projetos,
+      }),
+      TIPO_XLSX,
     );
   }
 
@@ -869,13 +961,42 @@ export default function Envelopes({
       dica={
         digitado
           ? `Digitado: ${fmtMoeda.format(valor)}. Apague o valor para voltar ao padrão.`
-          : `${linha === RECEITA ? "Receita do sistema ÷ 12" : "Reserva: 9,4% da receita do mês"} (${fmtMoeda.format(valor)}), não digitado.`
+          : `${linha === RECEITA ? "Receita do sistema ÷ 12" : `Reserva: ${fmtPct(caixa.alvos.administrativo)} da receita do mês`} (${fmtMoeda.format(valor)}), não digitado.`
       }
       aoAbrir={(inicial) => setEditando({ linha, col: i, inicial })}
       aoConfirmar={(b, m) => confirmarCaixa(linha, i, b, m)}
       aoCancelar={() => setEditando(null)}
     />
   );
+
+  const somaDiretriz = somaAlvos(caixa.alvos);
+  const foraDeCem = Math.abs(somaDiretriz - 1) > 0.0005;
+
+  const celulaAlvo = (chave: ChaveEnvelope) => {
+    const alvo = caixa.alvos[chave];
+    const reuniao = ENVELOPE[chave].alvo;
+    const linha = ALVO + chave;
+    const mudou = Math.abs(alvo - reuniao) >= 1e-7;
+    return (
+      <Celula
+        valor={Math.round(alvo * 1e6) / 1e4}
+        texto={fmtPct(alvo)}
+        rotulo={`Diretriz de ${ENVELOPE[chave].rotulo}, em %`}
+        editavel={gravavel}
+        editando={editando?.linha === linha}
+        inicial={editando?.linha === linha ? editando.inicial : undefined}
+        classe={mudou ? "mudou" : undefined}
+        dica={
+          mudou
+            ? `Definido na reunião: ${fmtPct(reuniao)}. Apague o valor para voltar a ele.`
+            : "Percentual da receita definido na reunião. Clique para mudar."
+        }
+        aoAbrir={(inicial) => setEditando({ linha, col: 0, inicial })}
+        aoConfirmar={(b, m) => confirmarAlvo(chave, b, m)}
+        aoCancelar={() => setEditando(null)}
+      />
+    );
+  };
 
   return (
     <>
@@ -978,7 +1099,7 @@ export default function Envelopes({
       <div className="grade">
         <Secao
           titulo="Caixa mês a mês"
-          sub="Receita menos saídas. Itálico = valor padrão, ainda não digitado (receita do sistema ÷ 12; administrativo = 9,4% da receita do mês). Apague um valor digitado para voltar ao padrão. Remessa inteira, sem o recorte."
+          sub={`Receita menos saídas. Itálico = valor padrão, ainda não digitado (receita do sistema ÷ 12; administrativo = ${fmtPct(caixa.alvos.administrativo)} da receita do mês). Apague um valor digitado para voltar ao padrão. Remessa inteira, sem o recorte.`}
           largura="cheia"
         >
           <table className="tabela tabela-caixa">
@@ -1041,7 +1162,7 @@ export default function Envelopes({
                   (−) Custos administrativos
                   <span className="celula-sub">
                     {adminReserva === 12
-                      ? "reserva de 9,4%, não digitado"
+                      ? `reserva de ${fmtPct(caixa.alvos.administrativo)}, não digitado`
                       : adminReserva > 0
                         ? `${plural(adminReserva, "mês ainda em reserva", "meses ainda em reserva")}`
                         : "digitado mês a mês"}
@@ -1170,7 +1291,7 @@ export default function Envelopes({
 
         <Secao
           titulo="Envelopes no ano"
-          sub="Limite = a diretriz aplicada à receita (o administrativo é uma das seis fatias, não sai antes). Proposta = ajuste da mesa, decisão da pasta, aprovado no sistema ou, sem nada disso, o pedido. Clique no nome para filtrar a lista."
+          sub="Limite = a diretriz aplicada à receita (o administrativo é uma das seis fatias, não sai antes). A diretriz é editável: clique no percentual; marcado = diferente do definido na reunião. Proposta = ajuste da mesa, decisão da pasta, aprovado no sistema ou, sem nada disso, o pedido. Clique no nome para filtrar a lista."
           largura="cheia"
         >
           <table className="tabela tabela-envelopes">
@@ -1194,6 +1315,13 @@ export default function Envelopes({
                   escala={escala}
                   filtro={filtro}
                   aoFiltrar={(f) => setFiltro(f === filtro ? null : f)}
+                  diretriz={
+                    q.chave === null ? (
+                      <td className="n">—</td>
+                    ) : (
+                      celulaAlvo(q.chave)
+                    )
+                  }
                 />
               ))}
             </tbody>
@@ -1202,8 +1330,29 @@ export default function Envelopes({
                 <td>
                   Total ({plural(quadro.total.projetos, "projeto", "projetos")}{" "}
                   + administrativo)
+                  {caixa.alvosDigitados && gravavel && (
+                    <span className="celula-sub">
+                      <button
+                        type="button"
+                        className="botao-desfazer"
+                        title="Apaga os percentuais da mesa e volta aos definidos na reunião"
+                        onClick={() =>
+                          void gravarDigitados("diretriz da reunião", {
+                            alvos: null,
+                          })
+                        }
+                      >
+                        Voltar à diretriz da reunião
+                      </button>
+                    </span>
+                  )}
                 </td>
-                <td className="n">100%</td>
+                <td
+                  className={`n${foraDeCem ? " marca-alerta" : ""}`}
+                  title={foraDeCem ? "A diretriz não soma 100%" : undefined}
+                >
+                  {fmtPct(somaDiretriz)}
+                </td>
                 <td className="n">
                   {receita === null ? "—" : fmtMoeda.format(receita)}
                 </td>
@@ -1218,6 +1367,16 @@ export default function Envelopes({
               </tr>
             </tfoot>
           </table>
+          {foraDeCem && (
+            <p className="marca-alerta aviso-recorte">
+              A diretriz soma {fmtPct(somaDiretriz)}:{" "}
+              {receita === null
+                ? "ajuste os percentuais até 100%."
+                : somaDiretriz < 1
+                  ? `${fmtMoeda.format(receita * (1 - somaDiretriz))} da receita ficam fora de qualquer envelope.`
+                  : `os limites somam ${fmtMoeda.format(receita * (somaDiretriz - 1))} além da receita.`}
+            </p>
+          )}
           <p className="rodape">
             Base: projetos avaliáveis da Remessa {ano} (rejeitado, rascunho e
             cancelado ficam fora). Saúde e &ldquo;outros&rdquo; entram em
@@ -1230,6 +1389,16 @@ export default function Envelopes({
 
         <Secao
           titulo={rotuloFiltro ? `Projetos: ${rotuloFiltro}` : "Projetos"}
+          acoes={
+            <button
+              type="button"
+              className="botao-claro"
+              title="Planilha com caixa, envelopes e todos os projetos avaliáveis, com as contas vivas e as células editáveis marcadas"
+              onClick={exportar}
+            >
+              Exportar .xlsx
+            </button>
+          }
           sub={`Classificação: aprovados (no sistema ou na pasta), votados sem decisão, sem voto e, no fim, os que a pasta reprovou, adiou ou devolveu. Dentro de cada grupo, a maior nota média dos diretores (0 a 5)${empateTopo > 1 ? `; os ${empateTopo} primeiros empatam` : ""}; sem nota, o maior pedido. Clique num cabeçalho para ordenar por ele. Setas andam; Enter ou um número abre a célula.`}
           largura="cheia"
         >
@@ -1404,12 +1573,15 @@ function LinhaDoQuadro({
   escala,
   filtro,
   aoFiltrar,
+  diretriz,
 }: {
   q: LinhaQuadro;
   receita: number | null;
   escala: number;
   filtro: Filtro;
   aoFiltrar: (f: Filtro) => void;
+  /** A célula do percentual (editável), montada por quem tem o estado. */
+  diretriz: React.ReactNode;
 }) {
   const ehAdmin = q.chave === "administrativo";
   const chaveFiltro: Filtro = q.chave ?? "sem";
@@ -1438,7 +1610,7 @@ function LinhaDoQuadro({
             : `${plural(q.projetos, "projeto", "projetos")}${q.envelope ? `. ${q.envelope.criterio}` : ""}`}
         </span>
       </td>
-      <td className="n">{q.envelope ? pct(q.envelope.alvo) : "—"}</td>
+      {diretriz}
       <td className="n">
         {q.limite === null ? "—" : fmtMoeda.format(q.limite)}
       </td>

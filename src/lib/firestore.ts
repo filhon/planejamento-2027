@@ -14,7 +14,7 @@ import { pick } from "./env";
  *    └ historico/{auto}       cópia de cada gravação (nada se perde ao sobrescrever)
  *  - envelopes/{projectId}    { ano, titulo, envelope, meses[12], atualizadoEm, atualizadoPor } + historico
  *  - envelopes_admin/{ano}    { ano, meses[12] (null = reserva), versao: 2, atualizadoEm, atualizadoPor } + historico
- *  - envelopes_caixa/{ano}    { ano, receita[12] (null = sistema ÷ 12), saldoInicial, atualizadoEm, atualizadoPor } + historico
+ *  - envelopes_caixa/{ano}    { ano, receita[12] (null = sistema ÷ 12), saldoInicial, alvos {chave: fração} (null = diretriz da reunião), atualizadoEm, atualizadoPor } + historico
  *
  * Só o servidor fala com o Firestore (Admin SDK, conta de serviço). As regras
  * do Firestore podem — e devem — negar todo acesso de cliente: ver

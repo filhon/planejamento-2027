@@ -5,9 +5,11 @@ import { atualizar } from "@/lib/cache";
 import { validarDecisao } from "@/lib/decisao";
 import {
   ehChaveDeProjeto,
+  alvosValidos,
   mesesComVazio,
   mesesValidos,
   somaMeses,
+  type Alvos,
   type ChaveEnvelope,
 } from "@/lib/envelopes";
 import {
@@ -239,12 +241,22 @@ export async function salvarAdministrativo(
 /** Receita mês a mês (null = valor do sistema) e saldo inicial do caixa. */
 export async function salvarCaixa(
   ano: number,
-  campos: { receita?: unknown; saldoInicial?: unknown },
+  campos: { receita?: unknown; saldoInicial?: unknown; alvos?: unknown },
 ): Promise<EstadoLink> {
   const sessao = await exigirSessao();
   if (!Number.isInteger(ano)) return { erro: "Ano inválido." };
-  const gravar: { receita?: (number | null)[]; saldoInicial?: number | null } =
-    {};
+  const gravar: {
+    receita?: (number | null)[];
+    saldoInicial?: number | null;
+    alvos?: Alvos | null;
+  } = {};
+  if ("alvos" in campos) {
+    // null = volta à diretriz da reunião.
+    const alvos = campos.alvos === null ? null : alvosValidos(campos.alvos);
+    if (campos.alvos !== null && !alvos)
+      return { erro: "Percentuais inválidos (cada um entre 0% e 100%)." };
+    gravar.alvos = alvos;
+  }
   if ("receita" in campos) {
     const receita = mesesComVazio(campos.receita);
     if (!receita) return { erro: "Valores da receita inválidos." };

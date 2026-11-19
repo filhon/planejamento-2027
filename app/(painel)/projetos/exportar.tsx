@@ -34,7 +34,7 @@ import {
  * Fase 4) e o .xlsx é `src/lib/xlsx.ts`, ~200 linhas de zip + XML.
  */
 
-function baixar(nome: string, dados: BlobPart, tipo: string) {
+export function baixar(nome: string, dados: BlobPart, tipo: string) {
   const url = URL.createObjectURL(new Blob([dados], { type: tipo }));
   const a = document.createElement("a");
   a.href = url;

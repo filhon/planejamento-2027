@@ -1548,6 +1548,43 @@ button.ficha:hover {
   white-space: nowrap;
 }
 
+/* O Nº é o que a mesa fala em voz alta ("o 42"): peso de título, não de rótulo. */
+.pasta-numero {
+  font-family: var(--fonte-titulo), system-ui, sans-serif;
+  font-size: var(--texto-titulo);
+  font-variant-numeric: tabular-nums;
+  color: var(--laranja-escuro);
+  white-space: nowrap;
+}
+
+.ir-para label {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-size: var(--texto-micro);
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  font-weight: 600;
+  color: var(--tinta-fraca);
+  white-space: nowrap;
+}
+
+.ir-para input {
+  font: inherit;
+  font-size: var(--texto-ui);
+  width: 5ch;
+  padding: 6px 8px;
+  border: 1px solid var(--borda);
+  border-radius: 8px;
+  background: var(--papel);
+  color: var(--tinta);
+  font-variant-numeric: tabular-nums;
+}
+
+.ir-para input[aria-invalid="true"] {
+  border-color: var(--laranja);
+}
+
 .pasta-pedido span {
   font-family: var(--fonte-corpo), system-ui, sans-serif;
   font-size: var(--texto-micro);

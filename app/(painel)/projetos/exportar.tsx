@@ -3,6 +3,7 @@
 import { planilha, TIPO_XLSX } from "@/lib/xlsx";
 import type { ProjetoCiclo } from "@/lib/types";
 import { usePainel } from "../contexto";
+import { urlVotacao } from "./ir-para";
 import {
   deltaPedido,
   fmtInt,
@@ -110,6 +111,7 @@ export default function Exportar({ lista }: { lista: ProjetoCiclo[] }) {
       ],
       [],
       [
+        "Nº",
         "Projeto",
         "Instituição",
         "Valor solicitado (R$)",
@@ -118,23 +120,26 @@ export default function Exportar({ lista }: { lista: ProjetoCiclo[] }) {
         // e a coluna continua ordenável na planilha.
         "Variação do pedido (%)",
         "Situação",
+        "Link na votação",
       ],
       ...lista.map((p) => {
         const d = deltaPedido(p.solicitado, p.revisao.recebidoAnterior);
         return [
+          p.numero,
           p.titulo,
           p.instituicaoNome ?? "—",
           p.solicitado,
           p.revisao.recebidoAnterior,
           d === null ? null : Math.round(d * 1000) / 10,
           emCorrecao(p) ? SITUACAO_CORRECAO : null,
+          { texto: urlVotacao(p.id), link: urlVotacao(p.id) },
         ];
       }),
     ];
     baixar(
       `${arquivo}.xlsx`,
       planilha(`Projetos ${ano}`, linhas, {
-        larguras: [56, 38, 20, 26, 22, 58],
+        larguras: [6, 56, 38, 20, 26, 22, 58, 90],
         // Tudo acima do cabeçalho fica preso: rolar 200 projetos sem ver de
         // quem é a lista é como o material volta errado da reunião.
         congelar: linhas.length - lista.length,
@@ -157,11 +162,11 @@ export default function Exportar({ lista }: { lista: ProjetoCiclo[] }) {
 
   function paginaPdf() {
     const linhas = lista
-      .map((p, i) => {
+      .map((p) => {
         const recebido = p.revisao.recebidoAnterior;
         return `<tr>
-  <td class="ordem">${String(i + 1).padStart(2, "0")}</td>
-  <td><span class="projeto">${escHtml(p.titulo)}</span>
+  <td class="ordem">${p.numero}</td>
+  <td><a class="projeto" href="${escHtml(urlVotacao(p.id))}">${escHtml(p.titulo)}</a>
     <span class="instituicao">${escHtml(p.instituicaoNome ?? "instituição não informada")}</span>${
       emCorrecao(p)
         ? `\n    <span class="correcao">${escHtml(SITUACAO_CORRECAO)}</span>`
@@ -352,6 +357,11 @@ export default function Exportar({ lista }: { lista: ProjetoCiclo[] }) {
   .relacao .sem { color: var(--tinta-fraca); font-weight: 400; }
 
   .projeto { display: block; font-weight: 600; font-size: 10pt; overflow-wrap: anywhere; }
+  /* O título é o link para a votação (clicável no PDF salvo). Sublinhado fino
+     e a seta dizem isso sem cor — no papel, quem procura usa o Nº. */
+  a.projeto { color: inherit; text-decoration: underline; text-decoration-thickness: 0.5pt;
+    text-underline-offset: 2px; text-decoration-color: var(--filete-forte); }
+  a.projeto::after { content: " \\2197"; font-weight: 400; color: var(--tinta-fraca); }
   .instituicao { display: block; font-size: 8.5pt; color: var(--tinta-fraca); }
   /* A palavra carrega o aviso; o filete e a cor só reforçam fora do P&B. */
   .correcao {
@@ -461,6 +471,8 @@ ${linhas}
     <p><b>Recebido em ${ano}</b> é o valor aprovado do projeto correspondente na remessa
       de ${anoAnterior ?? "—"}, pago no ciclo de ${ano}. O travessão indica projeto sem
       vínculo com a remessa anterior, ou sem valor recebido.</p>
+    <p><b>Título do projeto</b> (&nearr;) abre o projeto no sistema de votação no PDF salvo;
+      no papel, use o <b>Nº</b> no campo &ldquo;Ir para nº&rdquo; do painel.</p>
     <p><b>Variação</b> é quanto o pedido desta remessa sobe (&uarr;) ou desce (&darr;)
       sobre o valor recebido pelo mesmo projeto — só existe onde há esse vínculo.</p>
     <p class="assinatura">Hebron ASEEC &middot; Instrumentos de Deus na transformação de vidas.</p>

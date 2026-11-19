@@ -192,6 +192,8 @@ export type StatusGrupo =
 
 export interface ProjetoCiclo {
   id: string;
+  /** Nº de reunião: ordem de criação na remessa (1…n), derivado — ver `fetchProjetos`. */
+  numero: number;
   cicloId: string;
   ano: Ano;
   titulo: string;

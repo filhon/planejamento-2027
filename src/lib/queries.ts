@@ -77,6 +77,7 @@ export interface ProjetoRow {
   parecer_aseec_tags: string[] | null;
   tem_devolutiva: boolean;
   updated_at: Date | null;
+  numero: number;
 }
 
 /** 1 linha por projeto do ciclo, com os satélites já agregados. */
@@ -119,7 +120,15 @@ export function fetchProjetos(ano?: Ano): Promise<ProjetoRow[]> {
       ${TEM_PARECER}                      as tem_parecer,
       cp.parecer_aseec_tags,
       nullif(btrim(coalesce(cp.reviewer_notes, '')), '') is not null as tem_devolutiva,
-      cp.updated_at
+      cp.updated_at,
+      -- Nº do projeto na reunião: ordem de criação dentro da remessa. Derivado
+      -- (nada gravado na origem) e estável, porque created_at não muda; o
+      -- partition por ciclo dá o mesmo número com ou sem o filtro de ano.
+      -- ponytail: apagar um projeto da origem renumera os seguintes; congelar
+      -- no Firestore se isso um dia acontecer no meio de uma remessa.
+      (row_number() over (
+        partition by cp.cycle_id order by cp.created_at nulls last, cp.id
+      ))::int as numero
     from cycle_projects cp
     join submission_cycles sc on sc.id = cp.cycle_id
     left join institutions i  on i.id = cp.institution_id

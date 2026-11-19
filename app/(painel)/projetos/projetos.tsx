@@ -22,6 +22,7 @@ import {
 import { Kpi, Secao } from "../ui";
 import { Analise } from "./analise";
 import Exportar from "./exportar";
+import IrPara from "./ir-para";
 import { ROTULO_TIPO, Tipo } from "./tipo";
 
 /**
@@ -39,6 +40,7 @@ import { ROTULO_TIPO, Tipo } from "./tipo";
  */
 
 const colunaOrdem: Record<string, (p: ProjetoCiclo) => number | string> = {
+  numero: (p) => p.numero,
   titulo: (p) => p.titulo.toLocaleLowerCase("pt-BR"),
   instituicao: (p) => (p.instituicaoNome ?? "").toLocaleLowerCase("pt-BR"),
   solicitado: (p) => -p.solicitado,
@@ -53,7 +55,7 @@ const colunaOrdem: Record<string, (p: ProjetoCiclo) => number | string> = {
 
 /** Cada coluna tem uma ordem só, a útil: nome de A a Z, dinheiro do maior ao
  *  menor. O ▾ diz isso a quem vê; `aria-sort`, a quem ouve. */
-const CRESCENTE = new Set(["titulo", "instituicao"]);
+const CRESCENTE = new Set(["numero", "titulo", "instituicao"]);
 
 export default function Projetos({
   avaliadores,
@@ -213,7 +215,12 @@ export default function Projetos({
           largura="cheia"
           // A exportação leva a lista JÁ ORDENADA: o diretor recebe o material
           // na mesma ordem em que está vendo na tela.
-          acoes={<Exportar lista={lista} />}
+          acoes={
+            <>
+              <IrPara />
+              <Exportar lista={lista} />
+            </>
+          }
         >
           <div className="rolagem">
             <table className="tabela">
@@ -221,6 +228,7 @@ export default function Projetos({
                 <tr>
                   {(
                     [
+                      ["numero", "Nº"],
                       ["titulo", "Projeto"],
                       ["instituicao", "Instituição"],
                     ] as const
@@ -269,6 +277,7 @@ export default function Projetos({
               <tbody>
                 {lista.map((p) => (
                   <tr key={p.id}>
+                    <td className="n">{p.numero}</td>
                     <td>
                       <Link className="link-projeto" href={`/projetos/${p.id}`}>
                         {p.titulo}
@@ -295,7 +304,7 @@ export default function Projetos({
                 ))}
                 {lista.length === 0 && (
                   <tr>
-                    <td colSpan={8} className="sub">
+                    <td colSpan={9} className="sub">
                       {filtros.responsavel.includes(SEM_RESPONSAVEL)
                         ? "Nenhum projeto sem responsável neste recorte."
                         : SEM_RESULTADO}

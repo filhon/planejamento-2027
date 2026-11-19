@@ -369,6 +369,15 @@ ordena (projeto A–Z, valores, cada mês, com "só com parcela no mês").
 aparece um aviso e Envelopes fica só leitura. Cada carga de Envelopes/Resumo lê
 as coleções inteiras: cuidado com testes em loop no plano gratuito.
 
+**Fase 15d (Nº de reunião)** — todo projeto tem um **Nº** = ordem de criação na
+remessa (`row_number()` sobre `created_at` em `fetchProjetos`; derivado, nada
+gravado). Aparece na barra da pasta, em coluna ordenável de Projetos & Pastas e
+no PDF/.xlsx. "Ir para nº" (`projetos/ir-para.tsx`) abre a pasta pelo número, e
+"Abrir na votação ↗" leva a `sistema.hebronaseec.com.br/avaliacao-projeto/<id>`
+— a busca de lá só acha por nome. Na exportação, o .xlsx ganha a coluna "Link
+na votação" (hiperlink de verdade: `{ texto, link }` em `xlsx.ts`) e no PDF o
+título do projeto é o link. Apagar projeto na origem renumera os seguintes.
+
 **Próximo passo:** nada obrigatório. Em aberto, só se a equipe pedir: exportar PNG
 (hoje é PDF pela impressão), zoom/pan no mapa e ler .docx no visor (o
 descompactador já está lá; falta extrair o texto de `word/document.xml`).

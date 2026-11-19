@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePainel } from "../../contexto";
 import { fmtMoeda } from "../../formato";
+import IrPara, { urlVotacao } from "../ir-para";
 
 /**
  * A barra da pasta — grudada no topo enquanto a sala rola o projeto.
@@ -20,11 +21,13 @@ import { fmtMoeda } from "../../formato";
  */
 export default function Barra({
   id,
+  numero,
   titulo,
   solicitado,
   temVideo,
 }: {
   id: string;
+  numero: number;
   titulo: string;
   solicitado: number;
   temVideo: boolean;
@@ -60,7 +63,20 @@ export default function Barra({
         </span>
       )}
 
+      <IrPara />
+
+      <span className="pasta-numero">Nº {numero}</span>
       <b className="pasta-titulo">{titulo}</b>
+
+      {/* A busca do sistema de votação só acha por nome; o link vai direto. */}
+      <a
+        className="pasta-ancora"
+        href={urlVotacao(id)}
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        Abrir na votação ↗
+      </a>
 
       {/* O "roda o vídeo" da reunião: o vídeo fica depois do mérito no DOM (é
           lá que ele pertence no papel), então o salto precisa de uma âncora. */}

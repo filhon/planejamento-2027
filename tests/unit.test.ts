@@ -1114,6 +1114,31 @@ test("xlsx: zip íntegro, células tipadas e texto escapado", () => {
   assert.match(cru, /ySplit="1"/);
 });
 
+test("xlsx: célula com link vira hiperlink externo da aba", () => {
+  const url = "https://exemplo.org/p/1?a=1&b=2";
+  const cru = new TextDecoder().decode(
+    planilha("A", [["Nº", { texto: url, link: url }]]),
+  );
+  assert.match(
+    cru,
+    /<c r="B1" t="inlineStr"><is><t xml:space="preserve">https:\/\/exemplo\.org\/p\/1\?a=1&amp;b=2<\/t>/,
+  );
+  assert.match(
+    cru,
+    /<hyperlinks><hyperlink ref="B1" r:id="rIdL1"\/><\/hyperlinks>/,
+  );
+  assert.match(
+    cru,
+    /<Relationship Id="rIdL1" Type="[^"]+\/hyperlink" Target="https:\/\/exemplo\.org\/p\/1\?a=1&amp;b=2" TargetMode="External"\/>/,
+  );
+  // Sem link, nenhuma relação extra (o zip continua com 5 partes).
+  assert.ok(
+    !new TextDecoder()
+      .decode(planilha("A", [["x"]]))
+      .includes("sheet1.xml.rels"),
+  );
+});
+
 /* ------------------------------------- leitura de .xlsx do visor de anexos */
 
 /** Zip com uma entrada por parte, comprimida — é assim que o Excel grava. */

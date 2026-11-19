@@ -153,6 +153,7 @@ function montarProjetoCom(
 
   return {
     id: row.id,
+    numero: row.numero,
     cicloId: row.cycle_id,
     ano: row.year,
     titulo: row.title,

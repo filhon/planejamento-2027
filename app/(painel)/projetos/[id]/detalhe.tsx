@@ -174,6 +174,7 @@ export default function Detalhe({
     <div className="pasta-projeto">
       <Barra
         id={p.id}
+        numero={p.numero}
         titulo={p.titulo}
         solicitado={p.solicitado}
         temVideo={videos.length > 0}

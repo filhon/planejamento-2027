@@ -10,7 +10,8 @@
  * Puro: roda no cliente (a exportação) e no Node (o teste). Nada de `fs`/`pg`.
  */
 
-export type Celula = string | number | null;
+/** `{ texto, link }` = hiperlink externo de verdade (clicável no Excel/Sheets). */
+export type Celula = string | number | null | { texto: string; link: string };
 
 // ------------------------------------------------------------------- zip
 
@@ -142,15 +143,18 @@ export function planilha(
     congelar = 0,
   }: { larguras?: number[]; congelar?: number } = {},
 ): Uint8Array<ArrayBuffer> {
+  const links: { ref: string; url: string }[] = [];
   const corpo = linhas
     .map((linha, l) => {
       const celulas = linha
         .map((v, c) => {
           if (v === null || v === "") return "";
           const ref = `${coluna(c)}${l + 1}`;
-          return typeof v === "number"
-            ? `<c r="${ref}"><v>${Number.isFinite(v) ? v : 0}</v></c>`
-            : `<c r="${ref}" t="inlineStr"><is><t xml:space="preserve">${esc(v)}</t></is></c>`;
+          if (typeof v === "object") links.push({ ref, url: v.link });
+          const texto = typeof v === "object" ? v.texto : v;
+          return typeof texto === "number"
+            ? `<c r="${ref}"><v>${Number.isFinite(texto) ? texto : 0}</v></c>`
+            : `<c r="${ref}" t="inlineStr"><is><t xml:space="preserve">${esc(texto)}</t></is></c>`;
         })
         .join("");
       return `<row r="${l + 1}">${celulas}</row>`;
@@ -203,8 +207,28 @@ export function planilha(
     ),
     parte(
       "xl/worksheets/sheet1.xml",
-      `<worksheet xmlns="${NS_SS}">${painel}${cols}<sheetData>${corpo}</sheetData></worksheet>`,
+      `<worksheet xmlns="${NS_SS}" xmlns:r="${NS_REL}">${painel}${cols}<sheetData>${corpo}</sheetData>` +
+        (links.length
+          ? `<hyperlinks>${links
+              .map((h, i) => `<hyperlink ref="${h.ref}" r:id="rIdL${i + 1}"/>`)
+              .join("")}</hyperlinks>`
+          : "") +
+        `</worksheet>`,
     ),
+    // Hiperlink externo mora numa relação da aba, não na célula.
+    ...(links.length
+      ? [
+          parte(
+            "xl/worksheets/_rels/sheet1.xml.rels",
+            `<Relationships xmlns="${NS_PKG_REL}">${links
+              .map(
+                (h, i) =>
+                  `<Relationship Id="rIdL${i + 1}" Type="${NS_REL}/hyperlink" Target="${esc(h.url).replace(/"/g, "&quot;")}" TargetMode="External"/>`,
+              )
+              .join("")}</Relationships>`,
+          ),
+        ]
+      : []),
   ]);
 }
 

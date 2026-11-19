@@ -19,7 +19,13 @@ export function proxy(req: NextRequest) {
 
   const url = new URL("/login", req.url);
   if (pathname !== "/") url.searchParams.set("de", pathname + search);
-  return NextResponse.redirect(url);
+  // Cookie presente mas recusado = a sessão venceu (o cookie vive mais que o
+  // `exp` de propósito, ver actions.ts) ou a pessoa saiu da lista. A tela diz.
+  const vencido = req.cookies.has(COOKIE_SESSAO);
+  if (vencido) url.searchParams.set("expirou", "1");
+  const res = NextResponse.redirect(url);
+  if (vencido) res.cookies.delete(COOKIE_SESSAO);
+  return res;
 }
 
 export const config = {

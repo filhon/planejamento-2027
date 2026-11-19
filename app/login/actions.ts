@@ -13,7 +13,13 @@ import {
 
 export interface EstadoLogin {
   erro?: string;
+  /** Volta para o campo: o React 19 limpa o formulário ao fim da action. */
+  email?: string;
 }
+
+/** O cookie dura mais que a sessão (o `exp` assinado continua mandando): é
+ *  isso que deixa o proxy distinguir "venceu" de "nunca entrou". */
+const VIDA_COOKIE_S = 7 * 24 * 60 * 60;
 
 /** Toda falha leva o mesmo tempo: não dá para medir se o e-mail existe. */
 const PISO_FALHA_MS = 1500;
@@ -49,6 +55,7 @@ export async function entrar(
       erro: falhouBanco
         ? "Não foi possível conferir agora. Tente de novo em instantes."
         : "E-mail ou senha não conferem.",
+      email,
     };
   }
 
@@ -67,7 +74,7 @@ export async function entrar(
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
       path: "/",
-      maxAge: DURACAO_SESSAO_S,
+      maxAge: VIDA_COOKIE_S,
     },
   );
   redirect(destino);

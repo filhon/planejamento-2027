@@ -242,7 +242,8 @@ button {
 
 .botao-atualizar {
   border: 0;
-  background: var(--laranja);
+  /* Escuro: branco sobre o laranja cru dá 3,5:1 e reprova AA em 14px. */
+  background: var(--laranja-escuro);
   color: #fff;
   font-weight: 600;
   font-size: var(--texto-ui);
@@ -2787,6 +2788,11 @@ body.apresentacao .rolagem {
 
 .login {
   min-height: 100vh;
+  min-height: 100dvh; /* no celular, 100vh passa por baixo da barra do navegador */
+  /* É um <main>: sem isto herda o teto de 1560px do painel e o azul vira
+     uma faixa com as laterais cinza em tela larga. */
+  max-width: none;
+  margin: 0;
   display: grid;
   place-items: center;
   padding: var(--espaco-lg);
@@ -2801,8 +2807,15 @@ body.apresentacao .rolagem {
   box-shadow: var(--sombra-flutuante);
 }
 
+.login-marca {
+  margin: var(--espaco-lg) 0 0;
+  font-size: var(--texto-nota);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--tinta-fraca);
+}
+
 .login-cartao .titulo {
-  margin-top: var(--espaco-lg);
   font-size: var(--texto-pagina);
   color: var(--azul);
 }
@@ -2840,8 +2853,28 @@ body.apresentacao .rolagem {
   font-size: var(--texto-ui);
 }
 
+/* Mesmo raio dos campos: no cartão são dois raios (14 e 8), não três. */
 .login-form .botao-atualizar {
   padding: 11px 18px;
+  border-radius: 8px;
+}
+
+.login-aviso {
+  margin: 0 0 var(--espaco-lg);
+  padding: var(--espaco-sm) var(--espaco-md);
+  background: var(--neutro);
+  border-radius: 8px;
+  font-size: var(--texto-ui);
+}
+
+.login-ajuda {
+  margin: var(--espaco-lg) 0 0;
+  font-size: var(--texto-nota);
+  color: var(--tinta-fraca);
+}
+
+.login-ajuda a {
+  color: var(--azul);
 }
 
 /* ------------------------------------------- envelopes da diretriz (Fase 15) */
